@@ -93,7 +93,7 @@ pub fn get_recent_activity(state: State<AppState>, limit: Option<i64>) -> Result
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let n = limit.unwrap_or(12);
     let mut stmt = db.prepare(
-        "SELECT item_type, COALESCE(item_name,'?'), (exit_code=0), ran_at FROM run_log ORDER BY ran_at DESC LIMIT ?1"
+        "SELECT item_type, COALESCE(item_name,'(unknown)'), (exit_code=0), ran_at FROM run_log ORDER BY ran_at DESC LIMIT ?1"
     ).map_err(|e| e.to_string())?;
     let rows = stmt.query_map([n], |row| {
         Ok(ActivityEntry { item_type: row.get(0)?, item_name: row.get(1)?, success: row.get::<_,i64>(2)? != 0, ran_at: row.get(3)? })

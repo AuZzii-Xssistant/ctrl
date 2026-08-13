@@ -112,5 +112,25 @@ pub async fn run_workflow(app: tauri::AppHandle, state: State<'_, AppState>, id:
             + &String::from_utf8_lossy(&out.stderr);
         results.push(StepResult { label: step.label.clone(), success: out.status.success(), output });
     }
+
+    // Log the workflow run to run_log
+    {
+        let wf_name: String = {
+            let db = state.0.lock().map_err(|e| e.to_string())?;
+            db.query_row("SELECT name FROM workflows WHERE id=?1", params![id], |r| r.get(0))
+              .unwrap_or_else(|_| format!("Workflow {}", id))
+        };
+        let all_ok = results.iter().all(|r| r.success);
+        let combined = results.iter().enumerate()
+            .map(|(i, r)| format!("[{}/{}] {} {}\n{}", i + 1, results.len(),
+                if r.success { "✓" } else { "✗" }, r.label, r.output.trim()))
+            .collect::<Vec<_>>().join("\n---\n");
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        let code: i64 = if all_ok { 0 } else { 1 };
+        let _ = db.execute(
+            "INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('workflow',?1,?2,?3,?4)",
+            params![id, wf_name, code, combined],
+        );
+    }
     Ok(results)
 }

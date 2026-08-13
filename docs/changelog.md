@@ -178,3 +178,4 @@
 
 2026-08-13 15:19 — Tool icons by extension, Builder localStorage, Workflows in global search, pin workflows to dashboard, scripts.js clean import, data-name on tiles
 2026-08-13 — Loop 6: Tweaks admin badges, applied-state persistence (localStorage), UTF-8 output fix
+2026-08-13 — Loop 7: Builder run now uses showOutput() correctly; Projects open-path error surfaced as toast; stopPropagation on project buttons
