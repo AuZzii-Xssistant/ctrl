@@ -43,6 +43,7 @@ Built with Tauri v2 (Rust + WebView2). Ships as a single portable folder — no 
 ```
 CTRL/
   ctrl.exe       ← the app (single binary)
+  ctrl-cli.exe   ← command-line interface (add data from terminal)
   ctrl.db        ← all your data (SQLite)
   data/
     builder/     ← action JSON files (add your own)
@@ -54,13 +55,52 @@ Copy the entire `CTRL/` folder to a USB drive. Run `ctrl.exe` on any Windows 10/
 
 ---
 
+## CLI
+
+`ctrl-cli.exe` lets you add data to your CTRL instance from a terminal without opening the GUI.
+
+The DB is auto-detected next to the binary (`ctrl.db`). Override with `--db PATH`.
+
+```bat
+REM Add a project
+ctrl-cli add project --name "MyApp" --path "C:\Projects\MyApp" --type "node" --status "active" --tags "web,node" --notes "My notes"
+
+REM Add a script (inline content — no file needed)
+ctrl-cli add script --name "Backup Docs" --content "robocopy C:\Docs D:\Backup /MIR" --type "bat" --category "Backup"
+
+REM Add a script from a file path
+ctrl-cli add script --name "Deploy" --file "C:\scripts\deploy.ps1" --type "ps1" --category "DevOps"
+
+REM Add a quick fix
+ctrl-cli add fix --name "Flush DNS" --cmd "ipconfig /flushdns" --category "Network" --tags "dns,network"
+
+REM Add a custom tweak
+ctrl-cli add tweak --label "Dark taskbar" --apply "Set-ItemProperty ..." --revert "Set-ItemProperty ..." --category "UI"
+
+REM List anything
+ctrl-cli list projects
+ctrl-cli list scripts
+ctrl-cli list fixes
+ctrl-cli list tweaks
+
+REM Point at a specific DB (e.g. portable drive)
+ctrl-cli --db "E:\CTRL\ctrl.db" list projects
+```
+
+**Flags for `add project`:** `--name` (required), `--path`, `--type`, `--status`, `--tags`, `--notes`  
+**Flags for `add script`:** `--name` (required), `--content` or `--file`, `--type`, `--category`, `--tags`, `--desc`, `--admin`  
+**Flags for `add fix`:** `--name` (required), `--cmd` (required), `--category`, `--tags`, `--desc`, `--admin`, `--confirm`  
+**Flags for `add tweak`:** `--label` (required), `--apply` (required), `--revert`, `--category`, `--desc`, `--admin`
+
+---
+
 ## Dev
 
 ```bat
 dev.bat
 ```
 
-Starts the app with hot reload via `cargo tauri dev`.
+Builds `ctrl-cli` (debug) then starts the app with hot reload via `cargo tauri dev`.
 
 ---
 
@@ -70,7 +110,11 @@ Starts the app with hot reload via `cargo tauri dev`.
 build.bat
 ```
 
-Produces a release binary via `cargo tauri build`. Output: `src-tauri\target\release\ctrl.exe`
+Produces release binaries for both the app and the CLI:
+- `src-tauri\target\release\ctrl.exe` — the GUI app
+- `src-tauri\target\release\ctrl-cli.exe` — the CLI tool
+
+Copy both to your portable CTRL folder alongside `ctrl.db`.
 
 ---
 
