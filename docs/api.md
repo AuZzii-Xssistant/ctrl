@@ -93,8 +93,10 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | Command | Payload | Returns |
 |---|---|---|
 | `get_last_runs` | `{item_type: "script"\|"fix"\|"tool"}` | `LastRun[]` |
+| `get_run_history` | `{item_type, item_id, limit?}` | `RunHistoryEntry[]` |
 
-Returns the most recent run per item of that type.
+`get_last_runs` returns the most recent run per item of that type.  
+`get_run_history` returns the last N runs (default 10) for a single item with full captured output.
 
 ## Misc
 | Command | Payload | Returns |
@@ -112,6 +114,7 @@ PinnedItem   = { id, item_type, item_id, item_name, item_icon, group_name, sort_
 SearchResults= { tools, scripts, fixes, projects: SearchResult[] }
 SearchResult = { item_type, id, name, meta: string }
 LastRun      = { item_id: number, success: boolean, ran_at: string }
+RunHistoryEntry = { id: number, success: boolean, ran_at: string, output: string }
 Workflow     = { id, name, description, steps: string (JSON), created_at: string }
 WorkflowData = { name, description?, steps: string (JSON) }
 StepResult   = { label: string, success: boolean, output: string }

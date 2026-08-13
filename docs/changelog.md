@@ -2,6 +2,18 @@
 
 ## 2026-08-13
 
+### Loop run 4 — Workflows filter, projects notes, tag CSS, API docs
+
+**Workflows filter** — inline filter added to the Workflows pane (last list pane without one). Client-side filter on name + description, debounced 180ms. Consistent with all other panes.
+
+**Projects notes visible in row** — `notes` field was editable but invisible in the list. Now shown as a small italic line below description (truncated at 80 chars). No DB or API change needed.
+
+**Tag CSS for new extensions** — `.tag-lnk`, `.tag-ahk`, `.tag-jar` added. Tools with those extensions now render a styled badge instead of a bare class-less span.
+
+**API docs** — `get_run_history` command and `RunHistoryEntry` type documented in `docs/api.md` (was missing from loop 3).
+
+---
+
 ### Major upgrade 4 — Seed data, run history, confirm guard, command preview, bug fixes
 
 **Seed data (first-run experience)**

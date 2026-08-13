@@ -146,6 +146,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .tag-wf, .tag-workflow { background: #1a1a2a; color: #A78BFA; }
 .tag-project  { background: #1a2a2a; color: #34D399; }
 .tag-backup   { background: #2a2010; color: #FBBF24; }
+.tag-lnk  { background: #1e1e2e; color: #9B8FD4; }
+.tag-ahk  { background: #102a2a; color: #4EC9B0; }
+.tag-jar  { background: #1a2030; color: #60A5FA; }
 
 .card-actions { display: flex; gap: 4px; }
 .icon-btn {

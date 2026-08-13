@@ -36,6 +36,7 @@ function _render(el, projects) {
           <div style="flex:1;min-width:0">
             <div class="row-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
             ${p.description ? `<div style="font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.description)}</div>` : ''}
+            ${p.notes ? `<div style="font-size:10px;color:var(--text3);font-style:italic;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0.7">${esc(p.notes.slice(0,80))}</div>` : ''}
           </div>
           <span class="status-pill ${STATUS_CLASS[p.status]||'s-idea'}">${esc(p.status)}</span>
           <div class="card-actions">

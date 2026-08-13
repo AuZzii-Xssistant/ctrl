@@ -4,11 +4,24 @@ const inv = window.__TAURI__.core.invoke;
 
 export async function load() {
   const el = document.getElementById('workflows-scroll');
-  el.innerHTML = paneHeader('ti-player-play', 'Workflows', 'New Workflow', 'window._showWorkflowModal(null)', null)
+  el.innerHTML = paneHeader('ti-player-play', 'Workflows', 'New Workflow', 'window._showWorkflowModal(null)', 'wf-filter')
     + `<div id="wf-body">${skeletonCards(3)}</div>`;
 
   const wfs = await inv('get_workflows');
   _render(wfs);
+
+  setTimeout(() => {
+    const f = document.getElementById('wf-filter');
+    if (!f) return;
+    let timer;
+    f.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const q = f.value.toLowerCase().trim();
+        _render(q ? wfs.filter(w => w.name.toLowerCase().includes(q) || (w.description||'').toLowerCase().includes(q)) : wfs);
+      }, 180);
+    });
+  }, 0);
 }
 
 function _render(wfs) {
