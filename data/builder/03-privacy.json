@@ -1,0 +1,210 @@
+{
+  "id": "privacy",
+  "label": "Privacy",
+  "icon": "ti-shield-lock",
+  "items": [
+    {
+      "type": "group",
+      "label": "Disable App Access",
+      "desc": "Limit app access to data, files and system.",
+      "items": [
+        {
+          "id": "locationaccess",
+          "label": "Disable App Access to Location",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Location access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location\" /v \"Value\" /d \"Deny\" /f"
+        },
+        {
+          "id": "cameraccess",
+          "label": "Disable App Access to Camera",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Camera access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "microphoneaccess",
+          "label": "Disable App Access to Microphone",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Microphone access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "systemaccess",
+          "label": "Disable App Access to File System",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling System files access' -ForegroundColor Green\nreg add \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\documentsLibrary\" /v \"Value\" /d \"Deny\" /t REG_SZ /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\picturesLibrary\" /v \"Value\" /d \"Deny\" /t REG_SZ /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\videosLibrary\" /v \"Value\" /d \"Deny\" /t REG_SZ /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\broadFileSystemAccess\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "accinfoaccess",
+          "label": "Disable App Access to Account Information",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Account Information access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userAccountInformation\" /v \"Value\" /d \"Deny\" /f"
+        },
+        {
+          "id": "contactsaccess",
+          "label": "Disable App Access to your Contacts",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Contacts access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\contacts\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "callhistoryaccess",
+          "label": "Disable App Access to your Call History",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Call History access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\phoneCallHistory\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "messagingaccess",
+          "label": "Disable App Access to your Messages",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Messaging access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\chat\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "notificationaccess",
+          "label": "Disable App Access to Notifications",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Notification access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userNotificationListener\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "emailaccess",
+          "label": "Disable App Access to Email",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Email access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\email\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "tasksaccess",
+          "label": "Disable App Access to Tasks",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Tasks access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\userDataTasks\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "diagaccess",
+          "label": "Disable App Access to Diagnostic Data",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Diagnostics access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appDiagnostics\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "voiceactivationaccess",
+          "label": "Disable App Access to Voice Activation",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Voice Activation access' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Speech_OneCore\\Settings\\VoiceActivation\\UserPreferenceForAllApps\" /v \"AgentActivationEnabled\" /t REG_DWORD /d 0 /f"
+        },
+        {
+          "id": "phoneaccess",
+          "label": "Disable App Access to Phone",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Phone access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy\" /v \"LetAppsAccessPhone\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy\" /v \"LetAppsAccessPhone_UserInControlOfTheseApps\" /t REG_MULTI_SZ /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy\" /v \"LetAppsAccessPhone_ForceAllowTheseApps\" /t REG_MULTI_SZ /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy\" /v \"LetAppsAccessPhone_ForceDenyTheseApps\" /t REG_MULTI_SZ /f"
+        },
+        {
+          "id": "trustedaccess",
+          "label": "Disable App Access to Trusted Devices",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Trusted Devices access' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\Global\\{C1D23ACC-752B-43E5-8448-8D0E519CD6D6}\" /t REG_SZ /v \"Value\" /d \"Deny\" /f"
+        },
+        {
+          "id": "calendaraccess",
+          "label": "Disable App Access to Calendar",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Calendar access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\appointments\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "motionaccess",
+          "label": "Disable App Access to Motion Data",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Motion access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\activity\" /v \"Value\" /d \"Deny\" /f"
+        },
+        {
+          "id": "radioaccess",
+          "label": "Disable App Access to Radios",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Radio access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\radios\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "recordingsaccess",
+          "label": "Disable App Access to Recordings",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Recordings access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\graphicsCaptureProgrammatic\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "screenshotborderaccess",
+          "label": "Disable App Access to Screenshot Borders",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Screenshot Borders access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\graphicsCaptureWithoutBorder\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        },
+        {
+          "id": "aigenerationaccess",
+          "label": "Disable App Access to AI Generation",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling AI Generation access' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\systemAIModels\" /v \"Value\" /d \"Deny\" /t REG_SZ /f"
+        }
+      ]
+    },
+    {
+      "type": "toggle",
+      "id": "updatepause",
+      "label": "Extend Windows Update Pause Limit",
+      "desc": "Extends Windows Update pause limit to 20 years.",
+      "ps1": "Write-Host '-- Extend Windows Update Pause Limit to 20 years' -ForegroundColor Green\nWrite-Host \"-- NOTE: This does not disable updates by itself, user needs to pause updates in Windows Settings.\" -ForegroundColor Yellow\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /v \"FlightSettingsMaxPauseDays\" /t REG_DWORD /d 7300 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "wpbt",
+      "label": "Disable Windows Platform Binary Table",
+      "desc": "WPBT allows your computer vendor to install and execute software without user consent.",
+      "ps1": "Write-Host '-- Disable Windows Platform Binary Table' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\" /v \"DisableWpbtExecution\" /t REG_DWORD /d 1 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "bitlocker",
+      "label": "Disable Bitlocker Drive Encryption",
+      "desc": "Disables Bitlocker automatic drive encryption.",
+      "ps1": "Write-Host '-- Disabling Bitlocker Drive Encryption' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\BitLocker\" /v \"PreventDeviceEncryption\" /t REG_DWORD /d 1 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "cloudsync",
+      "label": "Disable Cloud Sync",
+      "desc": "Disables cloud syncing of settings, themes, and passwords.",
+      "ps1": "Write-Host '-- Disabling Cloud Sync' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSyncOnPaidNetwork\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\" /v \"SyncPolicy\" /t REG_DWORD /d 5 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableApplicationSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableApplicationSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableAppSyncSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableAppSyncSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableCredentialsSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableCredentialsSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Credentials\" /v \"Enabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableDesktopThemeSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableDesktopThemeSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisablePersonalizationSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisablePersonalizationSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableStartLayoutSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableStartLayoutSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWindowsSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWindowsSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Language\" /t REG_DWORD /v \"Enabled\" /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "activityfeed",
+      "label": "Disable Activity History",
+      "desc": "Disables the Activity Feed and timeline history.",
+      "ps1": "Write-Host '-- Disabling Activity Feed' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System\" /v \"EnableActivityFeed\" /d \"0\" /t REG_DWORD /f"
+    },
+    {
+      "type": "toggle",
+      "id": "notificationtray",
+      "label": "Disable Notifications Tray",
+      "desc": "Disables the notifications center in the taskbar.",
+      "ps1": "Write-Host '-- Disabling Notification Tray' -ForegroundColor Green\nreg add \"HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer\" /v \"DisableNotificationCenter\" /d \"1\" /t REG_DWORD /f"
+    },
+    {
+      "type": "toggle",
+      "id": "automap",
+      "label": "Disable Automatic Map Downloads",
+      "desc": "Disables automatic offline map downloads and updates.",
+      "ps1": "Write-Host '-- Disabling Auto Map Downloads' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps\" /v \"AllowUntriggeredNetworkTrafficOnSettingsPage\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps\" /v \"AutoDownloadAndUpdateMapData\" /t REG_DWORD /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "default0user",
+      "label": "Remove User 'default0'",
+      "desc": "Removes the default0 user created at the OOBE stage.",
+      "ps1": "Write-Host '-- Deleting Default0 User' -ForegroundColor Green\nRemove-LocalUser -Name \"defaultuser0\""
+    },
+    {
+      "type": "toggle",
+      "id": "lockscreencamera",
+      "label": "Disable Lockscreen Camera",
+      "desc": "Disables camera access from the lock screen.",
+      "ps1": "Write-Host '-- Disabling Lock Screen Camera' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization\" /v \"NoLockScreenCamera\" /t REG_DWORD /d 1 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "biometrics",
+      "label": "Disable Biometrics",
+      "desc": "Disables biometrics, breaks Windows Hello and fingerprint.",
+      "ps1": "Write-Host '-- Disabling Biometrics (Breaks Windows Hello)' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics\" /v \"Enabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics\\Credential Provider\" /v \"Enabled\" /t \"REG_DWORD\" /d \"0\" /f"
+    }
+  ]
+}

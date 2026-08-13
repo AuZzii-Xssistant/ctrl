@@ -1,0 +1,180 @@
+{
+  "id": "telemetry",
+  "label": "Telemetry",
+  "icon": "ti-eye-off",
+  "items": [
+    {
+      "type": "group",
+      "label": "Disable Telemetry",
+      "desc": "Choose what data is sent to Microsoft.",
+      "items": [
+        {
+          "id": "wtelemetry",
+          "label": "Disable Windows Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Windows Telemetry' -ForegroundColor Green\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\KernelCeipTask\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Autochk\\Proxy\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Windows Error Reporting\\QueueReporting\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Maps\\MapsUpdateTask\" -ErrorAction SilentlyContinue\nSet-Service -Name \"DiagTrack\" -StartupType Manual\nSet-Service -Name \"diagsvc\" -StartupType Manual\nSet-Service -Name \"WerSvc\" -StartupType Manual\nSet-Service -Name \"wercplsupport\" -StartupType Manual\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowDesktopAnalyticsProcessing\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowDeviceNameInTelemetry\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"MicrosoftEdgeDataOptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowWUfBCloudProcessing\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowUpdateComplianceProcessing\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowCommercialDataPipeline\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"AllowTelemetry\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"DisableOneSettingsDownloads\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\SQMClient\\Windows\" /v \"CEIPEnable\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection\" /v \"AllowTelemetry\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows NT\\CurrentVersion\\Software Protection Platform\" /v \"NoGenTicket\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\Windows Error Reporting\" /v \"Disabled\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\" /v \"Disabled\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\Windows Error Reporting\\Consent\" /v \"DefaultConsent\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\Windows Error Reporting\\Consent\" /v \"DefaultOverrideBehavior\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\Windows Error Reporting\" /v \"DontSendAdditionalData\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\Windows Error Reporting\" /v \"LoggingDisabled\" /t REG_DWORD /d \"1\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"ContentDeliveryAllowed\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContentEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"OemPreInstalledAppsEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"PreInstalledAppsEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"PreInstalledAppsEverEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SilentInstalledAppsEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SystemPaneSuggestionsEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"FeatureManagementEnabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications\" /v \"EnableAccountNotifications\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SystemSettings\\AccountNotifications\" /v \"EnableAccountNotifications\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\Windows\\EdgeUI\" /v \"DisableMFUTracking\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\EdgeUI\" /v \"DisableMFUTracking\" /t REG_DWORD /d \"1\" /f\nreg add \"HKCU\\Control Panel\\International\\User Profile\" /v \"HttpAcceptLanguageOptOut\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System\" /v \"PublishUserActivities\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System\" /v \"UploadUserActivities\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"Start_TrackProgs\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Personalization\\Settings\" /v \"AcceptedPrivacyPolicy\" /t REG_DWORD /d 0 /f"
+        },
+        {
+          "id": "wupdate",
+          "label": "Disable Windows Update Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Windows Update Telemetry' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DriverSearching\" /v \"SearchOrderConfig\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization\" /v \"DODownloadMode\" /t REG_DWORD /d \"99\" /f"
+        },
+        {
+          "id": "wsearchtelemetry",
+          "label": "Disable Windows Search Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Windows Search Telemetry' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"ConnectedSearchPrivacy\" /t REG_DWORD /d \"3\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AllowSearchToUseLocation\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"EnableDynamicContentInWSB\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"ConnectedSearchUseWeb\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"DisableWebSearch\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"PreventUnwantedAddIns\" /t \"REG_SZ\" /d \" \" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"PreventRemoteQueries\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AlwaysUseAutoLangDetection\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AllowIndexingEncryptedStoresOrItems\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"ConnectedSearchUseWebOverMeteredConnections\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AllowCloudSearch\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AllowCortana\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer\" /v \"DisableSearchBoxSuggestions\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\Explorer\" /v \"DisableSearchHistory\" /t REG_DWORD /d \"1\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings\" /v \"IsDynamicSearchBoxEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SearchSettings\" /v \"IsMSACloudSearchEnabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SearchSettings\" /v \"IsAADCloudSearchEnabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings\" /v \"IsDeviceSearchHistoryEnabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search\" /v \"BingSearchEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search\" /v \"VoiceShortcut\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search\" /v \"DeviceHistoryEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search\" /v \"HistoryViewEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search\" /v \"CortanaEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v \"AllowCortana\" /t \"REG_DWORD\" /d \"0\" /f"
+        },
+        {
+          "id": "officetelemetry",
+          "label": "Disable Office Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Office telemetry' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Outlook\\Options\\Mail\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Outlook\\Options\\Mail\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Outlook\\Options\\Calendar\" /v \"EnableCalendarLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Outlook\\Options\\Calendar\" /v \"EnableCalendarLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Word\\Options\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Word\\Options\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\15.0\\OSM\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\16.0\\OSM\" /v \"EnableLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\15.0\\OSM\" /v \"EnableUpload\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Policies\\Microsoft\\Office\\16.0\\OSM\" /v \"EnableUpload\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\Common\\ClientTelemetry\" /v \"DisableTelemetry\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\ClientTelemetry\" /v \"DisableTelemetry\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\Common\\ClientTelemetry\" /v \"VerboseLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\ClientTelemetry\" /v \"VerboseLogging\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Common\" /v \"QMEnable\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\" /v \"QMEnable\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\15.0\\Common\\Feedback\" /v \"Enabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Office\\16.0\\Common\\Feedback\" /v \"Enabled\" /t REG_DWORD /d 0 /f\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\OfficeTelemetryAgentFallBack\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\OfficeTelemetryAgentLogOn\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\OfficeTelemetryAgentFallBack2016\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\OfficeTelemetryAgentLogOn2016\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\Office 15 Subscription Heartbeat\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Office\\Office 16 Subscription Heartbeat\" -ErrorAction SilentlyContinue"
+        },
+        {
+          "id": "appexperience",
+          "label": "Disable Application Experience Data Collection",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Application Experience telemetry' -ForegroundColor Green\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser Exp\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Application Experience\\StartupAppTask\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Application Experience\\PcaPatchDbTask\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"\\Microsoft\\Windows\\Application Experience\\MareBackup\" -ErrorAction SilentlyContinue"
+        },
+        {
+          "id": "wfeedback",
+          "label": "Disable Feedback Data Collection",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Windows Feedback Experience telemetry' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Siuf\\Rules\" /v \"NumberOfSIUFInPeriod\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection\" /v \"DoNotShowFeedbackNotifications\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v \"DoNotShowFeedbackNotifications\" /t REG_DWORD /d 1 /f"
+        },
+        {
+          "id": "handwriting",
+          "label": "Disable Handwriting Data Collection",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Handwriting telemetry' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization\" /v \"RestrictImplicitInkCollection\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization\" /v \"RestrictImplicitTextCollection\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\HandwritingErrorReports\" /v \"PreventHandwritingErrorReports\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\TabletPC\" /v \"PreventHandwritingDataSharing\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization\" /v \"AllowInputPersonalization\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\InputPersonalization\\TrainedDataStore\" /v \"HarvestContacts\" /t REG_DWORD /d 0 /f"
+        },
+        {
+          "id": "windowsdrm",
+          "label": "Disable Internet Access for Windows DRM",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Internet Access to Windows DRM' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\WMDRM\" /v \"DisableOnline\" /t REG_DWORD /d 1 /f"
+        },
+        {
+          "id": "cloudbasedspeech",
+          "label": "Disable Cloud-Based Speech Recognition",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Cloud Based Speech Recognition' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy\" /v \"HasAccepted\" /t REG_DWORD /d 0 /f"
+        },
+        {
+          "id": "targetads",
+          "label": "Disable Targeted Ads",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Targeted Ads and Data Collection' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableSoftLanding\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableWindowsSpotlightFeatures\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableWindowsConsumerFeatures\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableTailoredExperiencesWithDiagnosticData\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableTailoredExperiencesWithDiagnosticData\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"TailoredExperiencesWithDiagnosticDataEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo\" /v \"Enabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo\" /v \"DisabledByGroupPolicy\" /t REG_DWORD /d \"1\" /f\nreg add \"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo\" /v \"DisabledByGroupPolicy\" /t REG_DWORD /d \"1\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-338393Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-353694Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-353696Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-338387Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-338388Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-338389Enabled\" /d \"0\" /t REG_DWORD /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager\" /v \"SubscribedContent-353698Enabled\" /d \"0\" /t REG_DWORD /f"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": "Disable 3rd-Party Telemetry",
+      "desc": "Choose what data is sent to 3rd-party software.",
+      "items": [
+        {
+          "id": "adobetelemetry",
+          "label": "Block Adobe Network",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Adobe Telemetry' -ForegroundColor Green\ntry {\n    Invoke-WebRequest -Uri \"https://a.dove.isdumb.one/list.txt\" -OutFile \"$env:TEMP\\list.txt\" -ErrorAction Stop\n    Write-Host \"Adobe block entries successfully added to hosts file\"\n    Get-Content \"$env:TEMP\\list.txt\" | Add-Content -Path \"$env:windir\\System32\\drivers\\etc\\hosts\"\n    Remove-Item \"$env:TEMP\\list.txt\" -Force\n}\ncatch {\n    Write-Host \"-- Failed to download the list from the specified URL.\" -ForegroundColor Red\n}"
+        },
+        {
+          "id": "nvidiatelemetry",
+          "label": "Disable Nvidia Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling NVIDIA telemetry' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\NVIDIA Corporation\\NvControlPanel2\\Client\" /v \"OptInOrOutPreference\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS\" /v \"EnableRID44231\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS\" /v \"EnableRID64640\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\FTS\" /v \"EnableRID66610\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\nvlddmkm\\Global\\Startup\" /v \"SendTelemetryData\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\nvlddmkm\\Parameters\\Global\\Startup\\SendTelemetryData\" /ve /t REG_DWORD /d 0 /f\nDisable-ScheduledTask -TaskName \"NvTmMon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"NvTmRep_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}\" -ErrorAction SilentlyContinue\nDisable-ScheduledTask -TaskName \"NvTmRepOnLogon_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}\" -ErrorAction SilentlyContinue\nSet-Service -Name \"NvTelemetryContainer\" -StartupType Disabled"
+        },
+        {
+          "id": "vscodetelemetry",
+          "label": "Disable VS Code Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Visual Studio telemetry' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\14.0\\SQM\" /v \"OptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\15.0\\SQM\" /v \"OptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\16.0\\SQM\" /v \"OptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\VSCommon\\17.0\\SQM\" /v \"OptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Policies\\Microsoft\\VisualStudio\\SQM\" /v \"OptIn\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Microsoft\\VisualStudio\\Telemetry\" /v \"TurnOffSwitch\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback\" /v \"DisableFeedbackDialog\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback\" /v \"DisableEmailInput\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback\" /v \"DisableScreenshotCapture\" /t REG_DWORD /d 1 /f\nRemove-ItemProperty -Path \"HKLM:\\Software\\Microsoft\\VisualStudio\\DiagnosticsHub\" -Name \"LogLevel\" -Force\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\IntelliCode\" /v \"DisableRemoteAnalysis\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\VSCommon\\16.0\\IntelliCode\" /v \"DisableRemoteAnalysis\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\VSCommon\\17.0\\IntelliCode\" /v \"DisableRemoteAnalysis\" /t \"REG_DWORD\" /d \"1\" /f"
+        },
+        {
+          "id": "mediatelemetry",
+          "label": "Disable Media Player Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Media Player telemetry' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\MediaPlayer\\Preferences\" /v \"UsageTracking\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer\" /v \"PreventCDDVDMetadataRetrieval\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer\" /v \"PreventMusicFileMetadataRetrieval\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\Software\\Policies\\Microsoft\\WindowsMediaPlayer\" /v \"PreventRadioPresetsRetrieval\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\WMDRM\" /v \"DisableOnline\" /t REG_DWORD /d 1 /f"
+        },
+        {
+          "id": "powershelltelemetry",
+          "label": "Disable Powershell Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling PowerShell telemetry' -ForegroundColor Green\nsetx POWERSHELL_TELEMETRY_OPTOUT 1"
+        },
+        {
+          "id": "ccleanertelemetry",
+          "label": "Disable CCleaner Telemetry",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling CCleaner telemetry' -ForegroundColor Green\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"Monitoring\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"HelpImproveCCleaner\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"SystemMonitoring\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"UpdateAuto\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"UpdateCheck\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\Software\\Piriform\\CCleaner\" /v \"CheckTrialOffer\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)HealthCheck\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)QuickClean\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)QuickCleanIpm\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)GetIpmForTrial\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)SoftwareUpdater\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\Software\\Piriform\\CCleaner\" /v \"(Cfg)SoftwareUpdaterIpm\" /t REG_DWORD /d 0 /f"
+        },
+        {
+          "id": "googleupdates",
+          "label": "Disable Google Background Updates",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Google updates' -ForegroundColor Green\nSet-Service -Name \"gupdate\" -StartupType Disabled\nSet-Service -Name \"gupdatem\" -StartupType Disabled"
+        },
+        {
+          "id": "adobeupdates",
+          "label": "Disable Adobe Background Updates",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Adobe updates' -ForegroundColor Green\nDisable-ScheduledTask -TaskName \"\\Adobe Acrobat Update Task\" -ErrorAction SilentlyContinue\nSet-Service -Name \"AdobeARMservice\" -StartupType Disabled\nSet-Service -Name \"adobeupdateservice\" -StartupType Disabled"
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "label": "Manage Windows Updates",
+      "desc": "Delay, disable, or reset Windows Updates.",
+      "group": "updates",
+      "items": [
+        {
+          "id": "defaultupdate",
+          "label": "Default Settings",
+          "desc": "",
+          "ps1": "Write-Host '-- Restoring default Windows Update settings' -ForegroundColor Green\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" -Recurse -Force\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DeliveryOptimization\" -Recurse -Force\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" -Recurse -Force\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Device Metadata\" -Recurse -Force\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DriverSearching\" -Recurse -Force\nRemove-Item -Path \"HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\" -Recurse -Force\nWrite-Host \"Re-enabling WU services\"\nSet-Service -Name \"bits\" -StartupType Manual\nSet-Service -Name \"wuauserv\" -StartupType Manual\nSet-Service -Name \"usosvc\" -StartupType Automatic\nSet-Service -Name \"WaaSMedicSvc\" -StartupType Manual\nWrite-Host -- \"Re-enabling WU scheduled tasks\"\n$paths = @('\\Microsoft\\Windows\\InstallService\\', '\\Microsoft\\Windows\\UpdateOrchestrator\\', '\\Microsoft\\Windows\\UpdateAssistant\\', '\\Microsoft\\Windows\\WaaSMedic\\', '\\Microsoft\\Windows\\WindowsUpdate\\', '\\Microsoft\\WindowsUpdate\\'); foreach ($path in $paths) { Get-ScheduledTask -TaskPath \"$path*\" -ErrorAction SilentlyContinue | Enable-ScheduledTask -ErrorAction SilentlyContinue }\nWrite-Host -- \"Resetting Windows local security policies to default\"\nsecedit /configure /cfg \"$Env:SystemRoot\\inf\\defltbase.inf\" /db defltbase.sdb"
+        },
+        {
+          "id": "securityupdate",
+          "label": "Only Security Updates",
+          "desc": "",
+          "ps1": "Write-Host '-- Delaying feature updates by 1 year' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /v \"BranchReadinessLevel\" /t REG_DWORD /d \"20\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /v \"DeferFeatureUpdatesPeriodInDays\" /t REG_DWORD /d \"365\" /f"
+        },
+        {
+          "id": "disableupdate",
+          "label": "Disable Updates",
+          "desc": "",
+          "ps1": "Write-Host '-- Disabling Windows Update' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" /v \"NoAutoUpdate\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU\" /v \"AUOptions\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DeliveryOptimization\\Config\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization\" /v \"DODownloadMode\" /t REG_DWORD /d \"99\" /f\nWrite-Host \"Disabling Windows Update Services\"\n$updateServices = @(\"BITS\",\"wuauserv\",\"UsoSvc\",\"WaaSMedicSvc\")\n$updateServices | ForEach-Object { Stop-Service -Name $_; Set-Service -Name $_ -StartupType Disabled }\nRemove-Item -Path \"C:\\Windows\\SoftwareDistribution\" -Recurse -Force\nWrite-Host -- \"Disabling Windows Update Scheduled Tasks\"\n$paths = @('\\Microsoft\\Windows\\InstallService\\', '\\Microsoft\\Windows\\UpdateOrchestrator\\', '\\Microsoft\\Windows\\UpdateAssistant\\', '\\Microsoft\\Windows\\WaaSMedic\\', '\\Microsoft\\Windows\\WindowsUpdate\\', '\\Microsoft\\WindowsUpdate\\'); foreach ($path in $paths) { Get-ScheduledTask -TaskPath \"$path*\" -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue }"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": "Configure Windows Update",
+      "desc": "Configure Windows Update settings.",
+      "items": [
+        {
+          "id": "deliveryoptimization",
+          "label": "Disable Delivery Optimization",
+          "desc": "Prevents Windows from sending parts of previously downloaded updates to other devices on the internet.",
+          "ps1": "Write-Host '-- Disabling Delivery Optimization' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization\" /v \"DODownloadMode\" /t REG_DWORD /d \"99\" /f"
+        },
+        {
+          "id": "meteredconnection",
+          "label": "Disable Updates over Metered Connections",
+          "desc": "Prevents Windows from downloading updates when using data-limited connections.",
+          "ps1": "Write-Host '-- Disabling Updates over Metered Connections' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /v \"AllowAutoWindowsUpdateDownloadOverMeteredNetwork\" /t REG_DWORD /d \"0\" /f"
+        },
+        {
+          "id": "driverupdates",
+          "label": "Disable Hardware Driver Updates",
+          "desc": "Prevents Windows from automatically downloading and installing hardware driver updates.",
+          "ps1": "Write-Host '-- Disable Hardware Driver Updates' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\" /v \"ExcludeWUDriversInQualityUpdate\" /t REG_DWORD /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\DriverSearching\" /v \"SearchOrderConfig\" /t REG_DWORD /d 0 /f"
+        }
+      ]
+    }
+  ]
+}

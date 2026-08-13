@@ -1,0 +1,65 @@
+{
+  "id": "tools",
+  "label": "Tools",
+  "icon": "ti-tool",
+  "items": [
+    {
+      "type": "group",
+      "label": "Clean-up",
+      "desc": "Free up disk space by cleaning up temporary files.",
+      "items": [
+        {
+          "id": "cleanmgr",
+          "label": "Run Disk Cleanup",
+          "desc": "",
+          "ps1": "Write-Host '-- Running Disk Clean-up' -ForegroundColor Green\ncleanmgr /verylowdisk /sagerun:5"
+        },
+        {
+          "id": "cleantemp",
+          "label": "Clean Temporary Files",
+          "desc": "",
+          "ps1": "Write-Host '-- Deleting Temp files' -ForegroundColor Green\nRemove-Item -Path \"C:\\Windows\\Temp\\*\" -Recurse -Force\nRemove-Item -Path \"C:\\Windows\\Prefetch\\*\" -Recurse -Force"
+        },
+        {
+          "id": "emptyrecycle",
+          "label": "Empty Recycle Bin",
+          "desc": "",
+          "ps1": "Write-Host '-- Emptying Recycle Bin' -ForegroundColor Green\n$bin = (New-Object -ComObject Shell.Application).NameSpace(10); $bin.items() | ForEach { Write-Host \"Deleting $($_.Name) from Recycle Bin\"; Remove-Item $_.Path -Recurse -Force }"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": "Repair",
+      "desc": "Verify system files integrity and fix corrupt files.",
+      "items": [
+        {
+          "id": "dism",
+          "label": "DISM (Deployment Image Servicing Manager)",
+          "desc": "",
+          "ps1": "Write-Host '-- Running DISM' -ForegroundColor Green\nDISM /Online /Cleanup-Image /RestoreHealth"
+        },
+        {
+          "id": "sfc",
+          "label": "SFC (System File Checker)",
+          "desc": "",
+          "ps1": "Write-Host '-- Running SFC' -ForegroundColor Green\nsfc /scannow"
+        }
+      ]
+    },
+    {
+      "type": "toggle",
+      "id": "browserhistory",
+      "label": "Clear Browser History",
+      "desc": "Clears Chrome, Edge, Brave and Firefox history.",
+      "ps1": "Write-Host '-- Clearing Browser History' -ForegroundColor Green\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\places.sqlite\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\cache2\\entries\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cookies\" -Recurse -Force"
+    },
+    {
+      "type": "toggle",
+      "id": "resetnetwork",
+      "label": "Reset Network",
+      "desc": "Flushes the DNS and renews the IP address.",
+      "ps1": "Write-Host '-- Resetting Network' -ForegroundColor Green\nipconfig /flushdns\nipconfig /release | Out-Null\nipconfig /renew | Out-Null"
+    }
+  ]
+}

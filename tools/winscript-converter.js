@@ -1,186 +1,302 @@
 /**
  * winscript-converter.js
- * Converts WinScript (flick9000/winscript) data into CTRL Builder JSON format.
+ * Parses WinScript (flick9000/winscript) source and outputs CTRL Builder JSON.
  *
  * Usage:
- *   node tools/winscript-converter.js <winscript-path> <output-dir>
- *
- * Example:
+ *   node tools/winscript-converter.js <winscript-path> [output-dir]
  *   node tools/winscript-converter.js ../winscript-ref data/builder
  *
- * Input:  winscript-ref/app/src/assets/js/scripts.js   (commands)
- *         winscript-ref/app/src/i18n/locales/en.json   (labels/descriptions)
+ * Inputs:
+ *   app/src/components/MainPage.astro  — tab/group/toggle structure
+ *   app/src/assets/js/scripts.js       — PS1 commands per id
+ *   app/src/i18n/locales/en.json       — labels + descriptions
  *
- * Output: data/builder/<n>-<category>.json  (one file per CTRL builder tab)
+ * Output: data/builder/{n}-{tab}.json  (one per tab, in order)
  *
- * CTRL builder JSON schema:
+ * Future WinScript updates: re-run this script after `git pull` in winscript-ref.
+ * New ScriptToggle / ScriptGroup entries in MainPage.astro are picked up automatically.
+ *
+ * CTRL Builder JSON schema:
  * {
- *   "id": "debloat",
- *   "label": "Debloat",
- *   "icon": "ti-trash",
- *   "sections": [
- *     {
- *       "label": "Windows Apps",
- *       "actions": [
- *         { "id": "onedrive", "label": "Remove OneDrive", "description": "...", "ps1": "..." }
- *       ]
- *     }
+ *   "id": "debloat", "label": "Debloat", "icon": "ti-trash",
+ *   "items": [
+ *     { "type": "group",  "label": "Windows Apps", "desc": "...",
+ *       "items": [{ "id": "msapps", "label": "...", "desc": "...", "ps1": "..." }] },
+ *     { "type": "radio",  "label": "Set as DNS", "group": "dns",
+ *       "items": [{ "id": "googledns", "label": "Google DNS", "ps1": "..." }] },
+ *     { "type": "toggle", "id": "microsoftstore", "label": "...", "desc": "...", "ps1": "..." }
  *   ]
  * }
- *
- * WinScript scripts.js schema:
- *   const scripts = { <id>: ["line1", "line2", ...], ... }
- *
- * WinScript en.json schema:
- *   "<category>.<id>.title": "Label"
- *   "<category>.<id>.desc":  "Description"
  */
 
+'use strict';
 const fs   = require('fs');
 const path = require('path');
+const vm   = require('vm');
 
-// ── Category map: define CTRL tabs and which WinScript IDs go into each section
-const CATEGORY_MAP = [
-  {
-    id: '01-debloat', label: 'Debloat', icon: 'ti-trash',
-    sections: [
-      { label: 'Windows Apps',     ids: ['microsoftstore','msstoreupdates','onedrive','thirdparty','msapps','extensions','xbox'] },
-      { label: 'Browser',          ids: ['debloatedge','edge','debloatbrave'] },
-      { label: 'Windows Features', ids: ['widgets','taskbarwidgets','consumerfeatures','hyperv','iexplorer','faxscan','mediaplayer'] },
-      { label: 'Windows AI',       ids: ['copilot','recall','notepadrewrite','aiappxpackages','hideai','aifiles'] },
-    ],
-  },
-  {
-    id: '02-privacy', label: 'Privacy', icon: 'ti-shield-lock',
-    sections: [
-      { label: 'Privacy',    ids: ['updatepause','wpbt','bitlocker','cloudsync','activityfeed','notificationtray','automap','default0user','lockscreencamera','biometrics','screenrecording'] },
-      { label: 'App Access', ids: ['locationaccess','cameraccess','microphoneaccess','contactsaccess','callhistoryaccess','messagingaccess','emailaccess','calendaraccess','motionaccess'] },
-    ],
-  },
-  {
-    id: '03-telemetry', label: 'Telemetry', icon: 'ti-eye-off',
-    sections: [
-      { label: 'Windows',    ids: ['wtelemetry','wupdate','wsearchtelemetry','appexperience','windowsdrm','cloudbasedspeech','wfeedback','handwriting','targetads','diagaccess','voiceactivationaccess'] },
-      { label: '3rd Party',  ids: ['officetelemetry','adobetelemetry','nvidiatelemetry','vscodetelemetry','mediatelemetry','powershelltelemetry','ccleanertelemetry'] },
-      { label: 'Updates',    ids: ['deliveryoptimization','meteredconnection','driverupdates','adobeupdates','googleupdates'] },
-    ],
-  },
-  {
-    id: '04-performance', label: 'Performance', icon: 'ti-rocket',
-    sections: [
-      { label: 'Power',       ids: ['balanced','highperformance','ultimateperformance','faststartup','disablehibernation'] },
-      { label: 'System',      ids: ['transparency','manualservices','mousedelay','hags','storagesense','limitdefender','coreisolation','disableprefetch','ipv6'] },
-      { label: 'Search',      ids: ['wsearch'] },
-    ],
-  },
-  {
-    id: '05-gaming', label: 'Gaming', icon: 'ti-device-gamepad-2',
-    sections: [
-      { label: 'Optimizations', ids: ['fullscreenoptimizations','windowedoptimizations','mouseacc','gamemode','gamebar'] },
-    ],
-  },
-  {
-    id: '06-misc', label: 'Misc', icon: 'ti-adjustments',
-    sections: [
-      { label: 'Explorer & UI', ids: ['darkmode','filextensions','hiddenfiles','classicmenu','homegallery','taskbarleft','endtask','mpo','snapflyout','stickykeys','numlockstartup'] },
-      { label: 'Diagnostic',   ids: ['detailedbsod','verboselogon'] },
-    ],
-  },
-  {
-    id: '07-tools', label: 'Tools', icon: 'ti-tool',
-    sections: [
-      { label: 'Maintenance', ids: ['cleantemp','emptyrecycle','cleanmgr','browserhistory','resetnetwork'] },
-      { label: 'Repair',      ids: ['sfc','dism'] },
-      { label: 'DNS',         ids: ['googledns','cloudflaredns','quad9dns','opendns','adguardns'] },
-    ],
-  },
-];
+// ── Tab order + icons ────────────────────────────────────────────────────────
+const TAB_META = {
+  tools:        { label: 'Tools',          icon: 'ti-tool',              order: 1 },
+  debloat:      { label: 'Debloat',        icon: 'ti-trash',             order: 2 },
+  privacy:      { label: 'Privacy',        icon: 'ti-shield-lock',       order: 3 },
+  telemetry:    { label: 'Telemetry',      icon: 'ti-eye-off',           order: 4 },
+  gaming:       { label: 'Gaming',         icon: 'ti-device-gamepad-2',  order: 5 },
+  performance:  { label: 'Performance',    icon: 'ti-rocket',            order: 6 },
+  miscellanous: { label: 'Miscellaneous',  icon: 'ti-adjustments',       order: 7 },
+};
 
-function run(winscriptPath, outDir) {
-  // Load WinScript scripts
-  const jsPath = path.join(winscriptPath, 'app/src/assets/js/scripts.js');
-  const raw = fs.readFileSync(jsPath, 'utf8');
-
-  // Extract scripts object by wrapping in a module and evaluating
-  // ponytail: eval is simplest here; only runs on trusted local WinScript source
-  const vm = require('vm');
-  const scriptMap = {};
-  const patched = raw
-    .replace('document.addEventListener("DOMContentLoaded", function () {', '(function () {')
-    .replace(/const parentDiv[\s\S]*?function removeScripts[^}]+\}\s*/m, '')
-    .replace(/function addScript[\s\S]*?\}\s*function removeScripts[\s\S]*?\}\s*/m, '')
-    // Replace addScript/removeScripts calls and checkbox event handlers with no-ops
-    .replace(/parentDiv[\s\S]*$/, '})();');
-
-  // Simpler: just extract the scripts object block and eval it
-  const objStart = raw.indexOf('const scripts = {');
-  const objBlock = raw.slice(objStart);
-  // Find matching closing brace
-  let d = 0, end = 0, inStr = false, strChar = '', i = 0;
-  const chars = objBlock;
-  while (i < chars.length) {
-    const c = chars[i];
+// ── Helper: find matching close bracket ─────────────────────────────────────
+function findClose(str, start, open, close) {
+  let depth = 0, inStr = false, strChar = '';
+  for (let i = start; i < str.length; i++) {
+    const c = str[i];
     if (inStr) {
-      if (c === '\\') { i += 2; continue; }
+      if (c === '\\') { i++; continue; }
       if (c === strChar) inStr = false;
     } else if (c === '"' || c === "'" || c === '`') { inStr = true; strChar = c; }
-    else if (c === '{') d++;
-    else if (c === '}') { d--; if (d === 0) { end = i + 1; break; } }
-    i++;
+    else if (c === open)  { depth++; }
+    else if (c === close) { depth--; if (depth === 0) return i; }
   }
-  const ctx = { scripts: {} };
-  vm.runInNewContext('var scripts = ' + objBlock.slice('const scripts = '.length, end), ctx);
-  Object.assign(scriptMap, ctx.scripts);
+  return -1;
+}
 
-  // Load en.json for labels
-  const enPath = path.join(winscriptPath, 'app/src/i18n/locales/en.json');
-  const en = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+// ── Helper: extract a prop value from a JSX-ish props string ────────────────
+// Returns { tKey?: string, value?: string } for string/t-ref props
+function extractProp(propsStr, name) {
+  // Match: name={t["some.key"]}
+  const tRe = new RegExp(name + '=\\{t\\["([^"]+)"\\]\\}');
+  let m = tRe.exec(propsStr);
+  if (m) return { tKey: m[1] };
+  // Match: name="value"
+  const sRe = new RegExp(name + '="([^"]*)"');
+  m = sRe.exec(propsStr);
+  if (m) return { value: m[1] };
+  return null;
+}
 
-  // Label/desc lookup: try multiple patterns
-  function getLabel(id) {
-    for (const [k, v] of Object.entries(en)) {
-      if (k.endsWith(`.${id}.title`) || k === `${id}.title`) return v;
-    }
-    return id; // fallback to id
+// ── Helper: extract tools=[...] from a ScriptGroup props block ──────────────
+function extractTools(propsStr) {
+  const idx = propsStr.indexOf('tools={[');
+  if (idx === -1) return [];
+  const arrStart = idx + 'tools={'.length; // points to '['
+  const arrEnd   = findClose(propsStr, arrStart, '[', ']');
+  if (arrEnd === -1) return [];
+  const arrStr = propsStr.slice(arrStart + 1, arrEnd);
+
+  const tools = [];
+  // Extract each object { ... }
+  let i = 0;
+  while (i < arrStr.length) {
+    const ob = arrStr.indexOf('{', i);
+    if (ob === -1) break;
+    const oe = findClose(arrStr, ob, '{', '}');
+    if (oe === -1) break;
+    const obj = arrStr.slice(ob + 1, oe);
+    const tool = {};
+
+    // inputId: "X"
+    const idM = /inputId:\s*"([^"]+)"/.exec(obj);
+    if (idM) tool.id = idM[1];
+
+    // title: t["key"] or title: "X"
+    const titleTM = /title:\s*t\["([^"]+)"\]/.exec(obj);
+    const titleSM = /title:\s*"([^"]+)"/.exec(obj);
+    if (titleTM) tool.titleKey = titleTM[1];
+    else if (titleSM) tool.label = titleSM[1];
+
+    // description: t["key"] or description: "X"
+    const descTM = /description:\s*t\["([^"]+)"\]/.exec(obj);
+    const descSM = /description:\s*"([^"]+)"/.exec(obj);
+    if (descTM) tool.descKey = descTM[1];
+    else if (descSM) tool.desc = descSM[1];
+
+    // radio: true
+    const radioM = /radio:\s*true/.exec(obj);
+    if (radioM) tool.radio = true;
+
+    // group: "G"
+    const groupM = /group:\s*"([^"]+)"/.exec(obj);
+    if (groupM) tool.group = groupM[1];
+
+    if (tool.id) tools.push(tool);
+    i = oe + 1;
   }
-  function getDesc(id) {
-    for (const [k, v] of Object.entries(en)) {
-      if (k.endsWith(`.${id}.desc`) || k === `${id}.desc`) return v;
-    }
-    return '';
+  return tools;
+}
+
+// ── Parse MainPage.astro ─────────────────────────────────────────────────────
+function parseAstro(astroPath, en) {
+  const src = fs.readFileSync(astroPath, 'utf8');
+  const tabs = {};
+
+  // Find each <Tab tab="X">...</Tab> section
+  const tabRe = /<Tab tab="([^"]+)">/g;
+  let m;
+  while ((m = tabRe.exec(src)) !== null) {
+    const tabId  = m[1];
+    const start  = m.index + m[0].length;
+    const end    = src.indexOf('</Tab>', start);
+    if (end === -1) continue;
+    const body = src.slice(start, end);
+    tabs[tabId] = parseTabBody(body, en);
   }
+  return tabs;
+}
+
+function label(obj, en) {
+  if (obj.tKey) return en[obj.tKey] || obj.tKey;
+  return obj.value || '';
+}
+
+function parseTabBody(body, en) {
+  const items = [];
+  let i = 0;
+
+  while (i < body.length) {
+    // Find next component tag
+    const nextSG = body.indexOf('<ScriptGroup', i);
+    const nextST = body.indexOf('<ScriptToggle', i);
+
+    // Pick whichever comes first
+    if (nextSG === -1 && nextST === -1) break;
+    const useSG = nextSG !== -1 && (nextST === -1 || nextSG < nextST);
+
+    if (useSG) {
+      // ScriptGroup: find its self-closing end />
+      const tagEnd = body.indexOf('/>', nextSG);
+      if (tagEnd === -1) { i = nextSG + 1; continue; }
+      const propsStr = body.slice(nextSG + '<ScriptGroup'.length, tagEnd);
+
+      const titleProp = extractProp(propsStr, 'title');
+      const descProp  = extractProp(propsStr, 'description');
+      const tools     = extractTools(propsStr);
+      i = tagEnd + 2;
+
+      if (!tools.length) continue;
+
+      // Check if ALL tools are radio
+      const isRadio = tools.length > 0 && tools.every(t => t.radio);
+      if (isRadio) {
+        // Radio group — mutually exclusive choice
+        items.push({
+          type:  'radio',
+          label: label(titleProp || {}, en),
+          desc:  label(descProp  || {}, en),
+          group: tools[0].group || ('radio_' + (items.length)),
+          items: tools.map(t => ({
+            id:    t.id,
+            label: t.titleKey ? (en[t.titleKey] || t.titleKey) : (t.label || t.id),
+            desc:  t.descKey  ? (en[t.descKey]  || '')         : (t.desc  || ''),
+          })),
+        });
+      } else {
+        // Regular group (collapsible)
+        items.push({
+          type:  'group',
+          label: label(titleProp || {}, en),
+          desc:  label(descProp  || {}, en),
+          items: tools.map(t => ({
+            id:    t.id,
+            label: t.titleKey ? (en[t.titleKey] || t.titleKey) : (t.label || t.id),
+            desc:  t.descKey  ? (en[t.descKey]  || '')         : (t.desc  || ''),
+          })),
+        });
+      }
+    } else {
+      // ScriptToggle
+      const tagEnd = body.indexOf('/>', nextST);
+      if (tagEnd === -1) { i = nextST + 1; continue; }
+      const propsStr = body.slice(nextST + '<ScriptToggle'.length, tagEnd);
+
+      const idM    = /inputId="([^"]+)"/.exec(propsStr);
+      const titleP = extractProp(propsStr, 'title');
+      const descP  = extractProp(propsStr, 'description');
+      i = tagEnd + 2;
+
+      if (!idM) continue;
+      items.push({
+        type:  'toggle',
+        id:    idM[1],
+        label: label(titleP || {}, en),
+        desc:  label(descP  || {}, en),
+      });
+    }
+  }
+  return items;
+}
+
+// ── Load scriptMap from scripts.js (eval via vm) ─────────────────────────────
+function loadScripts(jsPath) {
+  const raw = fs.readFileSync(jsPath, 'utf8');
+  // Find "const scripts = {..." block
+  const start = raw.indexOf('const scripts = {');
+  if (start === -1) throw new Error('scripts object not found in ' + jsPath);
+  const objStart = start + 'const scripts = '.length;
+  const objEnd   = findClose(raw, objStart, '{', '}');
+  if (objEnd === -1) throw new Error('Could not find end of scripts object');
+  const ctx = {};
+  vm.runInNewContext('var scripts = ' + raw.slice(objStart, objEnd + 1), ctx);
+  // Flatten arrays to joined string
+  const map = {};
+  for (const [k, v] of Object.entries(ctx.scripts)) {
+    map[k] = Array.isArray(v) ? v.join('\n') : String(v);
+  }
+  return map;
+}
+
+// ── Attach scripts to items recursively ──────────────────────────────────────
+function attachScripts(items, scriptMap) {
+  for (const item of items) {
+    if (item.type === 'toggle') {
+      item.ps1 = scriptMap[item.id] || null;
+      if (!item.ps1) console.warn('  warn: no script for', item.id);
+    } else if (item.type === 'group' || item.type === 'radio') {
+      for (const sub of item.items || []) {
+        sub.ps1 = scriptMap[sub.id] || null;
+        if (!sub.ps1) console.warn('  warn: no script for', sub.id);
+      }
+      // Remove sub-items with no script
+      item.items = (item.items || []).filter(s => s.ps1);
+    }
+  }
+  // Remove top-level items with no script
+  return items.filter(item => {
+    if (item.type === 'toggle') return !!item.ps1;
+    return (item.items || []).length > 0;
+  });
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+function run(winscriptPath, outDir) {
+  const enPath     = path.join(winscriptPath, 'app/src/i18n/locales/en.json');
+  const jsPath     = path.join(winscriptPath, 'app/src/assets/js/scripts.js');
+  const astroPath  = path.join(winscriptPath, 'app/src/components/MainPage.astro');
+
+  const en         = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+  const scriptMap  = loadScripts(jsPath);
+  const tabs       = parseAstro(astroPath, en);
 
   fs.mkdirSync(outDir, { recursive: true });
 
-  for (const cat of CATEGORY_MAP) {
-    const out = {
-      id: cat.id.replace(/^\d+-/, ''),
-      label: cat.label,
-      icon: cat.icon,
-      sections: [],
-    };
+  // Remove old generated files
+  for (const f of fs.readdirSync(outDir)) {
+    if (/^\d+-/.test(f) && f.endsWith('.json')) fs.unlinkSync(path.join(outDir, f));
+  }
 
-    for (const sec of cat.sections) {
-      const actions = [];
-      for (const id of sec.ids) {
-        const cmds = scriptMap[id];
-        if (!cmds || !cmds.length) continue;
-        actions.push({
-          id,
-          label: getLabel(id),
-          description: getDesc(id),
-          ps1: cmds.join('\n'),
-          bat: null,
-        });
-      }
-      if (actions.length) out.sections.push({ label: sec.label, actions });
-    }
+  const ordered = Object.entries(TAB_META).sort((a, b) => a[1].order - b[1].order);
+  for (const [tabId, meta] of ordered) {
+    const rawItems = tabs[tabId];
+    if (!rawItems) { console.log('skip', tabId, '(not in MainPage.astro)'); continue; }
+    const items = attachScripts(rawItems, scriptMap);
+    if (!items.length) { console.log('skip', tabId, '(no scripts found)'); continue; }
 
-    if (out.sections.length) {
-      const outPath = path.join(outDir, `${cat.id}.json`);
-      fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
-      console.log(`wrote ${outPath} (${out.sections.flatMap(s=>s.actions).length} actions)`);
-    }
+    const n    = String(meta.order).padStart(2, '0');
+    const cat  = { id: tabId, label: meta.label, icon: meta.icon, items };
+    const file = path.join(outDir, `${n}-${tabId}.json`);
+    fs.writeFileSync(file, JSON.stringify(cat, null, 2));
+
+    const total = items.reduce((s, i) => s + (i.items ? i.items.length : 1), 0);
+    console.log(`wrote ${file} (${total} actions, ${items.length} top-level items)`);
   }
   console.log('done');
 }

@@ -1,0 +1,155 @@
+{
+  "id": "performance",
+  "label": "Performance",
+  "icon": "ti-rocket",
+  "items": [
+    {
+      "type": "radio",
+      "label": "Set as DNS",
+      "desc": "",
+      "group": "dns",
+      "items": [
+        {
+          "id": "googledns",
+          "label": "Google DNS",
+          "desc": "",
+          "ps1": "Write-Host '-- Setting Google DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 8.8.8.8 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 8.8.4.4 index=2 | Out-Null"
+        },
+        {
+          "id": "cloudflaredns",
+          "label": "Cloudflare DNS",
+          "desc": "",
+          "ps1": "Write-Host '-- Setting Cloudflare DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 1.1.1.1 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 1.0.0.1 index=2 | Out-Null"
+        },
+        {
+          "id": "quad9dns",
+          "label": "Quad9 DNS",
+          "desc": "",
+          "ps1": "Write-Host '-- Setting Quad9 DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 9.9.9.9 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 149.112.112.112 index=2 | Out-Null"
+        },
+        {
+          "id": "opendns",
+          "label": "OpenDNS",
+          "desc": "",
+          "ps1": "Write-Host '-- Setting OpenDNS DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 208.67.222.222 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 208.67.220.220 index=2 | Out-Null"
+        },
+        {
+          "id": "adguardns",
+          "label": "AdGuard DNS",
+          "desc": "",
+          "ps1": "Write-Host '-- Setting AdGuard DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 94.140.14.14 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 94.140.15.15 index=2 | Out-Null"
+        }
+      ]
+    },
+    {
+      "type": "radio",
+      "label": "Choose Power Plan",
+      "desc": "",
+      "group": "powerplan",
+      "items": [
+        {
+          "id": "balanced",
+          "label": "Balanced",
+          "desc": "",
+          "ps1": "Write-Host '-- Set Balanced Power Plan' -ForegroundColor Green\n$balanced = powercfg -list | Select-String -Pattern 'Balanced'; if ($balanced) { Write-Host '-- Power plan already exists.' } else { Write-Host '-- Enabling Balanced.'; $output = powercfg -duplicatescheme 381b4222-f694-41f0-9685-ff5bb260df2e 2>&1; if ($output -match 'Unable to create a new power scheme' -or $output -match 'The power scheme, subgroup or setting specified does not exist') { powercfg -RestoreDefaultSchemes } }\n$balancedGUID = (powercfg -list | Select-String -Pattern 'Balanced').Line.Split()[3]; Write-Host '-- Activating Balanced'; powercfg -setactive $balancedGUID"
+        },
+        {
+          "id": "highperformance",
+          "label": "High Performance",
+          "desc": "",
+          "ps1": "Write-Host '-- Set High Performance Power Plan' -ForegroundColor Green\n$highPerformance = powercfg -list | Select-String -Pattern 'High performance'; if ($highPerformance) { Write-Host '-- Power plan already exists.' } else { Write-Host '-- Enabling High Performance.'; $output = powercfg -duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>&1; if ($output -match 'Unable to create a new power scheme' -or $output -match 'The power scheme, subgroup or setting specified does not exist') { powercfg -RestoreDefaultSchemes } }\n$highPlanGUID = (powercfg -list | Select-String -Pattern 'High performance').Line.Split()[3]; Write-Host '-- Activating High Performance'; powercfg -setactive $highPlanGUID"
+        },
+        {
+          "id": "ultimateperformance",
+          "label": "Ultimate Performance",
+          "desc": "",
+          "ps1": "Write-Host '-- Set Ultimate Performance Power Plan' -ForegroundColor Green\n$ultimatePerformance = powercfg -list | Select-String -Pattern 'Ultimate Performance'; if ($ultimatePerformance) { Write-Host '-- Power plan already exists.' } else { Write-Host 'Enabling Ultimate Performance.'; $output = powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 2>&1; if ($output -match 'Unable to create a new power scheme' -or $output -match 'The power scheme, subgroup or setting specified does not exist') { powercfg -RestoreDefaultSchemes } }\n$ultimatePlanGUID = (powercfg -list | Select-String -Pattern 'Ultimate Performance').Line.Split()[3]; Write-Host 'Activating Ultimate Performance'; powercfg -setactive $ultimatePlanGUID"
+        }
+      ]
+    },
+    {
+      "type": "toggle",
+      "id": "manualservices",
+      "label": "Set Services to Manual",
+      "desc": "Starts services only when they are needed.",
+      "ps1": "Write-Host '-- Disabling Manual Services' -ForegroundColor Green\n$manualServices = @(\"ALG\",\"AppMgmt\",\"AppReadiness\",\"Appinfo\",\"AxInstSV\",\"BDESVC\",\"BTAGService\",\"BcastDVRUserService\",\"BluetoothUserService\",\"Browser\",\"CDPSvc\",\"COMSysApp\",\"CaptureService\",\"CertPropSvc\",\"ConsentUxUserSvc\",\"CscService\",\"DevQueryBroker\",\"DeviceAssociationService\",\"DeviceInstall\",\"DevicePickerUserSvc\",\"DevicesFlowUserSvc\",\"DisplayEnhancementService\",\"DmEnrollmentSvc\",\"DsSvc\",\"DsmSvc\",\"EFS\",\"EapHost\",\"EntAppSvc\",\"FDResPub\",\"FrameServer\",\"FrameServerMonitor\",\"GraphicsPerfSvc\",\"HvHost\",\"IEEtwCollectorService\",\"InstallService\",\"InventorySvc\",\"IpxlatCfgSvc\",\"KtmRm\",\"LicenseManager\",\"LxpSvc\",\"MSDTC\",\"MSiSCSI\",\"McpManagementService\",\"MicrosoftEdgeElevationService\",\"MsKeyboardFilter\",\"NPSMSvc\",\"NaturalAuthentication\",\"NcaSvc\",\"NcbService\",\"NcdAutoSetup\",\"NetSetupSvc\",\"Netman\",\"NgcCtnrSvc\",\"NgcSvc\",\"NlaSvc\",\"PNRPAutoReg\",\"PcaSvc\",\"PeerDistSvc\",\"PenService\",\"PerfHost\",\"PhoneSvc\",\"PimIndexMaintenanceSvc\",\"PlugPlay\",\"PolicyAgent\",\"PrintNotify\",\"PushToInstall\",\"QWAVE\",\"RasAuto\",\"RasMan\",\"RetailDemo\",\"RmSvc\",\"RpcLocator\",\"SCPolicySvc\",\"SCardSvr\",\"SDRSVC\",\"SEMgrSvc\",\"SNMPTRAP\",\"SNMPTrap\",\"SSDPSRV\",\"ScDeviceEnum\",\"SensorDataService\",\"SensorService\",\"SensrSvc\",\"SessionEnv\",\"SharedAccess\",\"SmsRouter\",\"SstpSvc\",\"StiSvc\",\"StorSvc\",\"TapiSrv\",\"TextInputManagementService\",\"TieringEngineService\",\"TokenBroker\",\"TroubleshootingSvc\",\"TrustedInstaller\",\"UdkUserSvc\",\"UmRdpService\",\"UserDataSvc\",\"UsoSvc\",\"VSS\",\"VacSvc\",\"WEPHOSTSVC\",\"WFDSConMgrSvc\",\"WMPNetworkSvc\",\"WManSvc\",\"WPDBusEnum\",\"WalletService\",\"WarpJITSvc\",\"WbioSrvc\",\"WdNisSvc\",\"WdiServiceHost\",\"WdiSystemHost\",\"WebClient\",\"Wecsvc\",\"WerSvc\",\"WiaRpc\",\"WinRM\",\"WpcMonSvc\",\"WpnService\",\"WwanSvc\",\"autotimesvc\",\"bthserv\",\"camsvc\",\"cbdhsvc\",\"cloudidsvc\",\"dcsvc\",\"defragsvc\",\"diagsvc\",\"dmwappushservice\",\"dot3svc\",\"edgeupdate\",\"edgeupdatem\",\"embeddedmode\",\"fdPHost\",\"fhsvc\",\"hidserv\",\"icssvc\",\"lfsvc\",\"lltdsvc\",\"lmhosts\",\"msiserver\",\"netprofm\",\"p2pimsvc\",\"p2psvc\",\"perceptionsimulation\",\"pla\",\"seclogon\",\"smphost\",\"svsvc\",\"swprv\",\"upnphost\",\"vds\",\"vmicguestinterface\",\"vmicheartbeat\",\"vmickvpexchange\",\"vmicrdv\",\"vmicshutdown\",\"vmictimesync\",\"vmicvmsession\",\"vmicvss\",\"vmvss\",\"wbengine\",\"wcncsvc\",\"webthreatdefsvc\",\"wercplsupport\",\"wisvc\",\"wlidsvc\",\"wlpasvc\",\"wmiApSrv\",\"workfolderssvc\",\"wuauserv\",\"wudfsvc\")\n$disabledServices = @(\"AppVClient\",\"AssignedAccessManagerSvc\",\"DiagTrack\",\"DialogBlockingService\",\"NetTcpPortSharing\",\"RemoteAccess\",\"RemoteRegistry\",\"shpamsvc\",\"ssh-agent\",\"tzautoupdate\")\n$manualServices | ForEach-Object { Set-Service -Name $_ -StartupType Manual }\n$disabledServices | ForEach-Object { Set-Service -Name $_ -StartupType Disabled }"
+    },
+    {
+      "type": "toggle",
+      "id": "transparency",
+      "label": "Disable Windows Transparency",
+      "desc": "Disables transparency, may improve system performance.",
+      "ps1": "Write-Host '-- Disabling Transparency' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v \"EnableTransparency\" /t REG_DWORD /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "hags",
+      "label": "Disable HAGS",
+      "desc": "Disables Hardware-Accelerated GPU Scheduling.",
+      "ps1": "Write-Host '-- Disabling HAGS' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\" /v \"HwSchMode\" /t REG_DWORD /d 1 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "ipv6",
+      "label": "Set IPv4 as Preferred",
+      "desc": "Prefers IPv4 over IPv6, can improve latency.",
+      "ps1": "Write-Host '-- Setting IPv4 Priority' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters\" /v \"DisabledComponents\" /t REG_DWORD /d 32 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "mousedelay",
+      "label": "Disable Mouse Delay",
+      "desc": "Disables the 400ms menu show and hover delay.",
+      "ps1": "Write-Host '-- Disabling Mouse Delay Times' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Desktop\" /v \"MenuShowDelay\" /t REG_SZ /d 0 /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseHoverTime\" /t REG_SZ /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "limitdefender",
+      "label": "Limit Defender CPU Usage",
+      "desc": "Limits Defender maximum CPU usage at 25%.",
+      "ps1": "Write-Host '-- Limiting Windows Defender Usage' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan\" /v \"AvgCPULoadFactor\" /t REG_DWORD /d \"25\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan\" /v \"ScanAvgCPULoadFactor\" /t REG_DWORD /d \"25\" /f"
+    },
+    {
+      "type": "toggle",
+      "id": "coreisolation",
+      "label": "Disable Core Isolation",
+      "desc": "May improve performance at the cost of security.",
+      "ps1": "Write-Host '-- Disabling Core Isolation' -ForegroundColor Green\nreg add \"HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity\" /v \"Enabled\" /t REG_DWORD /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "disableprefetch",
+      "label": "Disable SysMain",
+      "desc": "Disables prefetch, might improve performance at the cost of app startup time.",
+      "ps1": "Write-Host '-- Disabling Prefetch' -ForegroundColor Green\nStop-Service -Name \"sysmain\"\nSet-Service -Name \"sysmain\" -StartupType Disabled"
+    },
+    {
+      "type": "toggle",
+      "id": "storagesense",
+      "label": "Disable Storage Sense",
+      "desc": "Disables Storage Sense, stops automatic disk cleanup.",
+      "ps1": "Write-Host '-- Disabling Storage Sense' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy\" /v \"01\" /t REG_DWORD /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "wsearch",
+      "label": "Disable Search",
+      "desc": "Disables Windows Search, disables drive indexing.",
+      "ps1": "Write-Host '-- Disabling Windows Search' -ForegroundColor Green\nStop-Service -Name \"wsearch\"\nSet-Service -Name \"wsearch\" -StartupType Disabled"
+    },
+    {
+      "type": "toggle",
+      "id": "faststartup",
+      "label": "Disable Fast Startup",
+      "desc": "Disables Fast Startup, may fix boot and update issues.",
+      "ps1": "Write-Host '-- Disabling Fast Startup' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power\" /v \"HiberbootEnabled\" /t REG_DWORD /d 0 /f"
+    },
+    {
+      "type": "toggle",
+      "id": "disablehibernation",
+      "label": "Disable Hibernation",
+      "desc": "Not recommended on laptops.",
+      "ps1": "Write-Host '-- Disabling Hibernation' -ForegroundColor Green\npowercfg /h off"
+    }
+  ]
+}
