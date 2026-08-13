@@ -1,0 +1,47 @@
+{
+  "id": "gaming",
+  "label": "Gaming",
+  "icon": "ti-device-gamepad-2",
+  "sections": [
+    {
+      "label": "Optimizations",
+      "actions": [
+        {
+          "id": "fullscreenoptimizations",
+          "label": "Disable Fullscreen Optimizations",
+          "description": "",
+          "ps1": "Write-Host '-- Disabling Fullscreen Optimizations' -ForegroundColor Green\nreg add \"HKCU\\System\\GameConfigStore\" /v \"GameDVR_DXGIHonorFSEWindowsCompatible\" /t REG_DWORD /d 1 /f",
+          "bat": null
+        },
+        {
+          "id": "windowedoptimizations",
+          "label": "Disable Optimizations for Windowed Games",
+          "description": "",
+          "ps1": "Write-Host '-- Disabling Optimizations for Windowed Games' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences\" /v \"DirectXUserGlobalSettings\" /t REG_SZ /d \"SwapEffectUpgradeEnable=0;\" /f",
+          "bat": null
+        },
+        {
+          "id": "mouseacc",
+          "label": "Disable Mouse Acceleration",
+          "description": "",
+          "ps1": "Write-Host '-- Disabling Mouse Acceleration' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseSpeed\" /t REG_SZ /d \"0\" /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseThreshold1\" /t REG_SZ /d \"0\" /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseThreshold2\" /t REG_SZ /d \"0\" /f",
+          "bat": null
+        },
+        {
+          "id": "gamemode",
+          "label": "Disable Game Mode",
+          "description": "",
+          "ps1": "Write-Host '-- Disabling Game Mode' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR\" /v \"AutoGameModeEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"AutoGameModeEnabled\" /t REG_DWORD /d 0 /f",
+          "bat": null
+        },
+        {
+          "id": "gamebar",
+          "label": "Disable Game Bar",
+          "description": "",
+          "ps1": "Write-Host '-- Disabling Game Bar' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Polices\\Microsoft\\Windows\\GameDVR\" /v \"AllowGameDVR\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR\" /v \"AppCaptureEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"UseNexusForGameBarEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"ShowStartupPanel\" /t REG_DWORD /d 0 /f",
+          "bat": null
+        }
+      ]
+    }
+  ]
+}

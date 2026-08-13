@@ -4,7 +4,7 @@ let _data = [];
 
 export async function load() {
   const el = document.getElementById('snippets-scroll');
-  el.innerHTML = paneHeader('ti-blockquote', 'Snippets', '+ Add Snippet', 'window._showSnippetModal(null)', 'snip-filter')
+  el.innerHTML = paneHeader('ti-blockquote', 'Snippets', 'Add Snippet', 'window._showSnippetModal(null)', 'snip-filter')
     + `<div id="snip-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(6)}</div></div>`;
 
   setTimeout(() => {

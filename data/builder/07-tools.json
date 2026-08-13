@@ -1,0 +1,106 @@
+{
+  "id": "tools",
+  "label": "Tools",
+  "icon": "ti-tool",
+  "sections": [
+    {
+      "label": "Maintenance",
+      "actions": [
+        {
+          "id": "cleantemp",
+          "label": "cleantemp",
+          "description": "",
+          "ps1": "Write-Host '-- Deleting Temp files' -ForegroundColor Green\nRemove-Item -Path \"C:\\Windows\\Temp\\*\" -Recurse -Force\nRemove-Item -Path \"C:\\Windows\\Prefetch\\*\" -Recurse -Force",
+          "bat": null
+        },
+        {
+          "id": "emptyrecycle",
+          "label": "emptyrecycle",
+          "description": "",
+          "ps1": "Write-Host '-- Emptying Recycle Bin' -ForegroundColor Green\n$bin = (New-Object -ComObject Shell.Application).NameSpace(10); $bin.items() | ForEach { Write-Host \"Deleting $($_.Name) from Recycle Bin\"; Remove-Item $_.Path -Recurse -Force }",
+          "bat": null
+        },
+        {
+          "id": "cleanmgr",
+          "label": "cleanmgr",
+          "description": "",
+          "ps1": "Write-Host '-- Running Disk Clean-up' -ForegroundColor Green\ncleanmgr /verylowdisk /sagerun:5",
+          "bat": null
+        },
+        {
+          "id": "browserhistory",
+          "label": "Clear Browser History",
+          "description": "Clears Chrome, Edge, Brave and Firefox history.",
+          "ps1": "Write-Host '-- Clearing Browser History' -ForegroundColor Green\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\places.sqlite\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\cache2\\entries\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cookies\" -Recurse -Force",
+          "bat": null
+        },
+        {
+          "id": "resetnetwork",
+          "label": "Reset Network",
+          "description": "Flushes the DNS and renews the IP address.",
+          "ps1": "Write-Host '-- Resetting Network' -ForegroundColor Green\nipconfig /flushdns\nipconfig /release | Out-Null\nipconfig /renew | Out-Null",
+          "bat": null
+        }
+      ]
+    },
+    {
+      "label": "Repair",
+      "actions": [
+        {
+          "id": "sfc",
+          "label": "sfc",
+          "description": "",
+          "ps1": "Write-Host '-- Running SFC' -ForegroundColor Green\nsfc /scannow",
+          "bat": null
+        },
+        {
+          "id": "dism",
+          "label": "dism",
+          "description": "",
+          "ps1": "Write-Host '-- Running DISM' -ForegroundColor Green\nDISM /Online /Cleanup-Image /RestoreHealth",
+          "bat": null
+        }
+      ]
+    },
+    {
+      "label": "DNS",
+      "actions": [
+        {
+          "id": "googledns",
+          "label": "googledns",
+          "description": "",
+          "ps1": "Write-Host '-- Setting Google DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 8.8.8.8 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 8.8.4.4 index=2 | Out-Null",
+          "bat": null
+        },
+        {
+          "id": "cloudflaredns",
+          "label": "cloudflaredns",
+          "description": "",
+          "ps1": "Write-Host '-- Setting Cloudflare DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 1.1.1.1 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 1.0.0.1 index=2 | Out-Null",
+          "bat": null
+        },
+        {
+          "id": "quad9dns",
+          "label": "quad9dns",
+          "description": "",
+          "ps1": "Write-Host '-- Setting Quad9 DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 9.9.9.9 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 149.112.112.112 index=2 | Out-Null",
+          "bat": null
+        },
+        {
+          "id": "opendns",
+          "label": "opendns",
+          "description": "",
+          "ps1": "Write-Host '-- Setting OpenDNS DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 208.67.222.222 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 208.67.220.220 index=2 | Out-Null",
+          "bat": null
+        },
+        {
+          "id": "adguardns",
+          "label": "adguardns",
+          "description": "",
+          "ps1": "Write-Host '-- Setting AdGuard DNS' -ForegroundColor Green\nnetsh interface ip set dns name=\"Ethernet\" static 94.140.14.14 | Out-Null\nnetsh interface ip add dns name=\"Ethernet\" 94.140.15.15 index=2 | Out-Null",
+          "bat": null
+        }
+      ]
+    }
+  ]
+}

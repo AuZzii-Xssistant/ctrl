@@ -463,7 +463,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* ── TWEAKS ── */
 .tweaks-note { font-size:11px; color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:8px 12px; margin:0 0 14px; display:flex; align-items:center; gap:6px;
-  position: sticky; top: 54px; z-index: 9; }
+  position: sticky; top: 37px; z-index: 9; }
 .tweaks-note .ti { flex-shrink:0; color:var(--amber); }
 
 /* ── CUSTOM CHECKBOXES ── */
