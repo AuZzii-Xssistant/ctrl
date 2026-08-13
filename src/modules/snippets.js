@@ -99,6 +99,7 @@ async function btn_del(s) {
 
 window._showSnippetModal = (s) => {
   const isEdit = !!s;
+  window._closeSnippetModal = closeModal;
   openModal(isEdit ? 'Edit Snippet' : 'Add Snippet', `
     <div class="form-row">
       <label class="form-label">Title <span style="color:var(--red)">*</span></label>
@@ -119,7 +120,7 @@ window._showSnippetModal = (s) => {
       </div>
     </div>
     <div class="form-actions">
-      <button class="action-btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="action-btn btn-ghost" onclick="window._closeSnippetModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveSnippet(${isEdit ? s.id : 'null'})">${isEdit ? 'Save' : 'Add'}</button>
     </div>`);
 };

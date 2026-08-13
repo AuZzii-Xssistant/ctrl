@@ -112,6 +112,12 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         }).map_err(|e| e.to_string())?
     };
 
+    // Sandbox dry-run: CTRL_SANDBOX=1 skips real execution
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        let preview = content.as_deref().unwrap_or(&file_path);
+        return Ok(RunResult { success: true, output: format!("SANDBOX: would run script \"{name}\" ({script_type}):\n{preview}") });
+    }
+
     // If content is stored in DB, write to a temp file and use that as the exec path
     let tmp_content_file = content.as_ref().map(|c| {
         let p = std::env::temp_dir().join(format!("ctrl_script_content_{}.{}", id, script_type));

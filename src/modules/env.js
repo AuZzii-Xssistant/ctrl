@@ -7,7 +7,11 @@ let _data = { user: [], system: [] };
 export async function load() {
   const el = document.getElementById('env-scroll');
   el.innerHTML = paneHeader('ti-list-details', 'Environment Variables', '+ Add Variable', 'window._showEnvModal(null,"User")', 'env-filter')
-    + `<div class="tweaks-note"><i class="ti ti-info-circle"></i> User variables are editable. System variables require UAC elevation to modify.</div>`
+    + `<div class="tweaks-note" style="display:flex;align-items:center;gap:8px">
+        <span><i class="ti ti-info-circle"></i> User variables are editable. System variables require UAC elevation to modify.</span>
+        <button class="action-btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="window._showAddToPathModal()"><i class="ti ti-plus"></i> Add to PATH</button>
+        <button class="action-btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="window._openPathEditor()" title="Open Windows PATH editor"><i class="ti ti-external-link"></i> PATH Editor</button>
+       </div>`
     + `<div id="env-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(8)}</div></div>`;
 
   setTimeout(() => {
@@ -62,7 +66,8 @@ function _render(q) {
         <div class="env-name" title="${esc(v.name)}">${esc(v.name)}</div>
         <div class="env-value" title="${esc(v.value)}">${esc(v.value) || '<span style="opacity:.4;font-style:italic">empty</span>'}</div>
         <div class="env-actions">
-          <button class="icon-btn" title="Edit (requires admin)" data-edit="${esc(v.name)}" data-scope="Machine"><i class="ti ti-pencil"></i><i class="ti ti-shield ti-shield-sm" style="font-size:9px;color:var(--amber);margin-left:1px"></i></button>
+          <i class="ti ti-shield" style="font-size:11px;color:var(--amber);margin-right:2px" title="Requires admin"></i>
+          <button class="icon-btn" title="Edit (requires admin)" data-edit="${esc(v.name)}" data-scope="Machine"><i class="ti ti-pencil"></i></button>
           <button class="icon-btn" title="Copy value" data-copy="${esc(v.value)}"><i class="ti ti-copy"></i></button>
           <button class="icon-btn del" title="Delete (requires admin)" data-del="${esc(v.name)}" data-scope="Machine"><i class="ti ti-trash"></i></button>
         </div>
@@ -131,6 +136,41 @@ window._showEnvModal = (v, scope = 'User') => {
       <button class="action-btn btn-ghost" onclick="window._closeEnvModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveEnvVar(${isEdit ? `'${esc(v.name)}','${scope}'` : `null,'${scope}'`})">${isEdit ? 'Save' : 'Add'}</button>
     </div>`);
+};
+
+window._openPathEditor = () => inv('open_env_editor').catch(err => toast(String(err), 'err'));
+
+window._showAddToPathModal = () => {
+  window._closeEnvModal = closeModal;
+  openModal('Add to PATH', `
+    <div class="form-row">
+      <label class="form-label">Directory to add</label>
+      <input class="form-input" id="atp-dir" placeholder="C:\\Tools\\bin" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">Scope</label>
+      <select class="form-input" id="atp-scope">
+        <option value="User">User PATH</option>
+        <option value="Machine">System PATH (UAC required)</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._closeEnvModal()">Cancel</button>
+      <button class="action-btn btn-primary" onclick="window._saveAddToPath()">Add</button>
+    </div>`);
+};
+
+window._saveAddToPath = async () => {
+  const dir   = document.getElementById('atp-dir').value.trim();
+  const scope = document.getElementById('atp-scope').value;
+  if (!dir) { toast('Directory is required', 'err'); return; }
+  try {
+    await inv('add_to_path', { dir, target: scope });
+    closeModal();
+    toast(`Added to ${scope === 'Machine' ? 'System' : 'User'} PATH`, 'ok');
+    _data = await inv('get_env_vars').catch(() => _data);
+    _render(document.getElementById('env-filter')?.value.toLowerCase().trim() || '');
+  } catch (err) { toast(String(err), 'err'); }
 };
 
 window._saveEnvVar = async (originalName, scope = 'User') => {

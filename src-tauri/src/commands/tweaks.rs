@@ -28,6 +28,9 @@ pub struct CustomTweakData {
 
 #[tauri::command]
 pub async fn run_tweak_cmd(app: tauri::AppHandle, cmd: String) -> Result<RunResult, String> {
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult { success: true, output: format!("SANDBOX: would run:\n{cmd}") });
+    }
     let utf8_cmd = format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8; {}", cmd);
     let out = app.shell().command("powershell")
         .args(["-ExecutionPolicy", "Bypass", "-Command", &utf8_cmd])

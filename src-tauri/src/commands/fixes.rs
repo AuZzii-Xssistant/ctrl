@@ -93,6 +93,11 @@ pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64)
         }).map_err(|e| e.to_string())?
     };
 
+    // Sandbox dry-run: CTRL_SANDBOX=1 skips real execution
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult { success: true, output: format!("SANDBOX: would run fix \"{name}\":\n{command}") });
+    }
+
     // For admin runs: write command to temp PS1, run elevated with -Wait, read output file back
     if run_as_admin {
         let tmp_script = std::env::temp_dir().join(format!("ctrl_fix_{}.ps1", id));

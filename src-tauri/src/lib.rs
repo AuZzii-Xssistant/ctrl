@@ -16,7 +16,9 @@ pub fn run() {
             let exe_dir = std::env::current_exe().ok()
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()))
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
-            let db_path = exe_dir.join("ctrl.db");
+            let db_path = std::env::var("CTRL_DB")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| exe_dir.join("ctrl.db"));
             let conn = Connection::open(&db_path)
                 .expect("failed to open ctrl.db");
             db::init(&conn).expect("failed to init db schema");
@@ -86,6 +88,8 @@ pub fn run() {
             commands::env_vars::get_env_vars,
             commands::env_vars::set_env_var,
             commands::env_vars::delete_env_var,
+            commands::env_vars::open_env_editor,
+            commands::env_vars::add_to_path,
             commands::backup::get_backup_jobs,
             commands::backup::add_backup_job,
             commands::backup::update_backup_job,

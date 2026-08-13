@@ -1,5 +1,23 @@
 # CTRL Changelog
 
+## 2026-08-14 — Bug fixes + Environment PATH + Sandbox
+
+**Bug fixes**
+- Snippet modal Cancel button now works (`closeModal` was not on `window`; added `window._closeSnippetModal` assignment)
+- Flush Icon Cache quick fix: replaced `ie4uinit.exe -ClearIconCache` (doesn't work on Win10/11) with correct delete-iconcache-DBs-then-restart-explorer command; migration updates existing databases
+- Release & Renew IP: marked `run_as_admin=1` (requires elevation on some systems); migration updates existing databases
+- System env var edit: UAC shield is now a separate `<i>` element to the LEFT of the Edit button, not embedded inside it
+
+**Environment — Add to PATH + PATH Editor**
+- "Add to PATH" button in env pane header — modal to add a directory to User or System PATH; checks for duplicates before appending
+- "PATH Editor" button opens the Windows native Environment Variables dialog (`rundll32 sysdm.cpl,EditEnvironmentVariables`)
+- New Rust commands: `open_env_editor`, `add_to_path`
+
+**Sandbox mode**
+- `CTRL_SANDBOX=1` env var: `run_fix`, `run_script`, `run_tweak_cmd` return dry-run output instead of executing
+- `CTRL_DB` env var: override the database path (defaults to `ctrl.db` next to the exe)
+- `sandbox.bat`: sets both vars and launches `ctrl.exe` for safe testing without touching the real Windows system
+
 ## 2026-08-14 — Major Upgrade 8
 
 **Snippets pane** (new module)

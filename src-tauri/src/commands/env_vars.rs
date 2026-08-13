@@ -87,6 +87,35 @@ pub async fn delete_env_var(app: tauri::AppHandle, name: String, target: Option<
     }
 }
 
+/// Open the Windows native environment variables editor.
+#[tauri::command]
+pub async fn open_env_editor(app: tauri::AppHandle) -> Result<(), String> {
+    app.shell().command("rundll32")
+        .args(["sysdm.cpl,EditEnvironmentVariables"])
+        .spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Append a directory to the User or System PATH (UAC for System).
+#[tauri::command]
+pub async fn add_to_path(app: tauri::AppHandle, dir: String, target: Option<String>) -> Result<(), String> {
+    let scope = target.as_deref().unwrap_or("User");
+    let dir_esc = dir.replace('\'', "''");
+    let inner = format!(
+        "$cur=[Environment]::GetEnvironmentVariable('Path','{scope}'); \
+         if ($cur -split ';' | Where-Object {{ $_ -ieq '{dir_esc}' }}) {{ throw 'Already in PATH' }}; \
+         [Environment]::SetEnvironmentVariable('Path',($cur.TrimEnd(';')+';{dir_esc}'),'{scope}')"
+    );
+    if scope == "Machine" {
+        run_elevated(&app, &inner).await
+    } else {
+        app.shell().command("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &inner])
+            .output().await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
 /// Write cmd to a temp .ps1 and run it elevated via Start-Process -Verb RunAs -Wait.
 async fn run_elevated(app: &tauri::AppHandle, cmd: &str) -> Result<(), String> {
     let tmp = std::env::temp_dir().join(format!("ctrl_env_{}.ps1", std::process::id()));

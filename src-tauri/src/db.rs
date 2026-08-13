@@ -27,6 +27,16 @@ fn migrate(conn: &Connection) -> Result<()> {
         tags       TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )", []);
+    // Release & Renew IP needs admin (requires elevated network access on some systems)
+    let _ = conn.execute("UPDATE fixes SET run_as_admin=1 WHERE name='Release & Renew IP' AND run_as_admin=0", []);
+    // Fix outdated Flush Icon Cache command (ie4uinit doesn't work on Win10/11)
+    let _ = conn.execute(
+        "UPDATE fixes SET command=?1, description=?2 WHERE name='Flush Icon Cache'",
+        rusqlite::params![
+            "Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Remove-Item -Path \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\\iconcache*.db\" -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer",
+            "Delete icon cache DBs and restart Explorer (Win10/11)"
+        ],
+    );
     // Custom tweaks table (added Loop 11)
     let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,13 +148,13 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
     conn.execute_batch("
         INSERT INTO fixes (name,description,category,shell_type,command,tags,confirm_required,run_as_admin) VALUES
         ('Flush DNS','Clear the DNS resolver cache','Network','powershell','ipconfig /flushdns','dns,network',0,0),
-        ('Release & Renew IP','Release and renew DHCP lease','Network','powershell','ipconfig /release; ipconfig /renew','ip,dhcp,network',0,0),
+        ('Release & Renew IP','Release and renew DHCP lease','Network','powershell','ipconfig /release; ipconfig /renew','ip,dhcp,network',0,1),
         ('Reset TCP/IP Stack','Reset Winsock and TCP/IP','Network','powershell','netsh winsock reset; netsh int ip reset','network,reset',1,1),
         ('Ping Gateway','Ping default gateway to test connectivity','Network','powershell','$gw=(Get-NetRoute -DestinationPrefix 0.0.0.0/0).NextHop | Select-Object -First 1; ping $gw','ping,network',0,0),
         ('Clear Temp Files','Delete files in %TEMP%','Maintenance','powershell','Remove-Item -Path $env:TEMP\\* -Recurse -Force -ErrorAction SilentlyContinue','temp,cleanup',0,0),
         ('Clear Windows Temp','Delete files in C:\\Windows\\Temp','Maintenance','powershell','Remove-Item -Path C:\\Windows\\Temp\\* -Recurse -Force -ErrorAction SilentlyContinue','temp,cleanup',0,1),
         ('Restart Explorer','Kill and restart Windows Explorer shell','System','powershell','Stop-Process -Name explorer -Force; Start-Process explorer','explorer,shell,ui',0,0),
-        ('Flush Icon Cache','Delete icon cache and restart Explorer','System','powershell','ie4uinit.exe -ClearIconCache; Stop-Process -Name explorer -Force; Start-Process explorer','icons,cache',0,0),
+        ('Flush Icon Cache','Delete icon cache DBs and restart Explorer (Win10/11)','System','powershell','Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\iconcache*.db" -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer','icons,cache',0,0),
         ('Kill Process by Name','Kill a process — edit command with target name','System','powershell','Stop-Process -Name notepad -Force -ErrorAction SilentlyContinue','process,kill',0,0),
         ('SFC Scan','Run System File Checker (takes a few minutes)','Repair','powershell','sfc /scannow','sfc,system,repair',1,1),
         ('DISM Health Restore','Run DISM to repair the Windows image','Repair','powershell','DISM /Online /Cleanup-Image /RestoreHealth','dism,repair',1,1),

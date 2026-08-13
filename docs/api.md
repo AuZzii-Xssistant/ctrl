@@ -98,17 +98,39 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 `get_last_runs` returns the most recent run per item of that type.  
 `get_run_history` returns the last N runs (default 10) for a single item with full captured output.
 
+## Environment Variables
+| Command | Payload | Returns |
+|---|---|---|
+| `get_env_vars` | — | `EnvVars` |
+| `set_env_var` | `{name, value, target?: "User"\|"Machine"}` | void |
+| `delete_env_var` | `{name, target?: "User"\|"Machine"}` | void |
+| `open_env_editor` | — | void (opens Windows ENV editor via rundll32) |
+| `add_to_path` | `{dir, target?: "User"\|"Machine"}` | void |
+
+## Snippets
+| Command | Payload | Returns |
+|---|---|---|
+| `get_snippets` | `{search: string}` | `Snippet[]` |
+| `add_snippet` | `{data: SnippetData}` | `i64` |
+| `update_snippet` | `{id, data: SnippetData}` | void |
+| `delete_snippet` | `{id}` | void |
+
 ## Misc
 | Command | Payload | Returns |
 |---|---|---|
 | `get_stats` | — | `Stats` |
 | `global_search` | `{query}` | `SearchResults` |
 | `open_data_folder` | — | void |
+| `open_path` | `{path}` | void |
 
 ## Types
 
 ```typescript
 RunResult    = { success: boolean, output: string }
+EnvVar       = { name: string, value: string }
+EnvVars      = { user: EnvVar[], system: EnvVar[] }
+Snippet      = { id, title, content, category, tags, created_at: string }
+SnippetData  = { title, content, category?, tags?: string }
 Stats        = { tools, scripts, fixes, projects: number }
 PinnedItem   = { id, item_type, item_id, item_name, item_icon, group_name, sort_order }
 SearchResults= { tools, scripts, fixes, projects: SearchResult[] }
