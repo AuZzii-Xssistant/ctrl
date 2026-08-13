@@ -36,3 +36,7 @@ If a script or fix that is a workflow step is deleted, `run_workflow` will error
 - **run_log `success` column missing** — fixed 2026-08-13, query uses `(exit_code=0)` instead
 - **Pinned workflows show blank name/icon** — fixed 2026-08-13, `resolve_item` now handles `workflow` and `project` types
 - **Output drawer doesn't auto-scroll** — fixed 2026-08-13, double RAF ensures scrollHeight is measured after layout
+- **Tools badge always `tag-exe`** — fixed 2026-08-13, badge now reflects actual file extension
+- **`open_script_editor` opened file manager** — fixed 2026-08-13, now uses `cmd /c start` to open with registered default editor
+- **confirm_required never enforced** — fixed 2026-08-13, confirm dialog shown for dangerous fixes
+- **App empty on first launch** — fixed 2026-08-13, 15 default quick fixes seeded on first run

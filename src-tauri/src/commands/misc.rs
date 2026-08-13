@@ -101,6 +101,27 @@ pub fn get_recent_activity(state: State<AppState>, limit: Option<i64>) -> Result
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
+#[derive(Serialize)]
+pub struct RunHistoryEntry {
+    pub id: i64,
+    pub success: bool,
+    pub ran_at: String,
+    pub output: String,
+}
+
+#[tauri::command]
+pub fn get_run_history(state: State<AppState>, item_type: String, item_id: i64, limit: Option<i64>) -> Result<Vec<RunHistoryEntry>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let n = limit.unwrap_or(10);
+    let mut stmt = db.prepare(
+        "SELECT id,(exit_code=0),ran_at,COALESCE(output,'') FROM run_log WHERE item_type=?1 AND item_id=?2 ORDER BY ran_at DESC LIMIT ?3"
+    ).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map(rusqlite::params![item_type, item_id, n], |row| {
+        Ok(RunHistoryEntry { id: row.get(0)?, success: row.get::<_,i64>(1)? != 0, ran_at: row.get(2)?, output: row.get(3)? })
+    }).map_err(|e| e.to_string())?;
+    Ok(rows.filter_map(|r| r.ok()).collect())
+}
+
 #[tauri::command]
 pub async fn open_data_folder(app: tauri::AppHandle) -> Result<(), String> {
     let dir = std::env::current_exe().ok()

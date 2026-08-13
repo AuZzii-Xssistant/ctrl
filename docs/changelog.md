@@ -2,6 +2,34 @@
 
 ## 2026-08-13
 
+### Major upgrade 4 — Seed data, run history, confirm guard, command preview, bug fixes
+
+**Seed data (first-run experience)**
+- 15 useful Windows quick fixes pre-installed on first launch across: Network (Flush DNS, Reset TCP/IP, Release/Renew IP, Ping Gateway), Maintenance (Clear Temp, Clear Windows Temp, Clear Event Log), System (Restart Explorer, Flush Icon Cache, Kill Process), Repair (SFC, DISM, CHKDSK), Performance (High Performance power, Balanced power)
+- Dangerous fixes (`confirm_required=true`): Reset TCP/IP, SFC, DISM, CHKDSK, Clear Event Log
+
+**Run History**
+- `get_run_history(item_type, item_id, limit)` Rust command added — returns last N runs with success/fail and captured output from `run_log`
+- Scripts and Fixes now have a History button (clock icon) on each card/row
+- History opens a modal showing last 10 runs: dot + timestamp + collapsible output block
+- History also accessible via right-click context menu
+
+**Confirm-before-run guard for fixes**
+- Fixes with `confirm_required=true` now show a confirm dialog before executing
+- `confirm_required` checkbox added to Add/Edit Fix modal
+- Warning triangle icon (amber) shown on row for dangerous fixes
+
+**Fix command preview**
+- Fix rows now show the first line of the command in monospace below the name — visible without opening Edit
+- Makes the fixes pane usable as a reference without editing each entry
+
+**Bug fixes**
+- Tools badge now shows actual file type (`.ps1`, `.py`, `.bat`, `.ahk`, `.jar` etc.) instead of always `tag-exe`
+- `open_script_editor` now uses `cmd /c start ""` to open with the registered default editor instead of opening Explorer (the file manager)
+- Duplicate `PRAGMA journal_mode=WAL` removed from `create_tables` (was run twice on startup)
+
+---
+
 ### Loop run 2 — CSS tag fixes, pinned workflow names, settings stats, output scroll
 
 **Bug fixes**

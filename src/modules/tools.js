@@ -33,6 +33,7 @@ function _render(el, tools) {
       html += sectionHdr(cat, items.length) + '<div class="card-grid">';
       for (const t of items) {
         const fname = (t.path || '').split(/[\\/]/).pop();
+        const ext = fname.split('.').pop().toLowerCase() || 'exe';
         const adminBadge = t.run_as_admin ? '<span class="badge-admin">admin</span>' : '';
         const tags = t.tags ? t.tags.split(',').filter(Boolean).map(tag => `<span class="chip">${esc(tag.trim())}</span>`).join('') : '';
         html += `<div class="card" data-id="${t.id}" data-launch="${t.id}">
@@ -41,7 +42,7 @@ function _render(el, tools) {
           <div class="card-sub">${esc(fname)}</div>
           ${tags ? `<div class="card-tags">${tags}</div>` : ''}
           <div class="card-footer">
-            <div style="display:flex;gap:4px;align-items:center"><span class="tag tag-exe">exe</span>${adminBadge}</div>
+            <div style="display:flex;gap:4px;align-items:center"><span class="tag tag-${ext}">.${ext}</span>${adminBadge}</div>
             <div class="card-actions">
               <button class="icon-btn run" title="Launch" data-launch="${t.id}"><i class="ti ti-player-play"></i></button>
               <button class="icon-btn"    title="Edit"   data-edit="${t.id}"><i class="ti ti-edit"></i></button>

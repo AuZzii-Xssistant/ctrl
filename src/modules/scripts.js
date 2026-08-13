@@ -42,10 +42,11 @@ function _render(el, scripts, lastRuns = []) {
           <div class="card-footer">
             <span class="tag tag-${ext}">.${ext}</span>
             <div class="card-actions">
-              <button class="icon-btn run"  title="Run"    data-run="${s.id}"><i class="ti ti-player-play"></i></button>
-              <button class="icon-btn"      title="Edit"   data-edit="${s.id}"><i class="ti ti-edit"></i></button>
-              <button class="icon-btn"      title="Folder" data-loc="${s.id}"><i class="ti ti-folder"></i></button>
-              <button class="icon-btn del"  title="Remove" data-del="${s.id}"><i class="ti ti-trash"></i></button>
+              <button class="icon-btn run"  title="Run"     data-run="${s.id}"><i class="ti ti-player-play"></i></button>
+              <button class="icon-btn"      title="History" data-hist="${s.id}" data-name="${esc(s.name)}"><i class="ti ti-history"></i></button>
+              <button class="icon-btn"      title="Edit"    data-edit="${s.id}"><i class="ti ti-edit"></i></button>
+              <button class="icon-btn"      title="Folder"  data-loc="${s.id}"><i class="ti ti-folder"></i></button>
+              <button class="icon-btn del"  title="Remove"  data-del="${s.id}"><i class="ti ti-trash"></i></button>
             </div>
           </div>
         </div>`;
@@ -61,6 +62,7 @@ function _render(el, scripts, lastRuns = []) {
       const s = scripts.find(x => x.id === id);
       showContextMenu(e, [
         { label: 'Run',         icon: 'ti-player-play', fn: () => _run(id) },
+        { label: 'History',     icon: 'ti-history',     fn: () => _showHistory(id, s?.name) },
         { label: 'Open editor', icon: 'ti-edit',        fn: () => inv('open_script_editor',   { id }) },
         { label: 'Show folder', icon: 'ti-folder',      fn: () => inv('open_script_location', { id }) },
         '---',
@@ -70,6 +72,7 @@ function _render(el, scripts, lastRuns = []) {
     });
   });
   body.querySelectorAll('[data-run]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _run(+btn.dataset.run); }));
+  body.querySelectorAll('[data-hist]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _showHistory(+btn.dataset.hist, btn.dataset.name); }));
   body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_editor',   { id: +btn.dataset.edit }); }));
   body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_location', { id: +btn.dataset.loc  }); }));
   body.querySelectorAll('[data-del]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _delete(+btn.dataset.del); }));
@@ -114,6 +117,20 @@ async function _run(id) {
     ]);
     _render(el, scripts, lastRuns);
   } catch (e) { toast(String(e), 'err'); }
+}
+
+async function _showHistory(id, name) {
+  const entries = await inv('get_run_history', { item_type: 'script', item_id: id, limit: 10 }).catch(() => []);
+  if (!entries.length) { toast('No run history yet', 'info'); return; }
+  const rows = entries.map(e => `
+    <div class="hist-row">
+      <span class="run-dot ${e.success ? 'ok' : 'err'}"></span>
+      <span class="hist-time">${timeAgo(e.ran_at)}</span>
+      <pre class="hist-output">${esc(e.output.trim() || '(no output)')}</pre>
+    </div>`).join('');
+  openModal(`History — ${esc(name || '')}`, `<div class="hist-list">${rows}</div>
+    <div class="form-actions"><button class="action-btn btn-ghost" onclick="window._closeHistModal()">Close</button></div>`);
+  window._closeHistModal = closeModal;
 }
 
 async function _delete(id) {

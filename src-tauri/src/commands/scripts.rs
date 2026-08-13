@@ -115,7 +115,8 @@ pub async fn open_script_editor(app: tauri::AppHandle, state: State<'_, AppState
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let path: String = db.query_row("SELECT file_path FROM scripts WHERE id=?1", params![id], |r| r.get(0)).map_err(|e| e.to_string())?;
     drop(db);
-    app.shell().command("explorer").args([&path]).spawn().map_err(|e| e.to_string())?;
+    // Use 'start' via cmd to open with the registered default editor for the file type
+    app.shell().command("cmd").args(["/c", "start", "", &path]).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
