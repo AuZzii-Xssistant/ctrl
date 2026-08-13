@@ -11,7 +11,7 @@ const SHORTCUTS = [
 ];
 
 export async function load() {
-  const el = document.getElementById('settings-pane');
+  const el = document.getElementById('settings-scroll');
   const stats = await inv('get_stats').catch(() => null);
   const statHtml = stats ? `
     <div class="settings-stats">
@@ -20,7 +20,10 @@ export async function load() {
       ).join('')}
     </div>` : '';
 
-  el.innerHTML = `<div class="pane-scroll" style="max-width:560px">
+  el.innerHTML = `
+    <div class="pane-header"><div class="pane-header-title"><i class="ti ti-settings"></i>Settings</div></div>
+    <div class="pane-divider"></div>
+    <div style="max-width:560px">
 
     <div class="settings-card">
       <div class="settings-app-name">&gt;_ CTRL</div>
@@ -57,7 +60,8 @@ export async function load() {
     backups/     ← future: backup sets</pre>
     </div>
 
-  </div>`;
+  </div>
+  <div style="height:24px"></div>`;
 
   document.getElementById('s-open-data').addEventListener('click', async () => {
     try { await inv('open_data_folder'); }

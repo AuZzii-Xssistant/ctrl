@@ -33,9 +33,10 @@ function _render(el, scripts, lastRuns = []) {
         const lr = runMap[s.id];
         const dot = lr ? `<span class="run-dot ${lr.success ? 'ok' : 'err'}" title="Last run: ${lr.success ? 'success' : 'failed'}"></span>` : `<span class="run-dot none" title="Never run"></span>`;
         const runTime = lr ? `<span class="run-time">${timeAgo(lr.ran_at)}</span>` : '';
+        const adminBadge = s.run_as_admin ? '<span class="badge-admin" title="Runs as Administrator"><i class="ti ti-shield"></i> admin</span>' : '';
         html += `<div class="card" data-id="${s.id}">
           <div class="card-icon"><i class="ti ${scriptIcon(ext)}"></i></div>
-          <div class="card-name" title="${esc(s.name)}">${esc(s.name)}</div>
+          <div class="card-name" title="${esc(s.name)}" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}</div>
           <div class="card-sub">${esc(s.description||'')}</div>
           ${tags ? `<div class="card-tags">${tags}</div>` : ''}
           <div class="run-meta-row">${dot}${runTime}</div>
@@ -161,6 +162,10 @@ window._showScriptModal = async (script) => {
       <div class="form-row"><label class="form-label">Tags</label><input class="form-input" id="f-tags" value="${esc(script?.tags||'')}" placeholder="backup, daily" /></div>
       <div class="form-row"><label class="form-label">Status</label><select class="form-select" id="f-status">${statuses}</select></div>
     </div>
+    <div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="f-admin" ${script?.run_as_admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <label for="f-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Run as Administrator (UAC elevation)</label>
+    </div>
     <div class="form-actions">
       <button class="action-btn btn-ghost" onclick="window._closeScriptModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveScript(${script?.id||'null'})">${script?'Save':'Add'}</button>
@@ -187,6 +192,7 @@ window._saveScript = async (id) => {
     script_type: document.getElementById('f-type').value,
     tags:        document.getElementById('f-tags').value.trim(),
     status:      document.getElementById('f-status').value,
+    run_as_admin: document.getElementById('f-admin')?.checked ?? false,
   };
   if (!data.name || !data.file_path) { toast('Name and file path required', 'err'); return; }
   try {

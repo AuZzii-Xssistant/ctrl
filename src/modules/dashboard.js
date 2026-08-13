@@ -1,6 +1,4 @@
-import { invoke, esc, emptyState, showContextMenu, confirmDialog, toast, openModal, closeModal, goPane, showOutput, timeAgo } from '../app.js';
-
-const TYPE_ICON = { tool: 'ti-tool', script: 'ti-code', fix: 'ti-bolt', backup: 'ti-device-floppy', workflow: 'ti-player-play' };
+import { invoke, esc, emptyState, showContextMenu, confirmDialog, toast, openModal, closeModal, goPane, showOutput } from '../app.js';
 
 export async function load() {
   const el = document.getElementById('dash-scroll');
@@ -12,13 +10,11 @@ export async function load() {
       <div class="stat-cell" data-pane="projects"> <div class="stat-num">—</div><div class="stat-lbl">Projects</div></div>
       <div class="stat-cell" data-pane="workflows"><div class="stat-num">—</div><div class="stat-lbl">Workflows</div></div>
     </div>
-    <div id="pin-area"></div>
-    <div id="activity-area" style="padding-bottom:8px"></div>`;
+    <div id="pin-area"></div>`;
 
-  const [stats, pins, activity] = await Promise.all([
+  const [stats, pins] = await Promise.all([
     invoke('get_stats').catch(() => null),
     invoke('get_pinned').catch(() => []),
-    invoke('get_recent_activity', { limit: 10 }).catch(() => []),
   ]);
 
   if (stats) {
@@ -30,7 +26,6 @@ export async function load() {
   }
 
   render(pins, el.querySelector('#pin-area'));
-  renderActivity(activity, el.querySelector('#activity-area'));
 }
 
 function render(pins, el) {
@@ -94,25 +89,6 @@ async function runPin(tile) {
   } catch (e) { toast(String(e), 'err'); }
 }
 
-function renderActivity(activity, el) {
-  if (!el) return;
-  if (!activity.length) { el.innerHTML = ''; return; }
-  let html = `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 10px">
-    <span style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase">Recent activity</span>
-  </div><div class="activity-list">`;
-  for (const a of activity) {
-    const icon = TYPE_ICON[a.item_type] || 'ti-terminal';
-    html += `<div class="activity-row">
-      <span class="run-dot ${a.success ? 'ok' : 'err'}" title="${a.success ? 'success' : 'failed'}"></span>
-      <i class="ti ${icon}" style="font-size:12px;color:var(--text3);flex-shrink:0"></i>
-      <span class="activity-name">${esc(a.item_name)}</span>
-      <span class="activity-type">${esc(a.item_type)}</span>
-      <span class="run-time">${timeAgo(a.ran_at)}</span>
-    </div>`;
-  }
-  html += '</div>';
-  el.innerHTML = html;
-}
 
 async function unpin(id) {
   const ok = await confirmDialog('Remove this pin from your launchpad?');

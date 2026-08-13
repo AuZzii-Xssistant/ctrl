@@ -20,8 +20,11 @@ Double RAF ensures scroll happens after layout paint.
 ### Drag-to-reorder pins — not implemented
 Dashboard pins can't be reordered by dragging. Workaround: unpin and re-pin in the desired order.
 
+### Run As Admin — output not captured for elevated processes
+When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated shell. Output from that shell cannot be captured by the parent process. The output drawer will show "Launched with administrator privileges. Output is not captured for elevated processes." This is a Windows UAC architecture limitation.
+
 ### Run As Admin — no feedback if UAC is cancelled
-If the user cancels the UAC prompt when launching an admin tool, CTRL shows no error (PowerShell exits silently). Planned: detect exit code.
+If the user cancels the UAC prompt, CTRL shows no error (the elevated PowerShell exits silently). The run is logged as successful because the launch itself succeeded. Planned: detect exit code from the elevated process.
 
 ### Builder — stale localStorage if action IDs change
 If `data/builder/` JSON files are modified and action IDs change, the saved selection in localStorage may reference non-existent IDs. Workaround: click Clear in the Builder to reset. Low priority — action files rarely change.

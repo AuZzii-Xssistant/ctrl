@@ -36,16 +36,17 @@ function _render(el, fixes, lastRuns = []) {
         const runTime = lr ? `<span class="run-time">${timeAgo(lr.ran_at)}</span>` : '';
         const cmdPreview = f.command ? f.command.split('\n')[0].slice(0, 72) : '';
         const dangerBadge = f.confirm_required ? '<i class="ti ti-alert-triangle" style="color:var(--amber);font-size:11px" title="Requires confirmation"></i>' : '';
+        const adminBadge = f.run_as_admin ? '<span class="badge-admin" title="Runs as Administrator"><i class="ti ti-shield"></i> admin</span>' : '';
         html += `<div class="data-row" data-id="${f.id}">
           <i class="ti ${icon} row-icon"></i>
           <div style="flex:1;min-width:0">
-            <div class="row-name" style="display:flex;align-items:center;gap:5px">${esc(f.name)}${dangerBadge}</div>
+            <div class="row-name" style="display:flex;align-items:center;gap:5px">${esc(f.name)}${dangerBadge}${adminBadge}</div>
             <div class="fix-cmd-preview">${esc(cmdPreview)}</div>
           </div>
           <div class="run-meta-row">${dot}${runTime}</div>
           <span class="tag tag-${f.shell_type === 'powershell' ? 'ps1' : f.shell_type === 'python' ? 'py' : 'bat'}" style="flex-shrink:0">${esc(f.shell_type)}</span>
           <div class="card-actions">
-            <button class="run-chip" data-run="${f.id}">RUN</button>
+            <button class="run-chip" data-run="${f.id}">${f.run_as_admin ? '<i class="ti ti-shield" style="font-size:10px"></i> RUN' : 'RUN'}</button>
             <button class="icon-btn" title="History" data-hist="${f.id}" data-name="${esc(f.name)}"><i class="ti ti-history"></i></button>
             <button class="icon-btn" title="Edit" data-edit="${f.id}"><i class="ti ti-edit"></i></button>
             <button class="icon-btn del" title="Remove" data-del="${f.id}"><i class="ti ti-trash"></i></button>
@@ -170,6 +171,10 @@ window._showFixModal = (fix) => {
       <input type="checkbox" id="f-confirm" ${fix?.confirm_required ? 'checked' : ''} style="accent-color:var(--amber)" />
       <label for="f-confirm" class="form-label" style="margin:0;cursor:pointer">Require confirmation before running</label>
     </div>
+    <div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="f-admin" ${fix?.run_as_admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <label for="f-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Run as Administrator (UAC elevation)</label>
+    </div>
     <div class="form-actions">
       <button class="action-btn btn-ghost" onclick="window._closeFixModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveFix(${fix?.id||'null'})">${fix?'Save':'Add'}</button>
@@ -186,6 +191,7 @@ window._saveFix = async (id) => {
     command:     document.getElementById('f-cmd').value.trim(),
     tags:             document.getElementById('f-tags').value.trim(),
     confirm_required: document.getElementById('f-confirm')?.checked ?? false,
+    run_as_admin:     document.getElementById('f-admin')?.checked ?? false,
   };
   if (!data.name || !data.command) { toast('Name and command required', 'err'); return; }
   try {

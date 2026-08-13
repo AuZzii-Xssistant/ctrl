@@ -23,6 +23,7 @@ const _paneLoaders = {
   workflows:()  => import('./modules/workflows.js').then(m => m.load()),
   backup:   ()  => import('./modules/backup.js').then(m => m.load()),
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
+  activity: ()  => import('./modules/activity.js').then(m => m.load()),
   settings: ()  => import('./modules/settings.js').then(m => m.load()),
 };
 
@@ -56,23 +57,50 @@ export function toast(msg, type = 'info') {
 
 // ── Output drawer ────────────────────────────────────────────────────────────
 export function showOutput(text, ok = true) {
-  const drawer = document.getElementById('output-drawer');
-  const out    = document.getElementById('output-text');
-  const ts     = document.getElementById('output-ts');
-  drawer.classList.add('open');
+  const out = document.getElementById('output-text');
+  const ts  = document.getElementById('output-ts');
+  const dot = document.getElementById('output-new-dot');
   out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text)}</span>`;
   if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  // double RAF: first frame opens the drawer, second frame measures scrollHeight correctly
-  requestAnimationFrame(() => requestAnimationFrame(() => { drawer.scrollTop = drawer.scrollHeight; }));
+  if (dot) dot.style.display = '';
+  // If already open, scroll to bottom
+  const body = document.getElementById('output-body');
+  if (body && document.getElementById('output-drawer').classList.contains('open')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; }));
+  }
 }
-document.getElementById('output-close').addEventListener('click', () => {
-  document.getElementById('output-drawer').classList.remove('open');
+
+function _toggleOutputDrawer() {
+  const drawer = document.getElementById('output-drawer');
+  const dot    = document.getElementById('output-new-dot');
+  const icon   = document.querySelector('#output-toggle i');
+  drawer.classList.toggle('open');
+  if (dot) dot.style.display = 'none';
+  if (icon) icon.className = drawer.classList.contains('open') ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
+  if (drawer.classList.contains('open')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const body = document.getElementById('output-body');
+      if (body) body.scrollTop = body.scrollHeight;
+    }));
+  }
+}
+
+document.getElementById('output-header').addEventListener('click', e => {
+  if (e.target.closest('#output-clear, #output-copy, #output-toggle')) return;
+  _toggleOutputDrawer();
 });
-document.getElementById('output-clear').addEventListener('click', () => {
+document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
+
+document.getElementById('output-clear').addEventListener('click', e => {
+  e.stopPropagation();
   document.getElementById('output-text').innerHTML = '';
-  document.getElementById('output-ts').textContent = '';
+  const ts = document.getElementById('output-ts');
+  if (ts) ts.textContent = '';
+  const dot = document.getElementById('output-new-dot');
+  if (dot) dot.style.display = 'none';
 });
-document.getElementById('output-copy').addEventListener('click', () => {
+document.getElementById('output-copy').addEventListener('click', e => {
+  e.stopPropagation();
   const text = document.getElementById('output-text').innerText;
   navigator.clipboard.writeText(text).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
 });
@@ -83,6 +111,12 @@ let _confirmResolve = null;
 export function openModal(title, bodyHtml) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = bodyHtml;
+  // Disable browser autocomplete/autofill on all modal inputs
+  document.querySelectorAll('#modal-body input, #modal-body textarea, #modal-body select').forEach(el => {
+    el.setAttribute('autocomplete', 'off');
+    el.setAttribute('autocorrect', 'off');
+    el.setAttribute('spellcheck', 'false');
+  });
   document.getElementById('modal-overlay').classList.add('open');
   // Enter key: move to next input, or click primary btn on last field
   setTimeout(() => {
@@ -153,9 +187,18 @@ export function showContextMenu(e, items) {
 
 export function hideContextMenu() { _ctxMenu.classList.remove('open'); }
 document.addEventListener('click', hideContextMenu);
+
+// Suppress browser default context menu everywhere — we use our own
+document.addEventListener('contextmenu', e => e.preventDefault());
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { hideContextMenu(); closeModal(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); _searchEl.focus(); _searchEl.select(); }
+  // Prevent browser built-in shortcuts that shouldn't work in a desktop app
+  if (e.ctrlKey || e.metaKey) {
+    const blocked = ['f', 'g', 'h', 'u', 'p', 'j', 'r'];
+    if (blocked.includes(e.key.toLowerCase())) e.preventDefault();
+  }
 });
 
 // ── Global search ────────────────────────────────────────────────────────────

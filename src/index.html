@@ -39,6 +39,7 @@
       <button class="nav-btn"        data-pane="backup">  <i class="ti ti-device-floppy"></i>    <span class="tip">Backup</span></button>
       <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
       <div class="nav-spacer"></div>
+      <button class="nav-btn"        data-pane="activity"><i class="ti ti-history"></i>           <span class="tip">Recent Activity</span></button>
       <button class="nav-btn"        data-pane="settings"><i class="ti ti-settings"></i>         <span class="tip">Settings</span></button>
     </nav>
 
@@ -126,19 +127,30 @@
         <div class="pane-scroll" id="tweaks-scroll"></div>
       </div>
 
-      <!-- SETTINGS -->
-      <div class="pane" id="settings-pane"></div>
+      <!-- RECENT ACTIVITY -->
+      <div class="pane" id="activity-pane">
+        <div class="pane-scroll" id="activity-scroll"></div>
+      </div>
 
-      <!-- OUTPUT DRAWER -->
+      <!-- SETTINGS -->
+      <div class="pane" id="settings-pane">
+        <div class="pane-scroll" id="settings-scroll"></div>
+      </div>
+
+      <!-- OUTPUT DRAWER — always visible, click header to expand -->
       <div id="output-drawer">
         <div id="output-header">
+          <i class="ti ti-terminal" style="font-size:13px;color:var(--text3)"></i>
           <span class="output-title">output</span>
-          <span id="output-ts" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:4px"></span>
+          <span id="output-new-dot" style="display:none"></span>
+          <span id="output-ts"></span>
           <button id="output-clear">clear</button>
           <button id="output-copy">copy</button>
-          <button class="icon-btn" id="output-close"><i class="ti ti-x"></i></button>
+          <button class="icon-btn" id="output-toggle" title="Toggle output"><i class="ti ti-chevron-up"></i></button>
         </div>
-        <div id="output-text"></div>
+        <div id="output-body">
+          <div id="output-text"></div>
+        </div>
       </div>
 
     </div><!-- #content -->

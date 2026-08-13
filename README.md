@@ -20,6 +20,7 @@ Built with Tauri v2 (Rust + WebView2). Ships as a single portable folder — no 
 | Workflows | `ti-player-play` | ✅ Built | Chain scripts and fixes into ordered automated sequences |
 | Backup | `ti-device-floppy` | ✅ Built | Folder→folder backup jobs using robocopy (incremental) |
 | Tweaks | `ti-adjustments` | ✅ Built | 20 built-in Windows tweaks across Privacy / Perf / UI / Network |
+| Recent Activity | `ti-history` | ✅ Built | Last 50 run events (fixes, scripts, workflows) with success/fail status |
 
 > Status: ✅ Built · ⚙️ In Progress · 🕐 Stub (nav present, UI planned)
 

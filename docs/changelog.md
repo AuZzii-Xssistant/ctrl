@@ -2,6 +2,37 @@
 
 ## 2026-08-13
 
+### Major Upgrade 5 — Admin elevation, Recent Activity pane, output drawer redesign, UX fixes
+
+**Admin elevation (run_as_admin)**
+- `run_as_admin INTEGER` column added to `fixes` and `scripts` tables (idempotent migration)
+- 8 seeded fixes marked as admin-required: Reset TCP/IP, Clear Windows Temp, SFC Scan, DISM, CHKDSK, Clear Event Log, Set High/Balanced Power
+- Fix/Script rows show shield badge when admin is required; RUN button gets shield icon
+- Add/Edit modal for fixes and scripts now has "Run as Administrator" checkbox
+- Rust `run_fix` / `run_script`: admin path uses `Start-Process -Verb RunAs` for UAC elevation; non-admin path prefixes UTF-8 encoding header to fix garbled output
+- Note: output is not captured for elevated processes (UAC limitation, see known-issues.md)
+
+**Recent Activity pane**
+- New dedicated pane (`activity.js`) showing last 50 run entries with type icon, name, type tag, time-ago, success/fail dot
+- Nav button (history icon) positioned above settings icon
+- Dashboard no longer shows recent activity — now shows stats + pinned launchpad only
+
+**Output drawer redesign**
+- Always visible as a thin collapsed bar (no more auto-expanding on run)
+- Click header or chevron to toggle open/closed
+- Amber pulse dot signals new output when drawer is closed
+- Timestamp shown in drawer header
+
+**Global UX fixes**
+- Context menu: `document.addEventListener('contextmenu', e => e.preventDefault())` suppresses browser default everywhere
+- Browser shortcuts: Ctrl/Meta + F/G/H/U/P/J/R blocked globally (keydown handler)
+- Autocomplete: `openModal()` centrally applies `autocomplete="off"`, `autocorrect="off"`, `spellcheck="false"` to all modal inputs
+- Sticky header gap: `.pane-divider + * { margin-top: 12px }` — content no longer touches divider bar
+- Custom scrollbars: global `::-webkit-scrollbar` rules (5px, themed) — replaced pane-scroll-only rules
+- Settings pane: wrapped in `pane-scroll` container, pane-header added, content has proper spacing
+
+---
+
 ### Loop run 4 — Workflows filter, projects notes, tag CSS, API docs
 
 **Workflows filter** — inline filter added to the Workflows pane (last list pane without one). Client-side filter on name + description, debounced 180ms. Consistent with all other panes.
