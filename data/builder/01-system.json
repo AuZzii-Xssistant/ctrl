@@ -1,0 +1,22 @@
+{
+  "id": "system",
+  "label": "System",
+  "icon": "ti-settings",
+  "sections": [
+    {
+      "label": "Performance",
+      "actions": [
+        { "id": "disable-animations", "label": "Disable Animations", "description": "Turn off visual effects for faster response", "ps1": "SystemParametersInfo 0x1002 0 $false 3", "bat": "reg add \"HKCU\\Control Panel\\Desktop\\WindowMetrics\" /v MinAnimate /t REG_SZ /d 0 /f" },
+        { "id": "high-perf-power", "label": "High Performance Power Plan", "description": "Switch to high performance power plan", "ps1": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "bat": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c" },
+        { "id": "disable-superfetch", "label": "Disable SysMain (Superfetch)", "description": "Stop SysMain service", "ps1": "Stop-Service SysMain -Force; Set-Service SysMain -StartupType Disabled", "bat": "sc stop SysMain & sc config SysMain start= disabled" }
+      ]
+    },
+    {
+      "label": "Privacy",
+      "actions": [
+        { "id": "disable-telemetry", "label": "Disable Telemetry", "description": "Set telemetry level to Security (minimum)", "ps1": "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name AllowTelemetry -Value 0", "bat": "reg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection\" /v AllowTelemetry /t REG_DWORD /d 0 /f" },
+        { "id": "disable-cortana", "label": "Disable Cortana", "description": "Disable Cortana via policy", "ps1": "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search' -Name AllowCortana -Value 0", "bat": "reg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search\" /v AllowCortana /t REG_DWORD /d 0 /f" }
+      ]
+    }
+  ]
+}

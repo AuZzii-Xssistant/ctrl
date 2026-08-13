@@ -1,0 +1,18 @@
+# Rust / Tauri build output
+src-tauri/target/
+src-tauri/gen/
+
+# Local database — never commit user data
+*.db
+*.db-shm
+*.db-wal
+
+# Graphify knowledge graph output
+graphify-out/
+
+# Claude Code session files
+.claude/
+
+# Windows thumbnails
+Thumbs.db
+desktop.ini

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CTRL</title>
+<link rel="stylesheet" href="assets/tabler-icons.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar" data-tauri-drag-region>
+    <span class="logo">&gt;_ CTRL</span>
+    <div id="search-wrap">
+      <span class="prompt">&gt;</span>
+      <input id="global-search" type="text" placeholder="Search… (Ctrl+K)" autocomplete="off" spellcheck="false" />
+      <div id="search-results"></div>
+    </div>
+    <div class="win-controls">
+      <button class="win-btn" id="btn-min" title="Minimise"><i class="ti ti-minus"></i></button>
+      <button class="win-btn" id="btn-max" title="Maximise"><i class="ti ti-square"></i></button>
+      <button class="win-btn close" id="btn-close" title="Close"><i class="ti ti-x"></i></button>
+    </div>
+  </div>
+
+  <div id="body">
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+      <button class="nav-btn active" data-pane="dash">    <i class="ti ti-home"></i>              <span class="tip">Dashboard</span></button>
+      <button class="nav-btn"        data-pane="fixes">   <i class="ti ti-bolt"></i>              <span class="tip">Quick Fixes</span></button>
+      <button class="nav-btn"        data-pane="scripts"> <i class="ti ti-code"></i>              <span class="tip">Scripts</span></button>
+      <button class="nav-btn"        data-pane="builder"> <i class="ti ti-wand"></i>              <span class="tip">Builder</span></button>
+      <button class="nav-btn"        data-pane="tools">   <i class="ti ti-tool"></i>              <span class="tip">Tools</span></button>
+      <button class="nav-btn"        data-pane="projects"><i class="ti ti-archive"></i>           <span class="tip">Projects</span></button>
+      <div class="nav-divider"></div>
+      <button class="nav-btn"        data-pane="workflows"><i class="ti ti-player-play"></i>      <span class="tip">Workflows</span></button>
+      <button class="nav-btn"        data-pane="backup">  <i class="ti ti-device-floppy"></i>    <span class="tip">Backup</span></button>
+      <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
+      <div class="nav-spacer"></div>
+      <button class="nav-btn"        data-pane="settings"><i class="ti ti-settings"></i>         <span class="tip">Settings</span></button>
+    </nav>
+
+    <!-- CONTENT -->
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <div class="pane active" id="dash-pane">
+        <div class="pane-scroll" id="dash-scroll"></div>
+      </div>
+
+      <!-- QUICK FIXES -->
+      <div class="pane" id="fixes-pane">
+        <div class="pane-scroll" id="fixes-scroll"></div>
+      </div>
+
+      <!-- SCRIPTS -->
+      <div class="pane" id="scripts-pane">
+        <div class="pane-scroll" id="scripts-scroll"></div>
+      </div>
+
+      <!-- BUILDER -->
+      <div class="pane" id="builder-pane">
+        <div id="builder-nav">
+          <div id="builder-nav-items"></div>
+          <div class="bnav-spacer"></div>
+          <button class="bnav-item bnav-run" id="builder-run-tab">
+            <i class="ti ti-player-play"></i>
+            <span class="bnav-label">Run Script</span>
+            <span class="bnav-count" id="builder-sel-badge">0</span>
+          </button>
+        </div>
+        <div id="builder-content">
+          <div id="builder-cat-header">
+            <span id="builder-cat-title">Select a category</span>
+            <span class="sel-chip" id="builder-sel-chip">0 selected</span>
+          </div>
+          <div id="builder-toggles"></div>
+          <div id="builder-script-view">
+            <div id="builder-toolbar">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">output type</span>
+              <select class="type-select" id="builder-type">
+                <option value="ps1">PowerShell (.ps1)</option>
+                <option value="bat">Batch (.bat)</option>
+                <option value="cmd">CMD (.cmd)</option>
+              </select>
+              <span id="sel-count">0 selected</span>
+              <button class="action-btn btn-ghost" id="builder-clear"><i class="ti ti-x"></i> Clear</button>
+            </div>
+            <div id="builder-code-wrap">
+              <div id="builder-code"><span class="ps-comment"># Select actions from the categories on the left.</span></div>
+            </div>
+            <div id="builder-footer">
+              <input id="save-name" type="text" placeholder="Script name…" />
+              <button class="action-btn btn-secondary" id="builder-copy"><i class="ti ti-copy"></i> Copy</button>
+              <button class="action-btn btn-ghost"     id="builder-save"><i class="ti ti-device-floppy"></i> Save</button>
+              <button class="action-btn btn-primary"   id="builder-run"><i class="ti ti-player-play"></i> Run</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOOLS -->
+      <div class="pane" id="tools-pane">
+        <div class="pane-scroll" id="tools-scroll"></div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div class="pane" id="projects-pane">
+        <div class="pane-scroll" id="projects-scroll"></div>
+      </div>
+
+      <!-- WORKFLOWS -->
+      <div class="pane" id="workflows-pane">
+        <div class="pane-scroll" id="workflows-scroll"></div>
+      </div>
+
+      <!-- BACKUP -->
+      <div class="pane" id="backup-pane">
+        <div class="pane-scroll" id="backup-scroll"></div>
+      </div>
+
+      <!-- TWEAKS -->
+      <div class="pane" id="tweaks-pane">
+        <div class="pane-scroll" id="tweaks-scroll"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="pane" id="settings-pane"></div>
+
+      <!-- OUTPUT DRAWER -->
+      <div id="output-drawer">
+        <div id="output-header">
+          <span class="output-title">output</span>
+          <span id="output-ts" style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-left:4px"></span>
+          <button id="output-clear">clear</button>
+          <button id="output-copy">copy</button>
+          <button class="icon-btn" id="output-close"><i class="ti ti-x"></i></button>
+        </div>
+        <div id="output-text"></div>
+      </div>
+
+    </div><!-- #content -->
+  </div><!-- #body -->
+</div><!-- #app -->
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" id="modal-x" title="Close (Esc)"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu"></div>
+
+<!-- TOAST -->
+<div id="toast">
+  <i class="ti toast-icon"></i>
+  <span class="toast-msg"></span>
+  <div class="toast-bar"></div>
+</div>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
