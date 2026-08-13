@@ -1,5 +1,37 @@
 # CTRL Changelog
 
+## 2026-08-14 — Major Upgrade 8
+
+**Snippets pane** (new module)
+- Store text, commands, boilerplate, and any reusable content as named snippets
+- One-click copy to clipboard; searchable; grouped by category; tags
+- Full CRUD with modal (title, content, category, tags)
+- Right-click context menu per card
+- `snippets` SQLite table; `get_snippets`, `add_snippet`, `update_snippet`, `delete_snippet` Rust commands
+
+**Dashboard perf panel — redesigned**
+- Cards per group: CPU card, RAM card, Network card (with adapter name + Wi-Fi/Ethernet icon), Drives card
+- Drive entries are clickable — opens that drive in Explorer
+- Collapse/expand fixed: collapsed state shows only the `≈` activity icon (30px strip); click anywhere on the strip to expand; chevron button collapses; state saved to localStorage
+- Panel body built once via JS; no DOM rebuilds between polls
+- Network adapter name + icon shown in header; values right-aligned
+
+**Dashboard — live uptime**
+- `get_sys_info` now returns `boot_epoch_ms` (Unix ms) instead of a pre-formatted uptime string
+- Uptime chip computed client-side every minute from `Date.now() - boot_epoch_ms` — stays accurate without re-querying Rust
+- Boot time also served from localStorage cache so uptime shows instantly on first load
+
+**Dashboard — no re-render on tab switch**
+- `_initialized` flag: HTML built once; revisiting dashboard only restarts the perf poll interval
+
+**Pin picker**
+- Projects can now be pinned (were missing from picker)
+- Pinned projects open their folder in Explorer when clicked on the launchpad
+- All item names left-aligned (was centered in button elements)
+
+**`get_perf_stats`** — adds `net_name` field (active adapter name)
+**`open_path`** — new Rust command, opens any path in Explorer
+
 ## 2026-08-13 — Major Upgrade 7
 
 **Dashboard — live perf panel**

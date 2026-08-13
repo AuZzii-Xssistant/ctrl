@@ -39,6 +39,7 @@
       <button class="nav-btn"        data-pane="backup">  <i class="ti ti-device-floppy"></i>    <span class="tip">Backup</span></button>
       <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
       <button class="nav-btn"        data-pane="env">    <i class="ti ti-list-details"></i>     <span class="tip">Environment</span></button>
+      <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-btn"        data-pane="activity"><i class="ti ti-history"></i>           <span class="tip">Recent Activity</span></button>
       <button class="nav-btn"        data-pane="settings"><i class="ti ti-settings"></i>         <span class="tip">Settings</span></button>
@@ -51,29 +52,12 @@
       <div class="pane active" id="dash-pane">
         <div class="pane-scroll" id="dash-scroll"></div>
         <div id="dash-perf">
-          <div class="perf-title">
-            <span><i class="ti ti-activity"></i> <span id="perf-title-text">Live</span></span>
-            <button class="perf-collapse-btn" id="perf-toggle" title="Collapse panel"><i class="ti ti-chevron-right"></i></button>
+          <div id="perf-header">
+            <i class="ti ti-activity perf-icon"></i>
+            <span id="perf-title-text">Live</span>
+            <button class="perf-collapse-btn" id="perf-toggle" title="Collapse"><i class="ti ti-chevron-right" id="perf-chevron"></i></button>
           </div>
-          <div id="perf-body">
-            <div class="perf-metric">
-              <span class="pm-label"><i class="ti ti-cpu"></i> CPU</span>
-              <div class="pm-bar-wrap"><div class="pm-bar" id="pm-cpu-bar"></div></div>
-              <span class="pm-val" id="pm-cpu-val">—</span>
-            </div>
-            <div class="perf-metric">
-              <span class="pm-label"><i class="ti ti-database"></i> RAM</span>
-              <div class="pm-bar-wrap"><div class="pm-bar" id="pm-ram-bar"></div></div>
-              <span class="pm-val" id="pm-ram-val">—</span>
-            </div>
-            <div class="perf-divider"></div>
-            <div class="perf-net">
-              <div class="pn-row"><i class="ti ti-arrow-down"></i> <span class="pn-val" id="pn-down">—</span></div>
-              <div class="pn-row"><i class="ti ti-arrow-up"></i> <span class="pn-val" id="pn-up">—</span></div>
-            </div>
-            <div class="perf-divider"></div>
-            <div id="pm-drives"></div>
-          </div>
+          <div id="perf-body"></div>
         </div>
       </div>
 
@@ -156,6 +140,11 @@
       <!-- ENVIRONMENT VARIABLES -->
       <div class="pane" id="env-pane">
         <div class="pane-scroll" id="env-scroll"></div>
+      </div>
+
+      <!-- SNIPPETS -->
+      <div class="pane" id="snippets-pane">
+        <div class="pane-scroll" id="snippets-scroll"></div>
       </div>
 
       <!-- RECENT ACTIVITY -->

@@ -128,8 +128,8 @@ pub struct SysInfo {
     pub username: String,
     pub os: String,
     pub ram_gb: String,
-    pub uptime: String,
     pub cpu: String,
+    pub boot_epoch_ms: i64,   // Unix ms — JS computes live uptime from this
 }
 
 #[tauri::command]
@@ -138,15 +138,14 @@ pub async fn get_sys_info(app: tauri::AppHandle) -> Result<SysInfo, String> {
 $os = Get-CimInstance Win32_OperatingSystem
 $cs = Get-CimInstance Win32_ComputerSystem
 $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
-$up = (Get-Date) - $os.LastBootUpTime
-$upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hours)h $($up.Minutes)m" }
+$bootMs = [DateTimeOffset]::new($os.LastBootUpTime).ToUnixTimeMilliseconds()
 [PSCustomObject]@{
-    hostname = $env:COMPUTERNAME
-    username = $env:USERNAME
-    os       = $os.Caption -replace 'Microsoft ',''
-    ram_gb   = [string][Math]::Round($cs.TotalPhysicalMemory/1GB,1)
-    uptime   = $upStr
-    cpu      = $cpu -replace '\(R\)|\(TM\)','' -replace '\s+',' '
+    hostname  = $env:COMPUTERNAME
+    username  = $env:USERNAME
+    os        = $os.Caption -replace 'Microsoft ',''
+    ram_gb    = [string][Math]::Round($cs.TotalPhysicalMemory/1GB,1)
+    cpu       = $cpu -replace '\(R\)|\(TM\)','' -replace '\s+',' '
+    bootMs    = $bootMs
 } | ConvertTo-Json -Compress
 "#;
     let out = app.shell().command("powershell")
@@ -155,12 +154,12 @@ $upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hour
     let raw = String::from_utf8_lossy(&out.stdout);
     let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
     Ok(SysInfo {
-        hostname: v["hostname"].as_str().unwrap_or("").to_string(),
-        username: v["username"].as_str().unwrap_or("").to_string(),
-        os:       v["os"].as_str().unwrap_or("").to_string(),
-        ram_gb:   v["ram_gb"].as_str().unwrap_or("").to_string(),
-        uptime:   v["uptime"].as_str().unwrap_or("").to_string(),
-        cpu:      v["cpu"].as_str().unwrap_or("").to_string(),
+        hostname:      v["hostname"].as_str().unwrap_or("").to_string(),
+        username:      v["username"].as_str().unwrap_or("").to_string(),
+        os:            v["os"].as_str().unwrap_or("").to_string(),
+        ram_gb:        v["ram_gb"].as_str().unwrap_or("").to_string(),
+        cpu:           v["cpu"].as_str().unwrap_or("").to_string(),
+        boot_epoch_ms: v["bootMs"].as_i64().unwrap_or(0),
     })
 }
 
@@ -176,6 +175,7 @@ pub struct PerfStats {
     pub cpu_pct: i64,
     pub ram_used_gb: f64,
     pub ram_total_gb: f64,
+    pub net_name: String,
     pub net_recv_bytes: i64,
     pub net_sent_bytes: i64,
     pub drives: Vec<DriveInfo>,
@@ -192,6 +192,7 @@ $os  = Get-CimInstance Win32_OperatingSystem
 $ru  = [Math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,2)
 $rt  = [Math]::Round($os.TotalVisibleMemorySize/1MB,2)
 $net = Get-NetAdapterStatistics | Where-Object { $_.ReceivedBytes -gt 0 } | Sort-Object ReceivedBytes -Descending | Select-Object -First 1
+$netName = if ($net) { $net.Name } else { '' }
 $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null -and ($_.Used+$_.Free) -gt 1MB } | ForEach-Object {
     $t = $_.Used+$_.Free
     [PSCustomObject]@{ name=$_.Name; usedGb=[Math]::Round($_.Used/1GB,1); totalGb=[Math]::Round($t/1GB,1) }
@@ -199,6 +200,7 @@ $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null 
 [PSCustomObject]@{
     cpu=    $cpu
     ramUsed=$ru; ramTotal=$rt
+    netName=$netName
     netRecv=if($net){[long]$net.ReceivedBytes}else{0}
     netSent=if($net){[long]$net.SentBytes}else{0}
     drives= @($drives)
@@ -220,10 +222,17 @@ $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null 
         cpu_pct:        v["cpu"].as_i64().unwrap_or(0),
         ram_used_gb:    v["ramUsed"].as_f64().unwrap_or(0.0),
         ram_total_gb:   v["ramTotal"].as_f64().unwrap_or(0.0),
+        net_name:       v["netName"].as_str().unwrap_or("").to_string(),
         net_recv_bytes: v["netRecv"].as_i64().unwrap_or(0),
         net_sent_bytes: v["netSent"].as_i64().unwrap_or(0),
         drives,
     })
+}
+
+#[tauri::command]
+pub async fn open_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    app.shell().command("explorer").args([path]).spawn().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]

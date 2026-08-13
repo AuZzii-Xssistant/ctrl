@@ -598,48 +598,74 @@ kbd {
 .tag-tool   { background: #1f1a2e; color: #C479D4; }
 .tag-script { background: #1a2044; color: #7B9FE8; }
 
+/* ── DATA ROW button reset ── */
+button.data-row { text-align:left; width:100%; cursor:pointer; }
+
 /* ── DASHBOARD LAYOUT ── */
 #dash-pane { flex-direction:row !important; }
 #dash-scroll { flex:1; min-width:0; }
+
 #dash-perf {
-  width:180px; flex-shrink:0;
+  width:190px; flex-shrink:0;
   border-left:1px solid var(--border);
   background:var(--bg2);
   padding:12px 10px;
-  display:flex; flex-direction:column; gap:9px;
-  overflow:hidden; overflow-y:auto;
-  transition:width 180ms ease;
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; overflow-x:hidden;
+  transition:width 200ms ease;
 }
-/* Collapsed state — narrow strip showing only the toggle */
-#dash-perf:not(.perf-expanded) { width:32px; padding:12px 6px; }
+#dash-perf:not(.perf-expanded) {
+  width:30px; padding:10px 5px; cursor:pointer;
+  overflow:hidden; align-items:center;
+}
+#dash-perf:not(.perf-expanded) #perf-title-text,
+#dash-perf:not(.perf-expanded) #perf-toggle { display:none !important; }
+#dash-perf:not(.perf-expanded) #perf-body   { display:none !important; }
 
-.perf-title {
+#perf-header {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
   font-family:var(--mono); font-size:10px; color:var(--text3);
   letter-spacing:.1em; text-transform:uppercase;
-  display:flex; align-items:center; justify-content:space-between; gap:4px;
-  flex-shrink:0;
+  white-space:nowrap; overflow:hidden;
 }
+#perf-title-text { flex:1; overflow:hidden; }
+.perf-icon { color:var(--amber); font-size:13px; flex-shrink:0; }
 .perf-collapse-btn {
   background:none; border:none; color:var(--text3); cursor:pointer;
-  padding:2px; display:flex; align-items:center; flex-shrink:0;
-  border-radius:4px;
+  padding:2px 3px; display:flex; align-items:center; border-radius:4px; flex-shrink:0;
 }
 .perf-collapse-btn:hover { color:var(--text); background:var(--bg3); }
 
-#perf-body { display:flex; flex-direction:column; gap:9px; }
+#perf-body { display:flex; flex-direction:column; gap:7px; min-width:0; }
 
-.perf-metric { display:flex; flex-direction:column; gap:3px; }
-.pm-label { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:4px; }
-.pm-label .ti { font-size:12px; color:var(--amber); }
-.pm-bar-wrap { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
-.pm-bar { height:100%; background:var(--amber); border-radius:2px; width:0%; transition:width 400ms ease; }
+/* Perf cards */
+.perf-card {
+  background:var(--bg3); border:1px solid var(--border); border-radius:var(--r);
+  padding:8px 9px; display:flex; flex-direction:column; gap:5px;
+}
+.perf-card-hdr { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.perf-card-hdr .ti { color:var(--amber); font-size:12px; flex-shrink:0; }
+.pm-bar-wrap { height:4px; background:var(--bg4); border-radius:2px; overflow:hidden; flex-shrink:0; }
+.pm-bar      { height:100%; background:var(--amber); border-radius:2px; width:0%; transition:width 350ms ease; }
+.pm-bar-blue { background:var(--blue); }
 .pm-bar-warn { background:var(--red); }
-.pm-val { font-family:var(--mono); font-size:10px; color:var(--text2); }
-.perf-divider { height:1px; background:var(--border); margin:1px 0; flex-shrink:0; }
-.perf-net { display:flex; flex-direction:column; gap:4px; }
+.pm-card-val { font-family:var(--mono); font-size:10px; color:var(--text2); }
+
+/* Network rows */
 .pn-row { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
-.pn-row .ti { font-size:12px; }
-.pn-val { font-family:var(--mono); color:var(--text2); font-size:10px; }
+.pn-row .ti { font-size:12px; flex-shrink:0; }
+.pn-val { font-family:var(--mono); color:var(--text2); font-size:10px; flex:1; text-align:right; }
+
+/* Drive entries inside card */
+.perf-drive {
+  padding:3px 2px; cursor:pointer; border-radius:4px;
+  transition:background 120ms;
+}
+.perf-drive:hover { background:var(--bg4); }
+.pd-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+.pd-name { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:3px; }
+.pd-name .ti { color:var(--amber); font-size:11px; }
+.pd-val  { font-family:var(--mono); font-size:10px; color:var(--text2); }
 
 /* ── SYS INFO BAR (dashboard) ── */
 .sys-info-bar { display:flex; gap:8px; flex-wrap:wrap; padding:8px 0 4px; }
@@ -654,3 +680,23 @@ kbd {
 .env-name  { font-family:var(--mono); font-size:11px; color:var(--accent); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .env-value { font-family:var(--mono); font-size:11px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .env-actions { display:flex; gap:2px; flex-shrink:0; }
+
+/* ── SNIPPETS PANE ── */
+.snip-grid { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.snip-card {
+  background:var(--bg3); border:1px solid var(--border); border-radius:var(--r);
+  padding:10px 12px; transition:border-color 120ms;
+}
+.snip-card:hover { border-color:var(--border2); }
+.snip-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:8px; }
+.snip-title  { font-size:13px; color:var(--text); font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.snip-actions { display:flex; gap:2px; flex-shrink:0; }
+.snip-content {
+  font-family:var(--mono); font-size:11px; color:var(--text2);
+  background:var(--bg4); border:1px solid var(--border); border-radius:6px;
+  padding:8px 10px; white-space:pre-wrap; word-break:break-all;
+  max-height:120px; overflow-y:auto; margin-bottom:6px;
+  line-height:1.5;
+}
+.snip-tags { display:flex; gap:5px; flex-wrap:wrap; }
+.snip-tag  { font-family:var(--mono); font-size:10px; color:var(--text3); background:var(--bg4); border:1px solid var(--border); border-radius:4px; padding:1px 7px; }

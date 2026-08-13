@@ -24,6 +24,7 @@ const _paneLoaders = {
   backup:   ()  => import('./modules/backup.js').then(m => m.load()),
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
   env:      ()  => import('./modules/env.js').then(m => m.load()),
+  snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
   activity: ()  => import('./modules/activity.js').then(m => m.load()),
   settings: ()  => import('./modules/settings.js').then(m => m.load()),
 };
