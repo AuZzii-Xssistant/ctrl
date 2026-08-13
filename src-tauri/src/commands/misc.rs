@@ -125,6 +125,7 @@ pub fn get_run_history(state: State<AppState>, item_type: String, item_id: i64, 
 #[derive(Serialize)]
 pub struct SysInfo {
     pub hostname: String,
+    pub username: String,
     pub os: String,
     pub ram_gb: String,
     pub uptime: String,
@@ -141,6 +142,7 @@ $up = (Get-Date) - $os.LastBootUpTime
 $upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hours)h $($up.Minutes)m" }
 [PSCustomObject]@{
     hostname = $env:COMPUTERNAME
+    username = $env:USERNAME
     os       = $os.Caption -replace 'Microsoft ',''
     ram_gb   = [string][Math]::Round($cs.TotalPhysicalMemory/1GB,1)
     uptime   = $upStr
@@ -154,10 +156,59 @@ $upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hour
     let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
     Ok(SysInfo {
         hostname: v["hostname"].as_str().unwrap_or("").to_string(),
+        username: v["username"].as_str().unwrap_or("").to_string(),
         os:       v["os"].as_str().unwrap_or("").to_string(),
         ram_gb:   v["ram_gb"].as_str().unwrap_or("").to_string(),
         uptime:   v["uptime"].as_str().unwrap_or("").to_string(),
         cpu:      v["cpu"].as_str().unwrap_or("").to_string(),
+    })
+}
+
+#[derive(Serialize)]
+pub struct PerfStats {
+    pub cpu_pct: i64,
+    pub ram_used_gb: f64,
+    pub ram_total_gb: f64,
+    pub gpu_pct: i64,
+    pub net_recv_bytes: i64,
+    pub net_sent_bytes: i64,
+}
+
+#[tauri::command]
+pub async fn get_perf_stats(app: tauri::AppHandle) -> Result<PerfStats, String> {
+    let ps = r#"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$cpu  = [int](Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average | Select-Object -ExpandProperty Average)
+$os   = Get-CimInstance Win32_OperatingSystem
+$ramUsed  = [Math]::Round(($os.TotalVisibleMemorySize - $os.FreePhysicalMemory)/1MB,2)
+$ramTotal = [Math]::Round($os.TotalVisibleMemorySize/1MB,2)
+$gpu = -1
+try {
+    $s = (Get-Counter '\GPU Engine(*engtype_3D)\Utilization Percentage' -MaxSamples 1 -ErrorAction Stop).CounterSamples
+    $gpu = [Math]::Min(100,[int](($s | Measure-Object CookedValue -Sum).Sum))
+} catch {}
+$net = Get-NetAdapterStatistics | Where-Object { (Get-NetAdapter -Name $_.Name -EA SilentlyContinue).Status -eq 'Up' } | Select-Object -First 1
+[PSCustomObject]@{
+    cpu       = $cpu
+    ramUsed   = $ramUsed
+    ramTotal  = $ramTotal
+    gpu       = $gpu
+    netRecv   = if ($net) { [long]$net.ReceivedBytes } else { 0 }
+    netSent   = if ($net) { [long]$net.SentBytes } else { 0 }
+} | ConvertTo-Json -Compress
+"#;
+    let out = app.shell().command("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+        .output().await.map_err(|e| e.to_string())?;
+    let raw = String::from_utf8_lossy(&out.stdout);
+    let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
+    Ok(PerfStats {
+        cpu_pct:       v["cpu"].as_i64().unwrap_or(0),
+        ram_used_gb:   v["ramUsed"].as_f64().unwrap_or(0.0),
+        ram_total_gb:  v["ramTotal"].as_f64().unwrap_or(0.0),
+        gpu_pct:       v["gpu"].as_i64().unwrap_or(-1),
+        net_recv_bytes: v["netRecv"].as_i64().unwrap_or(0),
+        net_sent_bytes: v["netSent"].as_i64().unwrap_or(0),
     })
 }
 

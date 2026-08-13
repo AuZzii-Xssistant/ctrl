@@ -1,5 +1,29 @@
 # CTRL Changelog
 
+## 2026-08-13 — Major Upgrade 7
+
+**Dashboard — live perf panel**
+- Right sidebar (~176px) on dashboard with live CPU %, RAM used/total, GPU %, network upload/download rate
+- Polls `get_perf_stats` every 4s (only when dashboard is active — no background polling)
+- Network rate computed client-side from cumulative byte delta between polls
+- GPU shows "N/A" on hardware without accessible DXGI counters
+
+**Dashboard — sys-info improvements**
+- Added username chip (logged-in user shown next to hostname)
+- Added dedicated CPU chip (was tooltip-only before)
+- Removed tooltip on sys-info-bar entirely
+- sys-info now cached in `localStorage` — shows instantly on every tab switch; background-refreshes and only updates DOM if data changed (handles PC migration: first-run on new PC detects mismatch, updates immediately)
+
+**Environment Variables — editable name + system var editing**
+- Name field is now editable in the modal (was readonly); if name changes, old var deleted then new var created
+- System variables now have Edit + Delete buttons — triggers UAC elevation (same RunAs pattern as fixes/scripts)
+- Delete/Edit for system scope shows UAC note in UI
+- `set_env_var` / `delete_env_var` both accept optional `target: "User" | "Machine"`
+
+**Rust: `get_perf_stats` command**
+- Returns: `cpu_pct`, `ram_used_gb`, `ram_total_gb`, `gpu_pct` (-1 if unavailable), `net_recv_bytes`, `net_sent_bytes`
+- Single PowerShell CIM query + Get-Counter for GPU + Get-NetAdapterStatistics
+
 ## 2026-08-13
 
 ### Major Upgrade 6 — Environment Variables manager, Dashboard system info, CLI system, Tweaks CRUD

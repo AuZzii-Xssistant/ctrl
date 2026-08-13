@@ -598,9 +598,34 @@ kbd {
 .tag-tool   { background: #1f1a2e; color: #C479D4; }
 .tag-script { background: #1a2044; color: #7B9FE8; }
 
+/* ── DASHBOARD LAYOUT ── */
+#dash-pane { flex-direction:row !important; }
+#dash-scroll { flex:1; min-width:0; }
+#dash-perf {
+  width:176px; flex-shrink:0;
+  border-left:1px solid var(--border);
+  background:var(--bg2);
+  padding:14px 12px;
+  display:flex; flex-direction:column; gap:10px;
+  overflow:hidden;
+}
+.perf-title { font-family:var(--mono); font-size:10px; color:var(--text3); letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:5px; }
+.perf-metric { display:flex; flex-direction:column; gap:3px; }
+.pm-label { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:4px; }
+.pm-label .ti { font-size:12px; color:var(--amber); }
+.pm-bar-wrap { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+.pm-bar { height:100%; background:var(--amber); border-radius:2px; width:0%; transition:width 600ms ease; }
+.pm-bar-gpu { background:var(--purple); }
+.pm-val { font-family:var(--mono); font-size:11px; color:var(--text2); }
+.perf-divider { height:1px; background:var(--border); margin:2px 0; }
+.perf-net { display:flex; flex-direction:column; gap:4px; }
+.pn-row { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
+.pn-row .ti { font-size:12px; }
+.pn-val { font-family:var(--mono); color:var(--text2); }
+
 /* ── SYS INFO BAR (dashboard) ── */
 .sys-info-bar { display:flex; gap:8px; flex-wrap:wrap; padding:8px 0 4px; }
-.sys-chip { font-size:11px; font-family:var(--mono); color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:4px 10px; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px; }
+.sys-chip { font-size:11px; font-family:var(--mono); color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:4px 10px; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; }
 .sys-chip .ti { color:var(--accent); font-size:12px; flex-shrink:0; }
 
 /* ── ENV VARS PANE ── */

@@ -1,5 +1,10 @@
 import { invoke, esc, emptyState, showContextMenu, confirmDialog, toast, openModal, closeModal, goPane, showOutput } from '../app.js';
 
+const SYS_CACHE_KEY = 'ctrl_sys_info';
+
+let _perfInterval = null;
+let _prevNetRecv = 0, _prevNetSent = 0, _prevNetTs = 0;
+
 export async function load() {
   const el = document.getElementById('dash-scroll');
   el.innerHTML = `
@@ -11,17 +16,25 @@ export async function load() {
       <div class="stat-cell" data-pane="workflows"><div class="stat-num">—</div><div class="stat-lbl">Workflows</div></div>
     </div>
     <div id="sys-info-bar" class="sys-info-bar">
+      <span class="sys-chip" id="si-user"><i class="ti ti-user"></i> —</span>
       <span class="sys-chip" id="si-host"><i class="ti ti-device-desktop"></i> —</span>
+      <span class="sys-chip" id="si-cpu"><i class="ti ti-cpu"></i> —</span>
       <span class="sys-chip" id="si-os"><i class="ti ti-brand-windows"></i> —</span>
-      <span class="sys-chip" id="si-ram"><i class="ti ti-cpu"></i> — GB RAM</span>
+      <span class="sys-chip" id="si-ram"><i class="ti ti-server"></i> — GB RAM</span>
       <span class="sys-chip" id="si-up"><i class="ti ti-clock"></i> up —</span>
     </div>
     <div id="pin-area"></div>`;
 
-  const [stats, pins, sysInfo] = await Promise.all([
+  // Show cached sys info immediately (no flicker on tab switch)
+  const cached = _loadSysCache();
+  if (cached) _applySysInfo(cached);
+
+  // Start perf polling
+  _startPerfPolling();
+
+  const [stats, pins] = await Promise.all([
     invoke('get_stats').catch(() => null),
     invoke('get_pinned').catch(() => []),
-    invoke('get_sys_info').catch(() => null),
   ]);
 
   if (stats) {
@@ -32,18 +45,118 @@ export async function load() {
     });
   }
 
-  if (sysInfo) {
-    const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
-    set('si-host', `<i class="ti ti-device-desktop"></i> ${esc(sysInfo.hostname)}`);
-    set('si-os',   `<i class="ti ti-brand-windows"></i> ${esc(sysInfo.os)}`);
-    set('si-ram',  `<i class="ti ti-cpu"></i> ${esc(sysInfo.ram_gb)} GB RAM`);
-    set('si-up',   `<i class="ti ti-clock"></i> up ${esc(sysInfo.uptime)}`);
-    const bar = document.getElementById('sys-info-bar');
-    if (bar) bar.title = sysInfo.cpu;
-  }
+  // Background-refresh sys info; only update DOM if something changed
+  invoke('get_sys_info').then(info => {
+    const prev = _loadSysCache();
+    const changed = !prev
+      || prev.hostname !== info.hostname
+      || prev.username !== info.username
+      || prev.os !== info.os
+      || prev.ram_gb !== info.ram_gb
+      || prev.cpu !== info.cpu;
+    // uptime always changes; update display only if structural data changed or no cache
+    if (changed || !prev) {
+      _applySysInfo(info);
+      localStorage.setItem(SYS_CACHE_KEY, JSON.stringify(info));
+    } else {
+      // update just the uptime
+      _setChip('si-up', 'ti-clock', `up ${esc(info.uptime)}`);
+      // also refresh the cache uptime
+      const updated = { ...prev, uptime: info.uptime };
+      localStorage.setItem(SYS_CACHE_KEY, JSON.stringify(updated));
+    }
+  }).catch(() => {});
 
   render(pins, el.querySelector('#pin-area'));
 }
+
+function _loadSysCache() {
+  try { return JSON.parse(localStorage.getItem(SYS_CACHE_KEY)); } catch { return null; }
+}
+
+function _setChip(id, icon, html) {
+  const e = document.getElementById(id);
+  if (e) e.innerHTML = `<i class="ti ${icon}"></i> ${html}`;
+}
+
+function _applySysInfo(info) {
+  _setChip('si-user', 'ti-user',             esc(info.username));
+  _setChip('si-host', 'ti-device-desktop',   esc(info.hostname));
+  _setChip('si-cpu',  'ti-cpu',              esc(info.cpu));
+  _setChip('si-os',   'ti-brand-windows',    esc(info.os));
+  _setChip('si-ram',  'ti-server',           `${esc(info.ram_gb)} GB RAM`);
+  _setChip('si-up',   'ti-clock',            `up ${esc(info.uptime)}`);
+}
+
+// ── Perf panel ───────────────────────────────────────────────────────────────
+
+function _startPerfPolling() {
+  if (_perfInterval) clearInterval(_perfInterval);
+  _prevNetRecv = 0; _prevNetSent = 0; _prevNetTs = 0;
+  _pollPerf();
+  _perfInterval = setInterval(_pollPerf, 4000);
+}
+
+async function _pollPerf() {
+  // Only poll when dash pane is active
+  if (!document.getElementById('dash-pane')?.classList.contains('active')) return;
+  try {
+    const p = await invoke('get_perf_stats');
+    _updatePerfUI(p);
+  } catch {}
+}
+
+function _updatePerfUI(p) {
+  // CPU
+  _setBar('pm-cpu-bar', p.cpu_pct);
+  _setText('pm-cpu-val', `${p.cpu_pct}%`);
+
+  // RAM
+  const ramPct = p.ram_total_gb > 0 ? Math.round((p.ram_used_gb / p.ram_total_gb) * 100) : 0;
+  _setBar('pm-ram-bar', ramPct);
+  _setText('pm-ram-val', `${p.ram_used_gb.toFixed(1)}/${p.ram_total_gb.toFixed(0)} GB`);
+
+  // GPU
+  if (p.gpu_pct >= 0) {
+    _setBar('pm-gpu-bar', p.gpu_pct);
+    _setText('pm-gpu-val', `${p.gpu_pct}%`);
+  } else {
+    _setBar('pm-gpu-bar', 0);
+    _setText('pm-gpu-val', 'N/A');
+  }
+
+  // Network rate
+  const now = Date.now();
+  if (_prevNetTs > 0 && now > _prevNetTs) {
+    const secs = (now - _prevNetTs) / 1000;
+    const downRate = (p.net_recv_bytes - _prevNetRecv) / secs;
+    const upRate   = (p.net_sent_bytes - _prevNetSent) / secs;
+    _setText('pn-down', _fmtRate(downRate));
+    _setText('pn-up',   _fmtRate(upRate));
+  }
+  _prevNetRecv = p.net_recv_bytes;
+  _prevNetSent = p.net_sent_bytes;
+  _prevNetTs   = now;
+}
+
+function _setBar(id, pct) {
+  const el = document.getElementById(id);
+  if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+
+function _setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function _fmtRate(bps) {
+  if (bps < 0) return '—';
+  if (bps < 1024) return `${bps.toFixed(0)} B/s`;
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+  return `${(bps / 1024 / 1024).toFixed(2)} MB/s`;
+}
+
+// ── Pins ─────────────────────────────────────────────────────────────────────
 
 function render(pins, el) {
   if (!pins.length) {
@@ -105,7 +218,6 @@ async function runPin(tile) {
     }
   } catch (e) { toast(String(e), 'err'); }
 }
-
 
 async function unpin(id) {
   const ok = await confirmDialog('Remove this pin from your launchpad?');

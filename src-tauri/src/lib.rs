@@ -64,6 +64,7 @@ pub fn run() {
             commands::misc::get_run_history,
             commands::misc::global_search,
             commands::misc::open_data_folder,
+            commands::misc::get_perf_stats,
             commands::window::close_window,
             commands::window::minimize_window,
             commands::window::toggle_maximize,

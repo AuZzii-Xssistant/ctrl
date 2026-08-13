@@ -50,6 +50,29 @@
       <!-- DASHBOARD -->
       <div class="pane active" id="dash-pane">
         <div class="pane-scroll" id="dash-scroll"></div>
+        <div id="dash-perf">
+          <div class="perf-title"><i class="ti ti-activity"></i> Live</div>
+          <div class="perf-metric" id="pm-cpu">
+            <span class="pm-label"><i class="ti ti-cpu"></i> CPU</span>
+            <div class="pm-bar-wrap"><div class="pm-bar" id="pm-cpu-bar"></div></div>
+            <span class="pm-val" id="pm-cpu-val">—</span>
+          </div>
+          <div class="perf-metric" id="pm-ram">
+            <span class="pm-label"><i class="ti ti-database"></i> RAM</span>
+            <div class="pm-bar-wrap"><div class="pm-bar" id="pm-ram-bar"></div></div>
+            <span class="pm-val" id="pm-ram-val">—</span>
+          </div>
+          <div class="perf-metric" id="pm-gpu">
+            <span class="pm-label"><i class="ti ti-device-desktop-analytics"></i> GPU</span>
+            <div class="pm-bar-wrap"><div class="pm-bar pm-bar-gpu" id="pm-gpu-bar"></div></div>
+            <span class="pm-val" id="pm-gpu-val">—</span>
+          </div>
+          <div class="perf-divider"></div>
+          <div class="perf-net">
+            <div class="pn-row"><i class="ti ti-arrow-down"></i> <span class="pn-val" id="pn-down">—</span></div>
+            <div class="pn-row"><i class="ti ti-arrow-up"></i> <span class="pn-val" id="pn-up">—</span></div>
+          </div>
+        </div>
       </div>
 
       <!-- QUICK FIXES -->

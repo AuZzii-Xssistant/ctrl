@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::fs;
 use tauri_plugin_shell::ShellExt;
 
 #[derive(Serialize)]
@@ -50,27 +51,55 @@ pub async fn get_env_vars(app: tauri::AppHandle) -> Result<EnvVars, String> {
     })
 }
 
+/// target: "User" (no elevation) or "Machine" (UAC elevation via temp PS1 + RunAs)
 #[tauri::command]
-pub async fn set_env_var(app: tauri::AppHandle, name: String, value: String) -> Result<(), String> {
-    let cmd = format!(
-        "[Environment]::SetEnvironmentVariable('{}','{}','User')",
-        name.replace('\'', "''"),
-        value.replace('\'', "''")
+pub async fn set_env_var(app: tauri::AppHandle, name: String, value: String, target: Option<String>) -> Result<(), String> {
+    let scope = target.as_deref().unwrap_or("User");
+    let inner = format!(
+        "[Environment]::SetEnvironmentVariable('{}','{}','{}')",
+        name.replace('\'', "''"), value.replace('\'', "''"), scope
     );
-    app.shell().command("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
-        .output().await.map_err(|e| e.to_string())?;
-    Ok(())
+    if scope == "Machine" {
+        run_elevated(&app, &inner).await
+    } else {
+        app.shell().command("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &inner])
+            .output().await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
 }
 
+/// target: "User" or "Machine"
 #[tauri::command]
-pub async fn delete_env_var(app: tauri::AppHandle, name: String) -> Result<(), String> {
-    let cmd = format!(
-        "[Environment]::SetEnvironmentVariable('{}', $null, 'User')",
-        name.replace('\'', "''")
+pub async fn delete_env_var(app: tauri::AppHandle, name: String, target: Option<String>) -> Result<(), String> {
+    let scope = target.as_deref().unwrap_or("User");
+    let inner = format!(
+        "[Environment]::SetEnvironmentVariable('{}', $null, '{}')",
+        name.replace('\'', "''"), scope
+    );
+    if scope == "Machine" {
+        run_elevated(&app, &inner).await
+    } else {
+        app.shell().command("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &inner])
+            .output().await.map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+/// Write cmd to a temp .ps1 and run it elevated via Start-Process -Verb RunAs -Wait.
+async fn run_elevated(app: &tauri::AppHandle, cmd: &str) -> Result<(), String> {
+    let tmp = std::env::temp_dir().join(format!("ctrl_env_{}.ps1", std::process::id()));
+    fs::write(&tmp, format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{}\n", cmd))
+        .map_err(|e| e.to_string())?;
+    let invoke = format!(
+        "Start-Process -Verb RunAs -FilePath powershell -Wait -WindowStyle Hidden \
+         -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
+        tmp.to_string_lossy().replace('\'', "''")
     );
     app.shell().command("powershell")
-        .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
+        .args(["-ExecutionPolicy", "Bypass", "-Command", &invoke])
         .output().await.map_err(|e| e.to_string())?;
+    let _ = fs::remove_file(&tmp);
     Ok(())
 }
