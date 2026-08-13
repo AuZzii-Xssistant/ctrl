@@ -117,7 +117,12 @@ window._showProjectModal = (proj) => {
       <div class="form-row"><label class="form-label">Type</label><select class="form-select" id="f-type">${types}</select></div>
       <div class="form-row"><label class="form-label">Status</label><select class="form-select" id="f-status">${statuses}</select></div>
     </div>
-    <div class="form-row"><label class="form-label">Path (optional)</label><input class="form-input" id="f-path" value="${esc(proj?.path||'')}" placeholder="C:\\projects\\myproject\\" /></div>
+    <div class="form-row"><label class="form-label">Path</label>
+      <div class="path-row">
+        <input class="form-input" id="f-path" value="${esc(proj?.path||'')}" placeholder="C:\\projects\\myproject\\" />
+        <button class="btn-browse" onclick="window._browseProjectFolder()"><i class="ti ti-folder"></i> Browse</button>
+      </div>
+    </div>
     <div class="form-row"><label class="form-label">Tags</label><input class="form-input" id="f-tags" value="${esc(proj?.tags||'')}" placeholder="backup, automation" /></div>
     <div class="form-row"><label class="form-label">Notes</label><textarea class="form-textarea" id="f-notes" placeholder="Context, decisions…">${esc(proj?.notes||'')}</textarea></div>
     <div class="form-actions">
@@ -125,6 +130,11 @@ window._showProjectModal = (proj) => {
       <button class="action-btn btn-primary" onclick="window._saveProject(${proj?.id||'null'})">${proj?'Save':'Add'}</button>
     </div>`);
   window._closeProjectModal = closeModal;
+};
+
+window._browseProjectFolder = async () => {
+  const path = await inv('browse_for_folder');
+  if (path) document.getElementById('f-path').value = path;
 };
 
 window._saveProject = async (id) => {

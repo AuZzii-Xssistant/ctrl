@@ -62,20 +62,18 @@ Copy the entire `CTRL/` folder to a USB drive. Run `ctrl.exe` on any Windows 10/
 The DB is auto-detected next to the binary (`ctrl.db`). Override with `--db PATH`.
 
 ```bat
-REM Add a project
-ctrl-cli add project --name "MyApp" --path "C:\Projects\MyApp" --type "node" --status "active" --tags "web,node" --notes "My notes"
+REM Add items
+ctrl-cli add project --name "MyApp" --path "C:\Projects\MyApp" --type "node" --status "working" --tags "web,node" --notes "My notes"
+ctrl-cli add script  --name "Backup Docs" --content "robocopy C:\Docs D:\Backup /MIR" --type "bat" --category "Backup"
+ctrl-cli add script  --name "Deploy" --file "C:\scripts\deploy.ps1" --type "ps1" --category "DevOps"
+ctrl-cli add fix     --name "Flush DNS" --cmd "ipconfig /flushdns" --category "Network" --tags "dns,network"
+ctrl-cli add tweak   --label "Dark taskbar" --apply "Set-ItemProperty ..." --revert "Set-ItemProperty ..." --category "UI"
 
-REM Add a script (inline content — no file needed)
-ctrl-cli add script --name "Backup Docs" --content "robocopy C:\Docs D:\Backup /MIR" --type "bat" --category "Backup"
-
-REM Add a script from a file path
-ctrl-cli add script --name "Deploy" --file "C:\scripts\deploy.ps1" --type "ps1" --category "DevOps"
-
-REM Add a quick fix
-ctrl-cli add fix --name "Flush DNS" --cmd "ipconfig /flushdns" --category "Network" --tags "dns,network"
-
-REM Add a custom tweak
-ctrl-cli add tweak --label "Dark taskbar" --apply "Set-ItemProperty ..." --revert "Set-ItemProperty ..." --category "UI"
+REM Update items — only the flags you pass are changed, everything else stays
+ctrl-cli update project --id 1 --status stable --path "C:\Projects\MyApp"
+ctrl-cli update script  --id 3 --category "DevOps"
+ctrl-cli update fix     --id 7 --admin
+ctrl-cli update tweak   --id 2 --desc "Updated description"
 
 REM List anything
 ctrl-cli list projects
@@ -87,10 +85,19 @@ REM Point at a specific DB (e.g. portable drive)
 ctrl-cli --db "E:\CTRL\ctrl.db" list projects
 ```
 
-**Flags for `add project`:** `--name` (required), `--path`, `--type`, `--status`, `--tags`, `--notes`  
-**Flags for `add script`:** `--name` (required), `--content` or `--file`, `--type`, `--category`, `--tags`, `--desc`, `--admin`  
-**Flags for `add fix`:** `--name` (required), `--cmd` (required), `--category`, `--tags`, `--desc`, `--admin`, `--confirm`  
-**Flags for `add tweak`:** `--label` (required), `--apply` (required), `--revert`, `--category`, `--desc`, `--admin`
+**Valid project statuses:** `idea`, `prototype`, `working`, `stable`, `deprecated`, `replaced`  
+**Valid project types:** `script`, `exe`, `experiment`, `tool`, `library`, `workflow`, `tauri`, `node`, `web`, `rust`, `python`, `other`
+
+| Command | Required flags | Optional flags |
+|---|---|---|
+| `add project` | `--name` | `--path`, `--type`, `--status`, `--tags`, `--notes` |
+| `add script` | `--name` + (`--content` or `--file`) | `--type`, `--category`, `--tags`, `--desc`, `--admin` |
+| `add fix` | `--name`, `--cmd` | `--category`, `--tags`, `--desc`, `--admin`, `--confirm` |
+| `add tweak` | `--label`, `--apply` | `--revert`, `--category`, `--desc`, `--admin` |
+| `update project` | `--id` | any `add` flag to patch |
+| `update script` | `--id` | any column name to patch |
+| `update fix` | `--id` | any column name to patch |
+| `update tweak` | `--id` | any column name to patch |
 
 ---
 
