@@ -60,12 +60,12 @@ fn script_icon(t: &str) -> String {
 #[tauri::command]
 pub fn pin_item(state: State<AppState>, item_type: String, item_id: i64, group_name: Option<String>) -> Result<i64, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    // prevent duplicates
-    let exists: bool = db.query_row(
-        "SELECT COUNT(*) FROM pinned WHERE item_type=?1 AND item_id=?2",
-        params![item_type, item_id], |r| r.get::<_,i64>(0)
-    ).unwrap_or(0) > 0;
-    if exists { return Err("Already pinned".into()); }
+    // idempotent — return existing id if already pinned
+    let existing: Option<i64> = db.query_row(
+        "SELECT id FROM pinned WHERE item_type=?1 AND item_id=?2",
+        params![item_type, item_id], |r| r.get(0)
+    ).ok();
+    if let Some(id) = existing { return Ok(id); }
     let group = group_name.unwrap_or_else(|| "Pinned".into());
     let max_order: i64 = db.query_row("SELECT COALESCE(MAX(sort_order),0) FROM pinned WHERE group_name=?1", params![group], |r| r.get(0)).unwrap_or(0);
     db.execute(

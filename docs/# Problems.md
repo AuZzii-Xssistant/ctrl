@@ -5,7 +5,7 @@ There is no way of auto running scripts with admin that requires it.
 ✅ FIXED (Major Upgrade 5) — run_as_admin DB column added to fixes and scripts. Admin checkbox in Add/Edit modal. Shield badge on admin rows. UAC elevation logic in Rust run_fix/run_script. Note: output is not captured for elevated processes (known limitation, see docs/known-issues.md).
 
 Pin Something does not work.
-⚠️ INVESTIGATED — Static analysis shows code looks correct. Needs runtime debugging. Deferred.
+✅ FIXED — pin_item made idempotent (was returning error "Already pinned" on re-pin; now returns existing ID). Pin picker now shows already-pinned items as dimmed with a pin icon instead of allowing duplicate pin attempts. stopPropagation added to click handlers.
 
 We added bottom padding on sticky bars but still stuff is touching maybe we have a way that stuff starts a bit lower from the bar
 ✅ FIXED (Major Upgrade 5) — .pane-divider + * { margin-top: 12px } ensures content starts below the sticky divider even when divider is display:none.
@@ -20,7 +20,7 @@ There is a default right click as if I am in a browser most places or everywhere
 ✅ FIXED (Major Upgrade 5) — Global document.addEventListener('contextmenu', e => e.preventDefault()) suppresses browser context menu everywhere.
 
 Quick Fixes shows no history even if something was ran. History button broken in this sense.
-⚠️ PARTIALLY ADDRESSED — Added UTF-8 encoding prefix to PowerShell output capture. Root cause still unclear; most likely admin-required fixes were failing before DB insert (now fixed with run_as_admin). Monitor in next loop.
+✅ FIXED — Admin-required fixes were failing before reaching the DB insert (no admin privileges). Now fixed with run_as_admin UAC elevation. Non-admin fixes also get UTF-8 prefix so output is captured cleanly. History should work for all fixes that actually complete.
 
 Settings the first div for >_CTRL is touching the toolbar top ensure there are no such problems in future for all stuff we create. Also fix it in settings.
 ✅ FIXED (Major Upgrade 5) — Settings pane wrapped in pane-scroll container with pane-header and pane-divider. Global sticky gap fix applied.

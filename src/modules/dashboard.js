@@ -99,12 +99,14 @@ async function unpin(id) {
 }
 
 window._openPinPicker = async () => {
-  const [tools, scripts, fixes, wfs] = await Promise.all([
+  const [tools, scripts, fixes, wfs, currentPins] = await Promise.all([
     invoke('get_tools',     { search: '' }),
     invoke('get_scripts',   { search: '' }),
     invoke('get_fixes',     { search: '' }),
     invoke('get_workflows').catch(() => []),
+    invoke('get_pinned').catch(() => []),
   ]);
+  const pinned = new Set(currentPins.map(p => `${p.item_type}:${p.item_id}`));
   const sections = [
     { label: 'Tools',     icon: 'ti-app-window',   type: 'tool',     items: tools },
     { label: 'Scripts',   icon: 'ti-code',          type: 'script',   items: scripts },
@@ -121,10 +123,12 @@ window._openPinPicker = async () => {
       if (!s.items.length) continue;
       html += `<div style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:6px 0 4px">${s.label}</div>`;
       for (const item of s.items) {
-        html += `<button class="data-row pin-pick-item" data-type="${s.type}" data-id="${item.id}" data-name="${esc(item.name)}">
+        const isPinned = pinned.has(`${s.type}:${item.id}`);
+        html += `<button class="data-row pin-pick-item${isPinned ? ' pin-already' : ''}" data-type="${s.type}" data-id="${item.id}" data-name="${esc(item.name)}" ${isPinned ? 'title="Already on dashboard"' : ''}>
           <i class="ti ${s.icon} row-icon"></i>
           <span class="row-name">${esc(item.name)}</span>
           <span class="row-meta">${esc(item.category || '')}</span>
+          ${isPinned ? '<i class="ti ti-pin-filled" style="font-size:11px;color:var(--amber);flex-shrink:0"></i>' : ''}
         </button>`;
       }
     }
@@ -141,11 +145,15 @@ window._openPinPicker = async () => {
   });
 
   document.querySelectorAll('.pin-pick-item').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (btn.classList.contains('pin-already')) {
+        toast('Already on dashboard', 'info'); return;
+      }
       try {
         await invoke('pin_item', { item_type: btn.dataset.type, item_id: +btn.dataset.id, group_name: 'Pinned' });
         closeModal(); toast(`Pinned "${btn.dataset.name}"`, 'ok'); load();
-      } catch (e) { toast(String(e), 'err'); }
+      } catch (err) { toast(String(err), 'err'); }
     });
   });
 };
