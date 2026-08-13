@@ -12,8 +12,8 @@ export async function load() {
       <div class="stat-cell" data-pane="projects"> <div class="stat-num">—</div><div class="stat-lbl">Projects</div></div>
       <div class="stat-cell" data-pane="workflows"><div class="stat-num">—</div><div class="stat-lbl">Workflows</div></div>
     </div>
-    <div id="pin-area" style="padding:0 16px 12px"></div>
-    <div id="activity-area" style="padding:0 16px 20px"></div>`;
+    <div id="pin-area"></div>
+    <div id="activity-area" style="padding-bottom:8px"></div>`;
 
   const [stats, pins, activity] = await Promise.all([
     invoke('get_stats').catch(() => null),

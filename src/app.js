@@ -14,26 +14,26 @@ document.getElementById('btn-max').addEventListener('click',   () => invoke('tog
 let _activePane = 'dash';
 
 const _paneLoaders = {
-  dash:    () => import('./modules/dashboard.js').then(m => m.load()),
-  fixes:   () => import('./modules/fixes.js').then(m => m.load()),
-  scripts: () => import('./modules/scripts.js').then(m => m.load()),
-  builder: () => import('./modules/builder.js').then(m => m.load()),
-  tools:   () => import('./modules/tools.js').then(m => m.load()),
-  projects:() => import('./modules/projects.js').then(m => m.load()),
-  workflows:() => import('./modules/workflows.js').then(m => m.load()),
-  backup:   () => import('./modules/backup.js').then(m => m.load()),
-  tweaks:   () => import('./modules/tweaks.js').then(m => m.load()),
-  settings:() => import('./modules/settings.js').then(m => m.load()),
+  dash:     ()  => import('./modules/dashboard.js').then(m => m.load()),
+  fixes:    (s) => import('./modules/fixes.js').then(m => m.load(s)),
+  scripts:  (s) => import('./modules/scripts.js').then(m => m.load(s)),
+  builder:  ()  => import('./modules/builder.js').then(m => m.load()),
+  tools:    (s) => import('./modules/tools.js').then(m => m.load(s)),
+  projects: (s) => import('./modules/projects.js').then(m => m.load(s)),
+  workflows:()  => import('./modules/workflows.js').then(m => m.load()),
+  backup:   ()  => import('./modules/backup.js').then(m => m.load()),
+  tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
+  settings: ()  => import('./modules/settings.js').then(m => m.load()),
 };
 
-export function goPane(id) {
-  if (_activePane === id) return;
+export function goPane(id, search = '') {
+  if (_activePane === id && !search) return;
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id + '-pane').classList.add('active');
-  document.querySelector(`.nav-btn[data-pane="${id}"]`).classList.add('active');
+  document.querySelector(`.nav-btn[data-pane="${id}"]`)?.classList.add('active');
   _activePane = id;
-  _paneLoaders[id]?.();
+  _paneLoaders[id]?.(search);
 }
 
 document.querySelectorAll('.nav-btn[data-pane]').forEach(btn => {
@@ -224,9 +224,10 @@ function renderSearch(data) {
   _searchRes.classList.add('open');
   _searchRes.querySelectorAll('.sr-item[data-pane]').forEach(el => {
     el.addEventListener('click', () => {
+      const q = _searchEl.value.trim();
       _searchRes.classList.remove('open');
       _searchEl.value = '';
-      goPane(el.dataset.pane);
+      goPane(el.dataset.pane, q);
     });
   });
 }
