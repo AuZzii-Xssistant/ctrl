@@ -65,8 +65,8 @@ function _render(el, scripts, lastRuns = []) {
       showContextMenu(e, [
         { label: 'Run',         icon: 'ti-player-play', fn: () => _run(id) },
         { label: 'History',     icon: 'ti-history',     fn: () => _showHistory(id, s?.name) },
-        { label: 'Open editor', icon: 'ti-edit',        fn: () => inv('open_script_editor',   { id }) },
-        { label: 'Show folder', icon: 'ti-folder',      fn: () => inv('open_script_location', { id }) },
+        { label: 'Open editor', icon: 'ti-edit',        fn: () => inv('open_script_editor',   { id }).catch(err => toast(String(err), 'err')) },
+        { label: 'Show folder', icon: 'ti-folder',      fn: () => inv('open_script_location', { id }).catch(err => toast(String(err), 'err')) },
         '---',
         { label: 'Edit entry',  icon: 'ti-pencil',      fn: () => s && window._showScriptModal(s) },
         { label: 'Remove',      icon: 'ti-trash', danger: true, fn: () => _delete(id) },
@@ -75,8 +75,8 @@ function _render(el, scripts, lastRuns = []) {
   });
   body.querySelectorAll('[data-run]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _run(+btn.dataset.run); }));
   body.querySelectorAll('[data-hist]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _showHistory(+btn.dataset.hist, btn.dataset.name); }));
-  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_editor',   { id: +btn.dataset.edit }); }));
-  body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_location', { id: +btn.dataset.loc  }); }));
+  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_editor',   { id: +btn.dataset.edit }).catch(err => toast(String(err), 'err')); }));
+  body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_location', { id: +btn.dataset.loc  }).catch(err => toast(String(err), 'err')); }));
   body.querySelectorAll('[data-del]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _delete(+btn.dataset.del); }));
 }
 
@@ -131,8 +131,7 @@ async function _showHistory(id, name) {
       <pre class="hist-output">${esc(e.output.trim() || '(no output)')}</pre>
     </div>`).join('');
   openModal(`History — ${esc(name || '')}`, `<div class="hist-list">${rows}</div>
-    <div class="form-actions"><button class="action-btn btn-ghost" onclick="window._closeHistModal()">Close</button></div>`);
-  window._closeHistModal = closeModal;
+    <div class="form-actions"><button class="action-btn btn-ghost" onclick="closeModal()">Close</button></div>`);
 }
 
 async function _delete(id) {

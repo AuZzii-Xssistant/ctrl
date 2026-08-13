@@ -139,8 +139,8 @@ function _tweakRow(t, isApplied, isCustom = false) {
       <div class="tweak-desc">${esc(desc)}</div>
     </div>
     <div class="tweak-btns">
-      <button class="tweak-btn apply${isApplied ? ' tweak-btn-active' : ''}" data-id="${t.id}" data-action="apply" data-cmd="${esc(applyCmd)}">${isApplied ? '✓ Applied' : 'Apply'}</button>
-      ${revertCmd ? `<button class="tweak-btn revert" data-id="${t.id}" data-action="revert" data-cmd="${esc(revertCmd)}">Revert</button>` : ''}
+      <button class="tweak-btn apply${isApplied ? ' tweak-btn-active' : ''}" data-id="${t.id}" data-action="apply" data-cmd="${esc(applyCmd)}" data-admin="${t.admin ? '1' : '0'}">${isApplied ? '✓ Applied' : 'Apply'}</button>
+      ${revertCmd ? `<button class="tweak-btn revert" data-id="${t.id}" data-action="revert" data-cmd="${esc(revertCmd)}" data-admin="${t.admin ? '1' : '0'}">Revert</button>` : ''}
     </div>
   </div>`;
 }
@@ -185,13 +185,14 @@ function _render(q) {
 
   body.querySelectorAll('.tweak-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const cmd = btn.getAttribute('data-cmd');
-      const id  = btn.getAttribute('data-id');
+      const cmd   = btn.getAttribute('data-cmd');
+      const id    = btn.getAttribute('data-id');
       const action = btn.getAttribute('data-action');
+      const admin = btn.getAttribute('data-admin') === '1';
       const orig = btn.textContent;
       btn.disabled = true; btn.textContent = '…';
       try {
-        const r = await inv('run_tweak_cmd', { cmd });
+        const r = await inv('run_tweak_cmd', { cmd, admin });
         showOutput(r.output || '(no output)', r.success);
         toast(r.success ? 'Done' : 'Command returned an error', r.success ? 'ok' : 'err');
         if (r.success) {

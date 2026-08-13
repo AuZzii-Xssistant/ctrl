@@ -141,10 +141,7 @@ async function _showHistory(itemType, id, name) {
       <pre class="hist-output">${esc(e.output.trim() || '(no output)')}</pre>
     </div>`).join('');
   openModal(`History — ${esc(name || '')}`, `<div class="hist-list">${rows}</div>
-    <div class="form-actions"><button class="action-btn btn-ghost" onclick="window._closeHistModal()">Close</button></div>`);
-  window._closeHistModal = () => { const { closeModal: cm } = window.__app || {}; cm?.(); };
-  // closeModal is already imported in the module scope
-  window._closeHistModal = closeModal;
+    <div class="form-actions"><button class="action-btn btn-ghost" onclick="closeModal()">Close</button></div>`);
 }
 
 async function _delete(id) {

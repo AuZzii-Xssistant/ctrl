@@ -180,19 +180,37 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
 
 #[tauri::command]
 pub async fn open_script_editor(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let path: String = db.query_row("SELECT file_path FROM scripts WHERE id=?1", params![id], |r| r.get(0)).map_err(|e| e.to_string())?;
-    drop(db);
-    // Use 'start' via cmd to open with the registered default editor for the file type
-    app.shell().command("cmd").args(["/c", "start", "", &path]).spawn().map_err(|e| e.to_string())?;
+    let (path, content, script_type): (String, Option<String>, String) = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.query_row("SELECT file_path,content,script_type FROM scripts WHERE id=?1", params![id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        ).map_err(|e| e.to_string())?
+    };
+    // If content is in DB, write a temp file to open in editor
+    let open_path = if let Some(c) = content {
+        let p = std::env::temp_dir().join(format!("ctrl_edit_{}.{}", id, script_type));
+        fs::write(&p, c).map_err(|e| e.to_string())?;
+        p.to_string_lossy().to_string()
+    } else if path.is_empty() {
+        return Err("No file path set for this script".to_string());
+    } else {
+        path
+    };
+    app.shell().command("cmd").args(["/c", "start", "", &open_path]).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn open_script_location(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let path: String = db.query_row("SELECT file_path FROM scripts WHERE id=?1", params![id], |r| r.get(0)).map_err(|e| e.to_string())?;
-    drop(db);
+    let (path, content): (String, Option<String>) = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.query_row("SELECT file_path,content FROM scripts WHERE id=?1", params![id],
+            |r| Ok((r.get(0)?, r.get(1)?))
+        ).map_err(|e| e.to_string())?
+    };
+    if content.is_some() || path.is_empty() {
+        return Err("Script is stored in the database (no file location to open)".to_string());
+    }
     let dir = std::path::Path::new(&path).parent().map(|p| p.to_string_lossy().to_string()).unwrap_or(path);
     app.shell().command("explorer").args([&dir]).spawn().map_err(|e| e.to_string())?;
     Ok(())

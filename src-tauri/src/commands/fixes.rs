@@ -129,7 +129,7 @@ pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64)
     let (program, args): (&str, Vec<String>) = match shell_type.as_str() {
         "powershell" => ("powershell", vec![
             "-ExecutionPolicy".into(), "Bypass".into(), "-Command".into(),
-            format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8; {}", command),
+            format!("$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.Encoding]::UTF8; {}", command),
         ]),
         "python" => ("python", vec!["-c".into(), command.clone()]),
         _        => ("cmd", vec!["/c".into(), command.clone()]),

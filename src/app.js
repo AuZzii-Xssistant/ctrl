@@ -156,6 +156,9 @@ export function confirmDialog(message, danger = false) {
   });
 }
 
+// Expose closeModal globally so onclick="closeModal()" works in any module's HTML strings
+window.closeModal = closeModal;
+
 window._modalOk = () => {
   document.getElementById('modal-overlay').classList.remove('open');
   if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }

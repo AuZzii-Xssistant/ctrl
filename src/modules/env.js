@@ -112,7 +112,7 @@ function _sectionHeader(label, count, systemScope = false) {
   const badge = systemScope
     ? '<span style="font-size:10px;color:var(--amber);font-weight:400;margin-left:8px"><i class="ti ti-shield" style="font-size:10px"></i> UAC required to edit</span>'
     : '';
-  return `<div class="section-hdr"><span class="section-title">${label}${badge}</span><span class="section-count">${count}</span></div>`;
+  return `<div class="section-hdr"><span class="section-label">${label}${badge}</span><span class="section-count">${count}</span></div>`;
 }
 
 window._showEnvModal = (v, scope = 'User') => {
