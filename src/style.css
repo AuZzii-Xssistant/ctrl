@@ -420,6 +420,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .pane-divider {
   position: sticky; top: 40px; z-index: 10;
   background: var(--bg);
+  padding-bottom: 12px;
 }
 .pane-header-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; display: flex; align-items: center; gap: 7px; }
 .pane-header-title i { font-size: 15px; color: var(--amber); }
