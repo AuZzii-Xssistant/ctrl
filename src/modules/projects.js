@@ -4,7 +4,7 @@ const inv = window.__TAURI__.core.invoke;
 const STATUS_ORDER = ['stable','working','prototype','idea','deprecated','replaced'];
 
 const STATUS_CLASS = { stable:'s-stable', working:'s-working', prototype:'s-prototype', idea:'s-idea', deprecated:'s-deprecated', replaced:'s-replaced' };
-const TYPE_ICON = { script:'ti-code', exe:'ti-app-window', experiment:'ti-flask', tool:'ti-tool', library:'ti-package', workflow:'ti-player-play' };
+const TYPE_ICON = { script:'ti-code', exe:'ti-app-window', experiment:'ti-flask', tool:'ti-tool', library:'ti-package', workflow:'ti-player-play', tauri:'ti-brand-tauri', node:'ti-brand-nodejs', web:'ti-world', rust:'ti-brand-rust', python:'ti-brand-python' };
 
 export async function load(search = '') {
   const el = document.getElementById('projects-scroll');
@@ -108,7 +108,7 @@ async function _delete(id) {
 }
 
 window._showProjectModal = (proj) => {
-  const types    = ['script','exe','experiment','tool','library','workflow'].map(t => `<option value="${t}"${proj?.type===t?' selected':''}>${t}</option>`).join('');
+  const types    = ['script','exe','experiment','tool','library','workflow','tauri','node','web','rust','python','other'].map(t => `<option value="${t}"${proj?.type===t?' selected':''}>${t}</option>`).join('');
   const statuses = ['idea','prototype','working','stable','deprecated','replaced'].map(s => `<option value="${s}"${proj?.status===s?' selected':''}>${s}</option>`).join('');
   openModal(proj ? 'Edit Project' : 'Add Project', `
     <div class="form-row"><label class="form-label">Name</label><input class="form-input" id="f-name" value="${esc(proj?.name||'')}" placeholder="MyBackupSystem" /></div>

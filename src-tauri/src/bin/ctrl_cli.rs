@@ -53,20 +53,24 @@ fn main() {
     let flags = parse_flags(&rest[2..]);
 
     match (cmd, sub) {
-        ("add",  "project")  => add_project(&conn, flags),
-        ("add",  "script")   => add_script(&conn, flags),
-        ("add",  "fix")      => add_fix(&conn, flags),
-        ("add",  "tweak")    => add_tweak(&conn, flags),
-        ("list", "projects") => list_table(&conn,
+        ("add",    "project")  => add_project(&conn, flags),
+        ("add",    "script")   => add_script(&conn, flags),
+        ("add",    "fix")      => add_fix(&conn, flags),
+        ("add",    "tweak")    => add_tweak(&conn, flags),
+        ("update", "project")  => update_project(&conn, flags),
+        ("update", "script")   => update_field(&conn, "scripts", "name", &flags),
+        ("update", "fix")      => update_field(&conn, "fixes", "name", &flags),
+        ("update", "tweak")    => update_field(&conn, "custom_tweaks", "label", &flags),
+        ("list",   "projects") => list_table(&conn,
             "SELECT id,name,type,status,path FROM projects ORDER BY name",
             &["id", "name", "type", "status", "path"]),
-        ("list", "scripts")  => list_table(&conn,
+        ("list",   "scripts")  => list_table(&conn,
             "SELECT id,name,category,script_type,status FROM scripts ORDER BY category,name",
             &["id", "name", "category", "type", "status"]),
-        ("list", "fixes")    => list_table(&conn,
+        ("list",   "fixes")    => list_table(&conn,
             "SELECT id,name,category,command FROM fixes ORDER BY category,name",
             &["id", "name", "category", "command"]),
-        ("list", "tweaks")   => list_table(&conn,
+        ("list",   "tweaks")   => list_table(&conn,
             "SELECT id,label,category,apply_cmd FROM custom_tweaks ORDER BY category,label",
             &["id", "label", "category", "apply_cmd"]),
         _ => { eprintln!("Unknown command: {} {}", cmd, sub); print_usage(); std::process::exit(1); }
@@ -117,6 +121,43 @@ fn require(map: &HashMap<String, String>, key: &str) -> String {
         eprintln!("Missing required flag: --{}", key);
         std::process::exit(1);
     })
+}
+
+fn update_project(conn: &Connection, flags: HashMap<String, String>) {
+    let id: i64 = require(&flags, "id").parse().unwrap_or_else(|_| { eprintln!("--id must be a number"); std::process::exit(1); });
+    // Fetch current values, patch only what was provided
+    let (name, desc, kind, status, path, tags, notes): (String,String,String,String,String,String,String) = conn.query_row(
+        "SELECT name,description,type,status,path,tags,notes FROM projects WHERE id=?1",
+        [id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?,r.get(6)?))
+    ).unwrap_or_else(|_| { eprintln!("No project with id={}", id); std::process::exit(1); });
+    let name   = flags.get("name").cloned().unwrap_or(name);
+    let desc   = flags.get("desc").cloned().unwrap_or(desc);
+    let kind   = flags.get("type").cloned().unwrap_or(kind);
+    let status = flags.get("status").cloned().unwrap_or(status);
+    let path   = flags.get("path").cloned().unwrap_or(path);
+    let tags   = flags.get("tags").cloned().unwrap_or(tags);
+    let notes  = flags.get("notes").cloned().unwrap_or(notes);
+    conn.execute(
+        "UPDATE projects SET name=?1,description=?2,type=?3,status=?4,path=?5,tags=?6,notes=?7 WHERE id=?8",
+        params![name, desc, kind, status, path, tags, notes, id],
+    ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
+    println!("✓ Project {} updated", id);
+}
+
+/// Generic single-column patch for scripts/fixes/tweaks (update --id N --field value)
+fn update_field(conn: &Connection, table: &str, _name_col: &str, flags: &HashMap<String, String>) {
+    let id: i64 = require(flags, "id").parse().unwrap_or_else(|_| { eprintln!("--id must be a number"); std::process::exit(1); });
+    let mut updated = 0usize;
+    for (key, val) in flags {
+        if key == "id" { continue; }
+        let sql = format!("UPDATE {} SET {}=?1 WHERE id=?2", table, key);
+        match conn.execute(&sql, params![val, id]) {
+            Ok(n) if n > 0 => updated += 1,
+            Ok(_) => eprintln!("No row with id={} in {}", id, table),
+            Err(e) => eprintln!("Error updating {}: {}", key, e),
+        }
+    }
+    if updated > 0 { println!("✓ {} row {} updated ({} field(s))", table, id, updated); }
 }
 
 fn add_project(conn: &Connection, flags: HashMap<String, String>) {
