@@ -34,9 +34,10 @@ function _render(el, scripts, lastRuns = []) {
         const dot = lr ? `<span class="run-dot ${lr.success ? 'ok' : 'err'}" title="Last run: ${lr.success ? 'success' : 'failed'}"></span>` : `<span class="run-dot none" title="Never run"></span>`;
         const runTime = lr ? `<span class="run-time">${timeAgo(lr.ran_at)}</span>` : '';
         const adminBadge = s.run_as_admin ? '<span class="badge-admin" title="Runs as Administrator"><i class="ti ti-shield"></i> admin</span>' : '';
+        const dbBadge = s.content ? '<span class="badge-db" title="Content stored in database"><i class="ti ti-database"></i></span>' : '';
         html += `<div class="card" data-id="${s.id}">
           <div class="card-icon"><i class="ti ${scriptIcon(ext)}"></i></div>
-          <div class="card-name" title="${esc(s.name)}" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}</div>
+          <div class="card-name" title="${esc(s.name)}" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}${dbBadge}</div>
           <div class="card-sub">${esc(s.description||'')}</div>
           ${tags ? `<div class="card-tags">${tags}</div>` : ''}
           <div class="run-meta-row">${dot}${runTime}</div>
@@ -152,10 +153,17 @@ window._showScriptModal = async (script) => {
     </div>
     <div class="form-row"><label class="form-label">Description</label><input class="form-input" id="f-desc" value="${esc(script?.description||'')}" placeholder="What it does" /></div>
     <div class="form-row"><label class="form-label">Category</label><input class="form-input" id="f-cat" value="${esc(script?.category||'')}" placeholder="Backup" /></div>
-    <div class="form-row"><label class="form-label">File Path</label>
+    <div class="form-row"><label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+      Script Content <span style="font-size:10px;color:var(--text3);font-weight:400">stored in DB — runs without a file on disk</span>
+    </label>
+      <textarea class="form-textarea" id="f-content" rows="6" placeholder="Paste your script here…" style="font-family:var(--mono);font-size:11px">${esc(script?.content||'')}</textarea>
+    </div>
+    <div class="form-row"><label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+      File Path <span style="font-size:10px;color:var(--text3);font-weight:400">optional if content above is filled</span>
+    </label>
       <div class="path-row">
         <input class="form-input" id="f-path" value="${esc(script?.file_path||'')}" placeholder="C:\\scripts\\file.ps1" />
-        <button class="btn-browse" onclick="window._browseScript()"><i class="ti ti-folder"></i> Browse</button>
+        <button class="btn-browse" onclick="window._browseScript()"><i class="ti ti-folder"></i> Import</button>
       </div>
     </div>
     <div class="form-row-2">
@@ -175,26 +183,34 @@ window._showScriptModal = async (script) => {
 
 window._browseScript = async () => {
   const path = await inv('browse_for_script');
-  if (path) {
-    document.getElementById('f-path').value = path;
-    const ext = path.split('.').pop().toLowerCase();
-    const sel = document.getElementById('f-type');
-    if (sel && ['ps1','py','bat','cmd'].includes(ext)) sel.value = ext;
-  }
+  if (!path) return;
+  document.getElementById('f-path').value = path;
+  const ext = path.split('.').pop().toLowerCase();
+  const sel = document.getElementById('f-type');
+  if (sel && ['ps1','py','bat','cmd'].includes(ext)) sel.value = ext;
+  // Read file content into the content textarea so script is imported into DB
+  try {
+    const content = await inv('read_text_file', { path });
+    const ta = document.getElementById('f-content');
+    if (ta && content) ta.value = content;
+  } catch (_) { /* file read failed — file path still set, content stays empty */ }
 };
 
 window._saveScript = async (id) => {
+  const content   = document.getElementById('f-content')?.value.trim() || null;
+  const file_path = document.getElementById('f-path').value.trim();
   const data = {
     name:        document.getElementById('f-name').value.trim(),
     description: document.getElementById('f-desc').value.trim(),
     category:    document.getElementById('f-cat').value.trim() || 'General',
-    file_path:   document.getElementById('f-path').value.trim(),
+    file_path,
+    content: content || null,
     script_type: document.getElementById('f-type').value,
     tags:        document.getElementById('f-tags').value.trim(),
     status:      document.getElementById('f-status').value,
     run_as_admin: document.getElementById('f-admin')?.checked ?? false,
   };
-  if (!data.name || !data.file_path) { toast('Name and file path required', 'err'); return; }
+  if (!data.name || (!data.file_path && !data.content)) { toast('Name and either content or file path required', 'err'); return; }
   try {
     if (id) await inv('update_script', { id, data }); else await inv('add_script', { data });
     closeModal(); toast(id ? 'Script updated' : 'Script added', 'ok'); load();

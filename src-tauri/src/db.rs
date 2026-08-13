@@ -16,6 +16,8 @@ fn migrate(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE fixes ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0", []);
     // Scripts: run_as_admin column (added Major Upgrade 5)
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0", []);
+    // Scripts: inline content stored in DB (file_path becomes optional)
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN content TEXT", []);
     Ok(())
 }
 

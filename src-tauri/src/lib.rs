@@ -36,6 +36,7 @@ pub fn run() {
             commands::scripts::delete_script,
             commands::scripts::run_script,
             commands::scripts::browse_for_script,
+            commands::scripts::read_text_file,
             commands::scripts::open_script_editor,
             commands::scripts::open_script_location,
             commands::fixes::get_fixes,
