@@ -133,13 +133,13 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         let tmp_script = std::env::temp_dir().join(format!("ctrl_script_{}.ps1", id));
         let tmp_output = std::env::temp_dir().join(format!("ctrl_script_{}_out.txt", id));
         let out_path = tmp_output.to_string_lossy().replace('\'', "''");
+        let exec_esc = exec_path.replace('\'', "''");
         let script_body = match script_type.as_str() {
-            "ps1" => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n& '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
-                             exec_path.replace('\'', "''"), out_path),
-            "py"  => format!("python '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
-                             exec_path.replace('\'', "''"), out_path),
-            _     => format!("cmd /c '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
-                             exec_path.replace('\'', "''"), out_path),
+            "ps1" => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n& '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
+            "py"  => format!("python '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
+            "vbs" => format!("cscript //NoLogo '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
+            "ahk" => format!("Start-Process -FilePath AutoHotkey -ArgumentList '{}' -Wait 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
+            _     => format!("cmd /c '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
         };
         fs::write(&tmp_script, &script_body).map_err(|e| e.to_string())?;
         let ps_invoke = format!(
@@ -160,9 +160,24 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         return Ok(RunResult { success: true, output });
     }
 
+    // Find AutoHotkey.exe in common install locations
+    let ahk_path: String;
     let (program, args) = match script_type.as_str() {
         "ps1" => ("powershell", vec!["-ExecutionPolicy".into(), "Bypass".into(), "-File".into(), exec_path.clone()]),
         "py"  => ("python", vec![exec_path.clone()]),
+        "vbs" => ("cscript", vec!["//NoLogo".into(), exec_path.clone()]),
+        "ahk" => {
+            let candidates = [
+                "C:\\Program Files\\AutoHotkey\\AutoHotkey.exe",
+                "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe",
+                "C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe",
+            ];
+            ahk_path = candidates.iter()
+                .find(|p| std::path::Path::new(p).exists())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "AutoHotkey".to_string());
+            (&*ahk_path, vec![exec_path.clone()])
+        },
         _     => ("cmd", vec!["/c".into(), exec_path.clone()]),
     };
     let out = app.shell().command(program).args(&args).output().await.map_err(|e| e.to_string())?;
@@ -219,7 +234,7 @@ pub async fn open_script_location(app: tauri::AppHandle, state: State<'_, AppSta
 #[tauri::command]
 pub async fn browse_for_script(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let path = app.dialog().file()
-        .add_filter("Scripts", &["ps1", "bat", "cmd", "py"])
+        .add_filter("Scripts", &["ps1", "bat", "cmd", "py", "ahk", "vbs", "rb", "sh"])
         .blocking_pick_file();
     Ok(path.map(|p| p.to_string()))
 }

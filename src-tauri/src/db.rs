@@ -29,6 +29,11 @@ fn migrate(conn: &Connection) -> Result<()> {
     )", []);
     // Release & Renew IP needs admin (requires elevated network access on some systems)
     let _ = conn.execute("UPDATE fixes SET run_as_admin=1 WHERE name='Release & Renew IP' AND run_as_admin=0", []);
+    // Fix Restart Explorer — needs -ErrorAction SilentlyContinue on Stop-Process
+    let _ = conn.execute(
+        "UPDATE fixes SET command='Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Process explorer' WHERE name='Restart Explorer' AND command NOT LIKE '%-ErrorAction%'",
+        [],
+    );
     // Fix outdated Flush Icon Cache command (ie4uinit doesn't work on Win10/11)
     let _ = conn.execute(
         "UPDATE fixes SET command=?1, description=?2 WHERE name='Flush Icon Cache'",
@@ -153,7 +158,7 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         ('Ping Gateway','Ping default gateway to test connectivity','Network','powershell','$gw=(Get-NetRoute -DestinationPrefix 0.0.0.0/0).NextHop | Select-Object -First 1; ping $gw','ping,network',0,0),
         ('Clear Temp Files','Delete files in %TEMP%','Maintenance','powershell','Remove-Item -Path $env:TEMP\\* -Recurse -Force -ErrorAction SilentlyContinue','temp,cleanup',0,0),
         ('Clear Windows Temp','Delete files in C:\\Windows\\Temp','Maintenance','powershell','Remove-Item -Path C:\\Windows\\Temp\\* -Recurse -Force -ErrorAction SilentlyContinue','temp,cleanup',0,1),
-        ('Restart Explorer','Kill and restart Windows Explorer shell','System','powershell','Stop-Process -Name explorer -Force; Start-Process explorer','explorer,shell,ui',0,0),
+        ('Restart Explorer','Kill and restart Windows Explorer shell','System','powershell','Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Process explorer','explorer,shell,ui',0,0),
         ('Flush Icon Cache','Delete icon cache DBs and restart Explorer (Win10/11)','System','powershell','Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Remove-Item -Path \"$env:LOCALAPPDATA\\Microsoft\\Windows\\Explorer\\iconcache*.db\" -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer','icons,cache',0,0),
         ('Kill Process by Name','Kill a process — edit command with target name','System','powershell','Stop-Process -Name notepad -Force -ErrorAction SilentlyContinue','process,kill',0,0),
         ('SFC Scan','Run System File Checker (takes a few minutes)','Repair','powershell','sfc /scannow','sfc,system,repair',1,1),

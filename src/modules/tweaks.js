@@ -112,7 +112,7 @@ let _customTweaks = [];
 
 export async function load() {
   const el = document.getElementById('tweaks-scroll');
-  el.innerHTML = paneHeader('ti-adjustments', 'System Tweaks', '+ Custom Tweak', 'window._showCustomTweakModal(null)', 'tweaks-filter')
+  el.innerHTML = paneHeader('ti-adjustments', 'System Tweaks', 'Custom Tweak', 'window._showCustomTweakModal(null)', 'tweaks-filter')
     + `<div class="tweaks-note"><i class="ti ti-shield-lock"></i> Tweaks marked <span class="badge-admin" style="vertical-align:middle"><i class="ti ti-shield"></i> admin</span> require CTRL to be run as Administrator.</div>`
     + `<div id="tweaks-body"></div>`;
 
@@ -234,7 +234,7 @@ window._showCustomTweakModal = (t) => {
     <div class="form-row"><label class="form-label">Apply Command (PowerShell)</label><textarea class="form-textarea" id="ct-apply" rows="3" style="font-family:var(--mono);font-size:11px" placeholder="Set-ItemProperty ...">${esc(t?.apply_cmd||'')}</textarea></div>
     <div class="form-row"><label class="form-label">Revert Command <span style="font-size:10px;color:var(--text3);font-weight:400">optional</span></label><textarea class="form-textarea" id="ct-revert" rows="3" style="font-family:var(--mono);font-size:11px" placeholder="(leave blank if not reversible)">${esc(t?.revert_cmd||'')}</textarea></div>
     <div class="form-row" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="ct-admin" ${t?.admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <input type="checkbox" id="ct-admin" ${t?.admin ? 'checked' : ''} />
       <label for="ct-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Requires Administrator</label>
     </div>
     <div class="form-actions">

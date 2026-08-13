@@ -165,11 +165,11 @@ window._showFixModal = (fix) => {
     <div class="form-row"><label class="form-label">Command</label><textarea class="form-textarea" id="f-cmd" placeholder="ipconfig /flushdns">${esc(fix?.command||'')}</textarea></div>
     <div class="form-row"><label class="form-label">Tags</label><input class="form-input" id="f-tags" value="${esc(fix?.tags||'')}" placeholder="dns, network" /></div>
     <div class="form-row" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="f-confirm" ${fix?.confirm_required ? 'checked' : ''} style="accent-color:var(--amber)" />
+      <input type="checkbox" id="f-confirm" ${fix?.confirm_required ? 'checked' : ''} />
       <label for="f-confirm" class="form-label" style="margin:0;cursor:pointer">Require confirmation before running</label>
     </div>
     <div class="form-row" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="f-admin" ${fix?.run_as_admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <input type="checkbox" id="f-admin" ${fix?.run_as_admin ? 'checked' : ''} />
       <label for="f-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Run as Administrator (UAC elevation)</label>
     </div>
     <div class="form-actions">

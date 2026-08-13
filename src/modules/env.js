@@ -6,11 +6,11 @@ let _data = { user: [], system: [] };
 
 export async function load() {
   const el = document.getElementById('env-scroll');
-  el.innerHTML = paneHeader('ti-list-details', 'Environment Variables', '+ Add Variable', 'window._showEnvModal(null,"User")', 'env-filter')
+  el.innerHTML = paneHeader('ti-list-details', 'Environment Variables', 'Add Variable', 'window._showEnvModal(null,"User")', 'env-filter')
     + `<div class="tweaks-note" style="display:flex;align-items:center;gap:8px">
         <span><i class="ti ti-info-circle"></i> User variables are editable. System variables require UAC elevation to modify.</span>
         <button class="action-btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="window._showAddToPathModal()"><i class="ti ti-plus"></i> Add to PATH</button>
-        <button class="action-btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="window._openPathEditor()" title="Open Windows PATH editor"><i class="ti ti-external-link"></i> PATH Editor</button>
+        <button class="action-btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="window._openPathEditor()" title="Open Windows Environment Variables dialog"><i class="ti ti-external-link"></i> Environment Variables</button>
        </div>`
     + `<div id="env-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(8)}</div></div>`;
 
@@ -66,7 +66,7 @@ function _render(q) {
         <div class="env-name" title="${esc(v.name)}">${esc(v.name)}</div>
         <div class="env-value" title="${esc(v.value)}">${esc(v.value) || '<span style="opacity:.4;font-style:italic">empty</span>'}</div>
         <div class="env-actions">
-          <i class="ti ti-shield" style="font-size:11px;color:var(--amber);margin-right:2px" title="Requires admin"></i>
+          <span class="icon-btn" style="cursor:default;opacity:.7" title="Requires admin"><i class="ti ti-shield" style="color:var(--amber)"></i></span>
           <button class="icon-btn" title="Edit (requires admin)" data-edit="${esc(v.name)}" data-scope="Machine"><i class="ti ti-pencil"></i></button>
           <button class="icon-btn" title="Copy value" data-copy="${esc(v.value)}"><i class="ti ti-copy"></i></button>
           <button class="icon-btn del" title="Delete (requires admin)" data-del="${esc(v.name)}" data-scope="Machine"><i class="ti ti-trash"></i></button>

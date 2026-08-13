@@ -124,7 +124,7 @@ window._showToolModal = (tool) => {
     <div class="form-row"><label class="form-label">Tags</label><input class="form-input" id="f-tags" value="${esc(tool?.tags||'')}" placeholder="editor, dev" /></div>
     <div class="form-row"><label class="form-label">Notes</label><textarea class="form-textarea" id="f-notes" placeholder="What this tool does">${esc(tool?.notes||'')}</textarea></div>
     <div class="form-row" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="f-admin" ${tool?.run_as_admin ? 'checked' : ''} style="accent-color:var(--amber)" />
+      <input type="checkbox" id="f-admin" ${tool?.run_as_admin ? 'checked' : ''} />
       <label for="f-admin" class="form-label" style="margin:0;cursor:pointer">Run as Administrator</label>
     </div>
     <div class="form-actions">

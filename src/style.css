@@ -462,8 +462,26 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* .pane-divider defined above in sticky block */
 
 /* ── TWEAKS ── */
-.tweaks-note { font-size:11px; color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:8px 12px; margin:0 0 14px; display:flex; align-items:center; gap:6px; }
+.tweaks-note { font-size:11px; color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:8px 12px; margin:0 0 14px; display:flex; align-items:center; gap:6px;
+  position: sticky; top: 54px; z-index: 9; }
 .tweaks-note .ti { flex-shrink:0; color:var(--amber); }
+
+/* ── CUSTOM CHECKBOXES ── */
+input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 14px; height: 14px; border: 1px solid var(--border2);
+  border-radius: 3px; background: var(--bg); cursor: pointer;
+  position: relative; flex-shrink: 0; vertical-align: middle;
+  transition: background 0.12s, border-color 0.12s;
+}
+input[type="checkbox"]:checked { background: var(--amber); border-color: var(--amber); }
+input[type="checkbox"]:checked::after {
+  content: ''; position: absolute;
+  left: 4px; top: 1px; width: 4px; height: 8px;
+  border: 2px solid #000; border-top: none; border-left: none;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:focus { outline: none; box-shadow: 0 0 0 2px rgba(245,166,35,0.25); }
 .tweaks-list { display:flex; flex-direction:column; gap:2px; margin-bottom:14px; }
 .tweak-row { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); transition:border-color 120ms; }
 .tweak-row:hover { border-color:var(--border2); }

@@ -143,7 +143,7 @@ async function _delete(id) {
 }
 
 window._showScriptModal = async (script) => {
-  const types    = ['ps1','py','bat','cmd'].map(t => `<option value="${t}"${script?.script_type===t?' selected':''}>.${t}</option>`).join('');
+  const types    = ['ps1','py','bat','cmd','ahk','vbs','rb','sh'].map(t => `<option value="${t}"${script?.script_type===t?' selected':''}>.${t}</option>`).join('');
   const statuses = ['active','deprecated','replaced'].map(s => `<option value="${s}"${script?.status===s?' selected':''}>${s}</option>`).join('');
   openModal(script ? 'Edit Script' : 'Add Script', `
     <div class="form-row-2">
@@ -170,7 +170,7 @@ window._showScriptModal = async (script) => {
       <div class="form-row"><label class="form-label">Status</label><select class="form-select" id="f-status">${statuses}</select></div>
     </div>
     <div class="form-row" style="display:flex;align-items:center;gap:8px">
-      <input type="checkbox" id="f-admin" ${script?.run_as_admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <input type="checkbox" id="f-admin" ${script?.run_as_admin ? 'checked' : ''} />
       <label for="f-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Run as Administrator (UAC elevation)</label>
     </div>
     <div class="form-actions">

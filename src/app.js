@@ -302,7 +302,8 @@ export function emptyState(icon, msg, btnLabel, btnFn) {
 }
 
 export function scriptIcon(type) {
-  return { ps1: 'ti-terminal-2', py: 'ti-brand-python', bat: 'ti-terminal', cmd: 'ti-terminal' }[type] || 'ti-file';
+  return { ps1: 'ti-terminal-2', py: 'ti-brand-python', bat: 'ti-terminal', cmd: 'ti-terminal',
+           ahk: 'ti-keyboard', vbs: 'ti-script', rb: 'ti-brand-ruby', sh: 'ti-terminal' }[type] || 'ti-file';
 }
 
 /** Time-ago helper */
