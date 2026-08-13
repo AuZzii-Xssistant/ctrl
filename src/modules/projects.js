@@ -63,13 +63,17 @@ function _render(el, projects) {
       showContextMenu(e, items);
     });
   });
-  body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', () => inv('open_project_path', { id: +btn.dataset.loc })));
-  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', async () => {
+  body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    inv('open_project_path', { id: +btn.dataset.loc }).catch(err => toast(String(err), 'err'));
+  }));
+  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', async e => {
+    e.stopPropagation();
     const all = await inv('get_projects', { search: '' });
     const p = all.find(x => x.id === +btn.dataset.edit);
     if (p) window._showProjectModal(p);
   }));
-  body.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => _delete(+btn.dataset.del)));
+  body.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _delete(+btn.dataset.del); }));
 }
 
 function _getBody(el) {

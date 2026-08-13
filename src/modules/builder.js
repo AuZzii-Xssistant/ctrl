@@ -1,4 +1,4 @@
-import { esc, toast, closeModal } from '../app.js';
+import { esc, toast, closeModal, showOutput } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 let _defs = { categories: [] };
@@ -169,7 +169,7 @@ document.getElementById('builder-run').addEventListener('click', async () => {
   toast('Running…', 'info');
   try {
     const r = await inv('run_built_script', { code: raw, script_type: type });
-    document.getElementById('output-text').innerHTML = `<span class="${r.success?'out-ok':'out-err'}">${esc(r.output)}</span>`;
-    document.getElementById('output-drawer').classList.add('open');
+    showOutput(r.output, r.success);
+    toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
   } catch (e) { toast(String(e), 'err'); }
 });
