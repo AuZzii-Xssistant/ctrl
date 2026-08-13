@@ -18,6 +18,17 @@ fn migrate(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0", []);
     // Scripts: inline content stored in DB (file_path becomes optional)
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN content TEXT", []);
+    // Custom tweaks table (added Loop 11)
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        category    TEXT NOT NULL DEFAULT 'Custom',
+        label       TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        apply_cmd   TEXT NOT NULL DEFAULT '',
+        revert_cmd  TEXT NOT NULL DEFAULT '',
+        admin       INTEGER NOT NULL DEFAULT 0,
+        sort_order  INTEGER NOT NULL DEFAULT 0
+    )", []);
     Ok(())
 }
 

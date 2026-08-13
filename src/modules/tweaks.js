@@ -1,4 +1,4 @@
-import { esc, sectionHdr, paneHeader, toast, showOutput } from '../app.js';
+import { esc, sectionHdr, paneHeader, toast, showOutput, openModal, closeModal, confirmDialog } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const LS_KEY = 'ctrl_tweaks_applied';
@@ -108,9 +108,11 @@ function _setApplied(set) {
   localStorage.setItem(LS_KEY, JSON.stringify([...set]));
 }
 
-export function load() {
+let _customTweaks = [];
+
+export async function load() {
   const el = document.getElementById('tweaks-scroll');
-  el.innerHTML = paneHeader('ti-adjustments', 'System Tweaks', null, null, 'tweaks-filter')
+  el.innerHTML = paneHeader('ti-adjustments', 'System Tweaks', '+ Custom Tweak', 'window._showCustomTweakModal(null)', 'tweaks-filter')
     + `<div class="tweaks-note"><i class="ti ti-shield-lock"></i> Tweaks marked <span class="badge-admin" style="vertical-align:middle"><i class="ti ti-shield"></i> admin</span> require CTRL to be run as Administrator.</div>`
     + `<div id="tweaks-body"></div>`;
 
@@ -119,7 +121,28 @@ export function load() {
     if (f) f.addEventListener('input', () => _render(f.value.toLowerCase().trim()));
   }, 0);
 
+  _customTweaks = await inv('get_custom_tweaks').catch(() => []);
   _render('');
+}
+
+function _tweakRow(t, isApplied, isCustom = false) {
+  const adminBadge = t.admin ? '<span class="badge-admin" title="Requires administrator"><i class="ti ti-shield"></i> admin</span>' : '';
+  const editBtns = isCustom ? `
+    <button class="icon-btn" title="Edit" data-cedit="${t.id}" style="padding:2px 4px;font-size:11px"><i class="ti ti-pencil"></i></button>
+    <button class="icon-btn del" title="Delete" data-cdel="${t.id}" style="padding:2px 4px;font-size:11px"><i class="ti ti-trash"></i></button>` : '';
+  const applyCmd = isCustom ? t.apply_cmd : t.apply;
+  const revertCmd = isCustom ? t.revert_cmd : t.revert;
+  const desc = isCustom ? t.description : t.desc;
+  return `<div class="tweak-row${isApplied ? ' tweak-applied' : ''}">
+    <div class="tweak-info">
+      <div class="tweak-label" style="display:flex;align-items:center;gap:6px">${esc(t.label)}${adminBadge}${isApplied ? '<span class="tweak-applied-dot" title="Applied"></span>' : ''}${editBtns}</div>
+      <div class="tweak-desc">${esc(desc)}</div>
+    </div>
+    <div class="tweak-btns">
+      <button class="tweak-btn apply${isApplied ? ' tweak-btn-active' : ''}" data-id="${t.id}" data-action="apply" data-cmd="${esc(applyCmd)}">${isApplied ? '✓ Applied' : 'Apply'}</button>
+      ${revertCmd ? `<button class="tweak-btn revert" data-id="${t.id}" data-action="revert" data-cmd="${esc(revertCmd)}">Revert</button>` : ''}
+    </div>
+  </div>`;
 }
 
 function _render(q) {
@@ -128,6 +151,8 @@ function _render(q) {
   const applied = _getApplied();
   let html = '';
   let total = 0;
+
+  // Built-in tweaks
   for (const group of TWEAKS) {
     const items = q
       ? group.items.filter(t => t.label.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) || group.category.toLowerCase().includes(q))
@@ -135,22 +160,26 @@ function _render(q) {
     if (!items.length) continue;
     total += items.length;
     html += sectionHdr(group.category, items.length) + '<div class="tweaks-list">';
-    for (const t of items) {
-      const isApplied = applied.has(t.id);
-      const adminBadge = t.admin ? '<span class="badge-admin" title="Requires administrator"><i class="ti ti-shield"></i> admin</span>' : '';
-      html += `<div class="tweak-row${isApplied ? ' tweak-applied' : ''}">
-        <div class="tweak-info">
-          <div class="tweak-label" style="display:flex;align-items:center;gap:6px">${esc(t.label)}${adminBadge}${isApplied ? '<span class="tweak-applied-dot" title="Applied"></span>' : ''}</div>
-          <div class="tweak-desc">${esc(t.desc)}</div>
-        </div>
-        <div class="tweak-btns">
-          <button class="tweak-btn apply${isApplied ? ' tweak-btn-active' : ''}" data-id="${t.id}" data-action="apply" data-cmd="${esc(t.apply)}">${isApplied ? '✓ Applied' : 'Apply'}</button>
-          <button class="tweak-btn revert" data-id="${t.id}" data-action="revert" data-cmd="${esc(t.revert)}">Revert</button>
-        </div>
-      </div>`;
-    }
+    for (const t of items) html += _tweakRow(t, applied.has(t.id), false);
     html += '</div>';
   }
+
+  // Custom tweaks from DB
+  const customFiltered = q
+    ? _customTweaks.filter(t => t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || t.category.toLowerCase().includes(q))
+    : _customTweaks;
+  if (customFiltered.length) {
+    total += customFiltered.length;
+    // Group by category
+    const groups = {};
+    for (const t of customFiltered) (groups[t.category] ??= []).push(t);
+    for (const [cat, items] of Object.entries(groups)) {
+      html += sectionHdr(cat, items.length) + '<div class="tweaks-list">';
+      for (const t of items) html += _tweakRow(t, applied.has('c' + t.id), true);
+      html += '</div>';
+    }
+  }
+
   if (!total) html = `<div class="empty-state" style="padding-top:40px"><i class="ti ti-search"></i><p>No tweaks match "${esc(q)}"</p></div>`;
   body.innerHTML = html;
 
@@ -177,4 +206,57 @@ function _render(q) {
       btn.disabled = false; btn.textContent = orig;
     });
   });
+
+  body.querySelectorAll('[data-cedit]').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); const t = _customTweaks.find(x => x.id === +btn.dataset.cedit); if (t) window._showCustomTweakModal(t); });
+  });
+  body.querySelectorAll('[data-cdel]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const ok = await confirmDialog('Delete this custom tweak?', true);
+      if (!ok) return;
+      await inv('delete_custom_tweak', { id: +btn.dataset.cdel });
+      toast('Custom tweak deleted', 'info');
+      _customTweaks = await inv('get_custom_tweaks').catch(() => []);
+      const q = document.getElementById('tweaks-filter')?.value.toLowerCase().trim() || '';
+      _render(q);
+    });
+  });
 }
+
+window._showCustomTweakModal = (t) => {
+  window._closeCustomTweakModal = closeModal;
+  openModal(t ? 'Edit Custom Tweak' : 'Add Custom Tweak', `
+    <div class="form-row"><label class="form-label">Label</label><input class="form-input" id="ct-label" value="${esc(t?.label||'')}" placeholder="My Custom Tweak" /></div>
+    <div class="form-row"><label class="form-label">Category</label><input class="form-input" id="ct-cat" value="${esc(t?.category||'Custom')}" placeholder="Custom" /></div>
+    <div class="form-row"><label class="form-label">Description</label><input class="form-input" id="ct-desc" value="${esc(t?.description||'')}" placeholder="What this tweak does" /></div>
+    <div class="form-row"><label class="form-label">Apply Command (PowerShell)</label><textarea class="form-textarea" id="ct-apply" rows="3" style="font-family:var(--mono);font-size:11px" placeholder="Set-ItemProperty ...">${esc(t?.apply_cmd||'')}</textarea></div>
+    <div class="form-row"><label class="form-label">Revert Command <span style="font-size:10px;color:var(--text3);font-weight:400">optional</span></label><textarea class="form-textarea" id="ct-revert" rows="3" style="font-family:var(--mono);font-size:11px" placeholder="(leave blank if not reversible)">${esc(t?.revert_cmd||'')}</textarea></div>
+    <div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="ct-admin" ${t?.admin ? 'checked' : ''} style="accent-color:var(--accent)" />
+      <label for="ct-admin" class="form-label" style="margin:0;cursor:pointer"><i class="ti ti-shield" style="font-size:11px"></i> Requires Administrator</label>
+    </div>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._closeCustomTweakModal()">Cancel</button>
+      <button class="action-btn btn-primary" onclick="window._saveCustomTweak(${t?.id||'null'})">${t ? 'Save' : 'Add'}</button>
+    </div>`);
+};
+
+window._saveCustomTweak = async (id) => {
+  const data = {
+    label:       document.getElementById('ct-label').value.trim(),
+    category:    document.getElementById('ct-cat').value.trim() || 'Custom',
+    description: document.getElementById('ct-desc').value.trim(),
+    apply_cmd:   document.getElementById('ct-apply').value.trim(),
+    revert_cmd:  document.getElementById('ct-revert').value.trim(),
+    admin:       document.getElementById('ct-admin').checked,
+  };
+  if (!data.label || !data.apply_cmd) { toast('Label and Apply Command are required', 'err'); return; }
+  try {
+    if (id) await inv('update_custom_tweak', { id, data }); else await inv('add_custom_tweak', { data });
+    closeModal(); toast(id ? 'Tweak updated' : 'Custom tweak added', 'ok');
+    _customTweaks = await inv('get_custom_tweaks').catch(() => []);
+    const q = document.getElementById('tweaks-filter')?.value.toLowerCase().trim() || '';
+    _render(q);
+  } catch (e) { toast(String(e), 'err'); }
+};
