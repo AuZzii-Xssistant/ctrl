@@ -1,15 +1,24 @@
 import { invoke, esc, emptyState, showContextMenu, confirmDialog, toast, openModal, closeModal, goPane, showOutput } from '../app.js';
 
-const SYS_CACHE_KEY = 'ctrl_sys_info';
+const SYS_CACHE_KEY  = 'ctrl_sys_info';
+const PERF_OPEN_KEY  = 'ctrl_perf_open';
 
-let _perfInterval = null;
-let _prevNetRecv = 0, _prevNetSent = 0, _prevNetTs = 0;
+let _initialized   = false;
+let _perfInterval  = null;
+let _prevNetRecv   = 0, _prevNetSent = 0, _prevNetTs = 0;
 
 export async function load() {
+  if (_initialized) {
+    // Already built — just make sure perf is polling, nothing else to do
+    _startPerfPolling();
+    return;
+  }
+  _initialized = true;
+
   const el = document.getElementById('dash-scroll');
   el.innerHTML = `
     <div class="stats-bar">
-      <div class="stat-cell" data-pane="tools">   <div class="stat-num">—</div><div class="stat-lbl">Tools</div></div>
+      <div class="stat-cell" data-pane="tools">    <div class="stat-num">—</div><div class="stat-lbl">Tools</div></div>
       <div class="stat-cell" data-pane="scripts">  <div class="stat-num">—</div><div class="stat-lbl">Scripts</div></div>
       <div class="stat-cell" data-pane="fixes">    <div class="stat-num">—</div><div class="stat-lbl">Fixes</div></div>
       <div class="stat-cell" data-pane="projects"> <div class="stat-num">—</div><div class="stat-lbl">Projects</div></div>
@@ -25,13 +34,15 @@ export async function load() {
     </div>
     <div id="pin-area"></div>`;
 
-  // Show cached sys info immediately (no flicker on tab switch)
+  // Restore perf panel collapse state
+  _applyPerfCollapse(localStorage.getItem(PERF_OPEN_KEY) !== 'false');
+  document.getElementById('perf-toggle')?.addEventListener('click', _togglePerf);
+
+  // Show cached sys info immediately
   const cached = _loadSysCache();
   if (cached) _applySysInfo(cached);
 
-  // Start perf polling
-  _startPerfPolling();
-
+  // Load stats + pins in parallel (independent of sys-info)
   const [stats, pins] = await Promise.all([
     invoke('get_stats').catch(() => null),
     invoke('get_pinned').catch(() => []),
@@ -45,30 +56,28 @@ export async function load() {
     });
   }
 
-  // Background-refresh sys info; only update DOM if something changed
+  _renderPins(pins, el.querySelector('#pin-area'));
+
+  // Background-refresh sys info — doesn't block or re-render anything else
   invoke('get_sys_info').then(info => {
     const prev = _loadSysCache();
-    const changed = !prev
-      || prev.hostname !== info.hostname
-      || prev.username !== info.username
-      || prev.os !== info.os
-      || prev.ram_gb !== info.ram_gb
-      || prev.cpu !== info.cpu;
-    // uptime always changes; update display only if structural data changed or no cache
-    if (changed || !prev) {
+    const structChanged = !prev
+      || prev.hostname !== info.hostname || prev.username !== info.username
+      || prev.os !== info.os || prev.ram_gb !== info.ram_gb || prev.cpu !== info.cpu;
+    if (structChanged) {
       _applySysInfo(info);
-      localStorage.setItem(SYS_CACHE_KEY, JSON.stringify(info));
     } else {
-      // update just the uptime
+      // Only update uptime chip
       _setChip('si-up', 'ti-clock', `up ${esc(info.uptime)}`);
-      // also refresh the cache uptime
-      const updated = { ...prev, uptime: info.uptime };
-      localStorage.setItem(SYS_CACHE_KEY, JSON.stringify(updated));
     }
+    localStorage.setItem(SYS_CACHE_KEY, JSON.stringify(info));
   }).catch(() => {});
 
-  render(pins, el.querySelector('#pin-area'));
+  // Start live perf polling
+  _startPerfPolling();
 }
+
+// ── Sys info ─────────────────────────────────────────────────────────────────
 
 function _loadSysCache() {
   try { return JSON.parse(localStorage.getItem(SYS_CACHE_KEY)); } catch { return null; }
@@ -80,12 +89,12 @@ function _setChip(id, icon, html) {
 }
 
 function _applySysInfo(info) {
-  _setChip('si-user', 'ti-user',             esc(info.username));
-  _setChip('si-host', 'ti-device-desktop',   esc(info.hostname));
-  _setChip('si-cpu',  'ti-cpu',              esc(info.cpu));
-  _setChip('si-os',   'ti-brand-windows',    esc(info.os));
-  _setChip('si-ram',  'ti-server',           `${esc(info.ram_gb)} GB RAM`);
-  _setChip('si-up',   'ti-clock',            `up ${esc(info.uptime)}`);
+  _setChip('si-user', 'ti-user',           esc(info.username));
+  _setChip('si-host', 'ti-device-desktop', esc(info.hostname));
+  _setChip('si-cpu',  'ti-cpu',            esc(info.cpu));
+  _setChip('si-os',   'ti-brand-windows',  esc(info.os));
+  _setChip('si-ram',  'ti-server',         `${esc(info.ram_gb)} GB RAM`);
+  _setChip('si-up',   'ti-clock',          `up ${esc(info.uptime)}`);
 }
 
 // ── Perf panel ───────────────────────────────────────────────────────────────
@@ -94,49 +103,59 @@ function _startPerfPolling() {
   if (_perfInterval) clearInterval(_perfInterval);
   _prevNetRecv = 0; _prevNetSent = 0; _prevNetTs = 0;
   _pollPerf();
-  _perfInterval = setInterval(_pollPerf, 4000);
+  _perfInterval = setInterval(_pollPerf, 1500);
 }
 
 async function _pollPerf() {
-  // Only poll when dash pane is active
   if (!document.getElementById('dash-pane')?.classList.contains('active')) return;
-  try {
-    const p = await invoke('get_perf_stats');
-    _updatePerfUI(p);
-  } catch {}
+  try { _updatePerfUI(await invoke('get_perf_stats')); } catch {}
 }
 
 function _updatePerfUI(p) {
-  // CPU
   _setBar('pm-cpu-bar', p.cpu_pct);
   _setText('pm-cpu-val', `${p.cpu_pct}%`);
 
-  // RAM
   const ramPct = p.ram_total_gb > 0 ? Math.round((p.ram_used_gb / p.ram_total_gb) * 100) : 0;
   _setBar('pm-ram-bar', ramPct);
-  _setText('pm-ram-val', `${p.ram_used_gb.toFixed(1)}/${p.ram_total_gb.toFixed(0)} GB`);
+  _setText('pm-ram-val', `${p.ram_used_gb.toFixed(1)} / ${p.ram_total_gb.toFixed(0)} GB`);
 
-  // GPU
-  if (p.gpu_pct >= 0) {
-    _setBar('pm-gpu-bar', p.gpu_pct);
-    _setText('pm-gpu-val', `${p.gpu_pct}%`);
-  } else {
-    _setBar('pm-gpu-bar', 0);
-    _setText('pm-gpu-val', 'N/A');
-  }
-
-  // Network rate
   const now = Date.now();
   if (_prevNetTs > 0 && now > _prevNetTs) {
-    const secs = (now - _prevNetTs) / 1000;
-    const downRate = (p.net_recv_bytes - _prevNetRecv) / secs;
-    const upRate   = (p.net_sent_bytes - _prevNetSent) / secs;
-    _setText('pn-down', _fmtRate(downRate));
-    _setText('pn-up',   _fmtRate(upRate));
+    const secs  = (now - _prevNetTs) / 1000;
+    const down  = (p.net_recv_bytes - _prevNetRecv) / secs;
+    const up    = (p.net_sent_bytes - _prevNetSent) / secs;
+    _setText('pn-down', _fmtRate(Math.max(0, down)));
+    _setText('pn-up',   _fmtRate(Math.max(0, up)));
   }
   _prevNetRecv = p.net_recv_bytes;
   _prevNetSent = p.net_sent_bytes;
   _prevNetTs   = now;
+
+  // Drives — only update if count matches (avoid full rebuild every tick)
+  const drivesEl = document.getElementById('pm-drives');
+  if (!drivesEl) return;
+  const drives = p.drives || [];
+  if (drivesEl.children.length !== drives.length) {
+    // Build/rebuild drive rows
+    drivesEl.innerHTML = drives.map(d => {
+      const pct = d.total_gb > 0 ? Math.round((d.used_gb / d.total_gb) * 100) : 0;
+      const warn = pct > 85 ? ' pm-bar-warn' : '';
+      return `<div class="perf-metric pm-drive" data-drive="${esc(d.name)}">
+        <span class="pm-label"><i class="ti ti-device-hdd"></i> ${esc(d.name)}:</span>
+        <div class="pm-bar-wrap"><div class="pm-bar${warn}" id="pd-bar-${esc(d.name)}" style="width:${pct}%"></div></div>
+        <span class="pm-val" id="pd-val-${esc(d.name)}">${d.used_gb.toFixed(0)} / ${d.total_gb.toFixed(0)} GB</span>
+      </div>`;
+    }).join('');
+  } else {
+    // Update bar widths + values in-place
+    for (const d of drives) {
+      const pct  = d.total_gb > 0 ? Math.round((d.used_gb / d.total_gb) * 100) : 0;
+      const bar  = document.getElementById(`pd-bar-${d.name}`);
+      const val  = document.getElementById(`pd-val-${d.name}`);
+      if (bar) { bar.style.width = pct + '%'; bar.className = `pm-bar${pct > 85 ? ' pm-bar-warn' : ''}`; }
+      if (val) val.textContent = `${d.used_gb.toFixed(0)} / ${d.total_gb.toFixed(0)} GB`;
+    }
+  }
 }
 
 function _setBar(id, pct) {
@@ -150,15 +169,41 @@ function _setText(id, text) {
 }
 
 function _fmtRate(bps) {
-  if (bps < 0) return '—';
-  if (bps < 1024) return `${bps.toFixed(0)} B/s`;
-  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+  if (bps < 1024)           return `${bps.toFixed(0)} B/s`;
+  if (bps < 1024 * 1024)    return `${(bps / 1024).toFixed(1)} KB/s`;
   return `${(bps / 1024 / 1024).toFixed(2)} MB/s`;
 }
 
-// ── Pins ─────────────────────────────────────────────────────────────────────
+// ── Collapse ──────────────────────────────────────────────────────────────────
 
-function render(pins, el) {
+function _togglePerf() {
+  const open = document.getElementById('dash-perf')?.classList.contains('perf-expanded');
+  _applyPerfCollapse(!open);
+  localStorage.setItem(PERF_OPEN_KEY, String(!open));
+}
+
+function _applyPerfCollapse(open) {
+  const panel = document.getElementById('dash-perf');
+  const body  = document.getElementById('perf-body');
+  const icon  = document.querySelector('#perf-toggle i');
+  const label = document.getElementById('perf-title-text');
+  if (!panel) return;
+  if (open) {
+    panel.classList.add('perf-expanded');
+    if (body)  body.style.display = '';
+    if (icon)  icon.className = 'ti ti-chevron-right';
+    if (label) label.style.display = '';
+  } else {
+    panel.classList.remove('perf-expanded');
+    if (body)  body.style.display = 'none';
+    if (icon)  icon.className = 'ti ti-chevron-left';
+    if (label) label.style.display = 'none';
+  }
+}
+
+// ── Pins ──────────────────────────────────────────────────────────────────────
+
+function _renderPins(pins, el) {
   if (!pins.length) {
     el.innerHTML = emptyState('ti-pin', 'Nothing pinned yet.', '+ Pin something', 'window._openPinPicker()') +
       `<p style="font-size:11px;color:var(--text3);text-align:center;max-width:280px;margin:-8px auto 0;line-height:1.6">
@@ -191,25 +236,25 @@ function render(pins, el) {
   el.innerHTML = html;
 
   el.querySelectorAll('.dash-tile').forEach(tile => {
-    tile.addEventListener('click', () => runPin(tile));
+    tile.addEventListener('click', () => _runPin(tile));
     tile.addEventListener('contextmenu', e => {
       const pinId = +tile.dataset.pinId;
       showContextMenu(e, [
-        { label: 'Launch', icon: 'ti-player-play', fn: () => runPin(tile) },
+        { label: 'Launch', icon: 'ti-player-play', fn: () => _runPin(tile) },
         '---',
-        { label: 'Unpin', icon: 'ti-pin-off', danger: true, fn: () => unpin(pinId) },
+        { label: 'Unpin', icon: 'ti-pin-off', danger: true, fn: () => _unpin(pinId) },
       ]);
     });
   });
 }
 
-async function runPin(tile) {
+async function _runPin(tile) {
   const type = tile.dataset.type, id = +tile.dataset.itemId, name = tile.dataset.name;
   try {
-    if (type === 'tool')     { await invoke('launch_tool', { id }); toast('Launched', 'ok'); }
-    if (type === 'script')   { toast('Running…', 'info'); const r = await invoke('run_script',  { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
-    if (type === 'fix')      { toast('Running…', 'info'); const r = await invoke('run_fix',     { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
-    if (type === 'workflow')  {
+    if (type === 'tool')    { await invoke('launch_tool', { id }); toast('Launched', 'ok'); }
+    if (type === 'script')  { toast('Running…', 'info'); const r = await invoke('run_script', { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
+    if (type === 'fix')     { toast('Running…', 'info'); const r = await invoke('run_fix',    { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
+    if (type === 'workflow') {
       toast('Running workflow…', 'info');
       const results = await invoke('run_workflow', { id });
       const allOk = results.every(r => r.success);
@@ -219,34 +264,36 @@ async function runPin(tile) {
   } catch (e) { toast(String(e), 'err'); }
 }
 
-async function unpin(id) {
+async function _unpin(id) {
   const ok = await confirmDialog('Remove this pin from your launchpad?');
   if (!ok) return;
   await invoke('unpin_item', { id });
   toast('Unpinned', 'info');
+  // Reset init so pins reload on next visit
+  _initialized = false;
   load();
 }
 
 window._openPinPicker = async () => {
   const [tools, scripts, fixes, wfs, currentPins] = await Promise.all([
-    invoke('get_tools',     { search: '' }),
-    invoke('get_scripts',   { search: '' }),
-    invoke('get_fixes',     { search: '' }),
+    invoke('get_tools',    { search: '' }),
+    invoke('get_scripts',  { search: '' }),
+    invoke('get_fixes',    { search: '' }),
     invoke('get_workflows').catch(() => []),
     invoke('get_pinned').catch(() => []),
   ]);
   const pinned = new Set(currentPins.map(p => `${p.item_type}:${p.item_id}`));
   const sections = [
-    { label: 'Tools',     icon: 'ti-app-window',   type: 'tool',     items: tools },
-    { label: 'Scripts',   icon: 'ti-code',          type: 'script',   items: scripts },
-    { label: 'Fixes',     icon: 'ti-bolt',          type: 'fix',      items: fixes },
-    { label: 'Workflows', icon: 'ti-player-play',   type: 'workflow', items: wfs },
+    { label: 'Tools',     icon: 'ti-app-window',  type: 'tool',     items: tools },
+    { label: 'Scripts',   icon: 'ti-code',         type: 'script',   items: scripts },
+    { label: 'Fixes',     icon: 'ti-bolt',         type: 'fix',      items: fixes },
+    { label: 'Workflows', icon: 'ti-player-play',  type: 'workflow', items: wfs },
   ];
   const totalItems = sections.reduce((s, x) => s + x.items.length, 0);
   let html = `<input class="form-input" id="pin-search" placeholder="Filter…" style="margin-bottom:12px" autocomplete="off" />
     <div id="pin-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">`;
   if (!totalItems) {
-    html += `<div style="text-align:center;color:var(--text3);font-size:12px;padding:24px">No items to pin yet — add tools, scripts or fixes first.</div>`;
+    html += `<div style="text-align:center;color:var(--text3);font-size:12px;padding:24px">No items to pin yet.</div>`;
   } else {
     for (const s of sections) {
       if (!s.items.length) continue;
@@ -276,12 +323,11 @@ window._openPinPicker = async () => {
   document.querySelectorAll('.pin-pick-item').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
-      if (btn.classList.contains('pin-already')) {
-        toast('Already on dashboard', 'info'); return;
-      }
+      if (btn.classList.contains('pin-already')) { toast('Already on dashboard', 'info'); return; }
       try {
         await invoke('pin_item', { itemType: btn.dataset.type, itemId: +btn.dataset.id, groupName: 'Pinned' });
-        closeModal(); toast(`Pinned "${btn.dataset.name}"`, 'ok'); load();
+        closeModal(); toast(`Pinned "${btn.dataset.name}"`, 'ok');
+        _initialized = false; load();
       } catch (err) { toast(String(err), 'err'); }
     });
   });

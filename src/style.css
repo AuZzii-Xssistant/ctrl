@@ -602,26 +602,44 @@ kbd {
 #dash-pane { flex-direction:row !important; }
 #dash-scroll { flex:1; min-width:0; }
 #dash-perf {
-  width:176px; flex-shrink:0;
+  width:180px; flex-shrink:0;
   border-left:1px solid var(--border);
   background:var(--bg2);
-  padding:14px 12px;
-  display:flex; flex-direction:column; gap:10px;
-  overflow:hidden;
+  padding:12px 10px;
+  display:flex; flex-direction:column; gap:9px;
+  overflow:hidden; overflow-y:auto;
+  transition:width 180ms ease;
 }
-.perf-title { font-family:var(--mono); font-size:10px; color:var(--text3); letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:5px; }
+/* Collapsed state — narrow strip showing only the toggle */
+#dash-perf:not(.perf-expanded) { width:32px; padding:12px 6px; }
+
+.perf-title {
+  font-family:var(--mono); font-size:10px; color:var(--text3);
+  letter-spacing:.1em; text-transform:uppercase;
+  display:flex; align-items:center; justify-content:space-between; gap:4px;
+  flex-shrink:0;
+}
+.perf-collapse-btn {
+  background:none; border:none; color:var(--text3); cursor:pointer;
+  padding:2px; display:flex; align-items:center; flex-shrink:0;
+  border-radius:4px;
+}
+.perf-collapse-btn:hover { color:var(--text); background:var(--bg3); }
+
+#perf-body { display:flex; flex-direction:column; gap:9px; }
+
 .perf-metric { display:flex; flex-direction:column; gap:3px; }
 .pm-label { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:4px; }
 .pm-label .ti { font-size:12px; color:var(--amber); }
 .pm-bar-wrap { height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; }
-.pm-bar { height:100%; background:var(--amber); border-radius:2px; width:0%; transition:width 600ms ease; }
-.pm-bar-gpu { background:var(--purple); }
-.pm-val { font-family:var(--mono); font-size:11px; color:var(--text2); }
-.perf-divider { height:1px; background:var(--border); margin:2px 0; }
+.pm-bar { height:100%; background:var(--amber); border-radius:2px; width:0%; transition:width 400ms ease; }
+.pm-bar-warn { background:var(--red); }
+.pm-val { font-family:var(--mono); font-size:10px; color:var(--text2); }
+.perf-divider { height:1px; background:var(--border); margin:1px 0; flex-shrink:0; }
 .perf-net { display:flex; flex-direction:column; gap:4px; }
 .pn-row { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
 .pn-row .ti { font-size:12px; }
-.pn-val { font-family:var(--mono); color:var(--text2); }
+.pn-val { font-family:var(--mono); color:var(--text2); font-size:10px; }
 
 /* ── SYS INFO BAR (dashboard) ── */
 .sys-info-bar { display:flex; gap:8px; flex-wrap:wrap; padding:8px 0 4px; }

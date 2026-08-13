@@ -165,50 +165,64 @@ $upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hour
 }
 
 #[derive(Serialize)]
+pub struct DriveInfo {
+    pub name: String,
+    pub used_gb: f64,
+    pub total_gb: f64,
+}
+
+#[derive(Serialize)]
 pub struct PerfStats {
     pub cpu_pct: i64,
     pub ram_used_gb: f64,
     pub ram_total_gb: f64,
-    pub gpu_pct: i64,
     pub net_recv_bytes: i64,
     pub net_sent_bytes: i64,
+    pub drives: Vec<DriveInfo>,
 }
 
 #[tauri::command]
 pub async fn get_perf_stats(app: tauri::AppHandle) -> Result<PerfStats, String> {
+    // No GPU counter — Get-Counter blocks for 1s minimum, unacceptable for live polling.
+    // Net adapter status check skipped (slow); filter by non-zero received bytes instead.
     let ps = r#"
-[Console]::OutputEncoding = [Text.Encoding]::UTF8
-$cpu  = [int](Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average | Select-Object -ExpandProperty Average)
-$os   = Get-CimInstance Win32_OperatingSystem
-$ramUsed  = [Math]::Round(($os.TotalVisibleMemorySize - $os.FreePhysicalMemory)/1MB,2)
-$ramTotal = [Math]::Round($os.TotalVisibleMemorySize/1MB,2)
-$gpu = -1
-try {
-    $s = (Get-Counter '\GPU Engine(*engtype_3D)\Utilization Percentage' -MaxSamples 1 -ErrorAction Stop).CounterSamples
-    $gpu = [Math]::Min(100,[int](($s | Measure-Object CookedValue -Sum).Sum))
-} catch {}
-$net = Get-NetAdapterStatistics | Where-Object { (Get-NetAdapter -Name $_.Name -EA SilentlyContinue).Status -eq 'Up' } | Select-Object -First 1
+[Console]::OutputEncoding=[Text.Encoding]::UTF8
+$cpu = [int](Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average | Select-Object -ExpandProperty Average)
+$os  = Get-CimInstance Win32_OperatingSystem
+$ru  = [Math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,2)
+$rt  = [Math]::Round($os.TotalVisibleMemorySize/1MB,2)
+$net = Get-NetAdapterStatistics | Where-Object { $_.ReceivedBytes -gt 0 } | Sort-Object ReceivedBytes -Descending | Select-Object -First 1
+$drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null -and ($_.Used+$_.Free) -gt 1MB } | ForEach-Object {
+    $t = $_.Used+$_.Free
+    [PSCustomObject]@{ name=$_.Name; usedGb=[Math]::Round($_.Used/1GB,1); totalGb=[Math]::Round($t/1GB,1) }
+}
 [PSCustomObject]@{
-    cpu       = $cpu
-    ramUsed   = $ramUsed
-    ramTotal  = $ramTotal
-    gpu       = $gpu
-    netRecv   = if ($net) { [long]$net.ReceivedBytes } else { 0 }
-    netSent   = if ($net) { [long]$net.SentBytes } else { 0 }
-} | ConvertTo-Json -Compress
+    cpu=    $cpu
+    ramUsed=$ru; ramTotal=$rt
+    netRecv=if($net){[long]$net.ReceivedBytes}else{0}
+    netSent=if($net){[long]$net.SentBytes}else{0}
+    drives= @($drives)
+} | ConvertTo-Json -Compress -Depth 3
 "#;
     let out = app.shell().command("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", ps])
         .output().await.map_err(|e| e.to_string())?;
     let raw = String::from_utf8_lossy(&out.stdout);
     let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
+    let drives = v["drives"].as_array().map(|arr| {
+        arr.iter().map(|d| DriveInfo {
+            name:     d["name"].as_str().unwrap_or("").to_string(),
+            used_gb:  d["usedGb"].as_f64().unwrap_or(0.0),
+            total_gb: d["totalGb"].as_f64().unwrap_or(0.0),
+        }).collect()
+    }).unwrap_or_default();
     Ok(PerfStats {
-        cpu_pct:       v["cpu"].as_i64().unwrap_or(0),
-        ram_used_gb:   v["ramUsed"].as_f64().unwrap_or(0.0),
-        ram_total_gb:  v["ramTotal"].as_f64().unwrap_or(0.0),
-        gpu_pct:       v["gpu"].as_i64().unwrap_or(-1),
+        cpu_pct:        v["cpu"].as_i64().unwrap_or(0),
+        ram_used_gb:    v["ramUsed"].as_f64().unwrap_or(0.0),
+        ram_total_gb:   v["ramTotal"].as_f64().unwrap_or(0.0),
         net_recv_bytes: v["netRecv"].as_i64().unwrap_or(0),
         net_sent_bytes: v["netSent"].as_i64().unwrap_or(0),
+        drives,
     })
 }
 
