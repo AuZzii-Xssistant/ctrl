@@ -151,7 +151,7 @@ window._openPinPicker = async () => {
         toast('Already on dashboard', 'info'); return;
       }
       try {
-        await invoke('pin_item', { item_type: btn.dataset.type, item_id: +btn.dataset.id, group_name: 'Pinned' });
+        await invoke('pin_item', { itemType: btn.dataset.type, itemId: +btn.dataset.id, groupName: 'Pinned' });
         closeModal(); toast(`Pinned "${btn.dataset.name}"`, 'ok'); load();
       } catch (err) { toast(String(err), 'err'); }
     });

@@ -180,3 +180,5 @@
 2026-08-13 — Loop 6: Tweaks admin badges, applied-state persistence (localStorage), UTF-8 output fix
 2026-08-13 — Loop 7: Builder run now uses showOutput() correctly; Projects open-path error surfaced as toast; stopPropagation on project buttons
 2026-08-13 — Loop 8: Workflows now log to run_log (appear in Recent Activity + history); COALESCE '?' literal fixed to '(unknown)'
+2026-08-13 — Loop 9: Pin fix committed — pin_item idempotent, picker shows already-pinned state, Problems.md history entry corrected
+2026-08-13 — Loop 10 (Problems pass): Tauri v2 camelCase param fix (itemType/itemId/itemId everywhere — was snake_case); admin output bridged via temp PS1 + Out-File; pane-divider height:12px replaces display:none to fix sticky bar gap on all panes

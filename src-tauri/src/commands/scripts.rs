@@ -1,6 +1,7 @@
 use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use tauri::State;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
@@ -101,21 +102,35 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         }).map_err(|e| e.to_string())?
     };
 
-    // For admin runs: spawn elevated (UAC), output not captured
+    // For admin runs: wrap in temp PS1 that captures output, run elevated with -Wait
     if run_as_admin {
-        let ps_args = match script_type.as_str() {
-            "ps1" => format!("Start-Process -Verb RunAs -FilePath 'powershell' -ArgumentList '-ExecutionPolicy','Bypass','-File','{}'", file_path.replace('\'', "''")),
-            "py"  => format!("Start-Process -Verb RunAs -FilePath 'python' -ArgumentList '{}'", file_path.replace('\'', "''")),
-            _     => format!("Start-Process -Verb RunAs -FilePath 'cmd' -ArgumentList '/c','{}'", file_path.replace('\'', "''")),
+        let tmp_script = std::env::temp_dir().join(format!("ctrl_script_{}.ps1", id));
+        let tmp_output = std::env::temp_dir().join(format!("ctrl_script_{}_out.txt", id));
+        let out_path = tmp_output.to_string_lossy().replace('\'', "''");
+        let script_body = match script_type.as_str() {
+            "ps1" => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n& '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
+                             file_path.replace('\'', "''"), out_path),
+            "py"  => format!("python '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
+                             file_path.replace('\'', "''"), out_path),
+            _     => format!("cmd /c '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
+                             file_path.replace('\'', "''"), out_path),
         };
+        fs::write(&tmp_script, &script_body).map_err(|e| e.to_string())?;
+        let ps_invoke = format!(
+            "Start-Process -Verb RunAs -FilePath powershell -Wait -WindowStyle Hidden -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
+            tmp_script.to_string_lossy().replace('\'', "''")
+        );
         app.shell().command("powershell")
-            .args(["-ExecutionPolicy", "Bypass", "-Command", &ps_args])
-            .spawn().map_err(|e| e.to_string())?;
-        let msg = "Running as administrator — output not captured (UAC elevation)".to_string();
+            .args(["-ExecutionPolicy", "Bypass", "-Command", &ps_invoke])
+            .output().await.map_err(|e| e.to_string())?;
+        let output = fs::read_to_string(&tmp_output)
+            .unwrap_or_else(|_| "(No output — UAC may have been cancelled or script produced no output)".to_string());
+        let _ = fs::remove_file(&tmp_script);
+        let _ = fs::remove_file(&tmp_output);
         let db = state.0.lock().map_err(|e| e.to_string())?;
         let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,0,?3)",
-            params![id, name, msg]);
-        return Ok(RunResult { success: true, output: "Launched with administrator privileges.\nOutput is not captured for elevated processes.".to_string() });
+            params![id, name, output]);
+        return Ok(RunResult { success: true, output });
     }
 
     let (program, args) = match script_type.as_str() {

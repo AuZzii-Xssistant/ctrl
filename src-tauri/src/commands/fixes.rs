@@ -1,6 +1,7 @@
 use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use tauri::State;
 use tauri_plugin_shell::ShellExt;
 use crate::commands::scripts::RunResult;
@@ -92,20 +93,31 @@ pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64)
         }).map_err(|e| e.to_string())?
     };
 
-    // For admin runs: spawn elevated via Start-Process -Verb RunAs (UAC prompt, no output capture)
+    // For admin runs: write command to temp PS1, run elevated with -Wait, read output file back
     if run_as_admin {
-        let ps_args = format!(
-            "Start-Process -Verb RunAs -FilePath 'powershell' -ArgumentList '-ExecutionPolicy','Bypass','-Command','{}'",
-            command.replace('\'', "''")
+        let tmp_script = std::env::temp_dir().join(format!("ctrl_fix_{}.ps1", id));
+        let tmp_output = std::env::temp_dir().join(format!("ctrl_fix_{}_out.txt", id));
+        let script = format!(
+            "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n& {{\n{}\n}} 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n",
+            command,
+            tmp_output.to_string_lossy().replace('\'', "''")
+        );
+        fs::write(&tmp_script, &script).map_err(|e| e.to_string())?;
+        let ps_invoke = format!(
+            "Start-Process -Verb RunAs -FilePath powershell -Wait -WindowStyle Hidden -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
+            tmp_script.to_string_lossy().replace('\'', "''")
         );
         app.shell().command("powershell")
-            .args(["-ExecutionPolicy", "Bypass", "-Command", &ps_args])
-            .spawn().map_err(|e| e.to_string())?;
-        let msg = "Running as administrator — output not captured (UAC elevation)".to_string();
+            .args(["-ExecutionPolicy", "Bypass", "-Command", &ps_invoke])
+            .output().await.map_err(|e| e.to_string())?;
+        let output = fs::read_to_string(&tmp_output)
+            .unwrap_or_else(|_| "(No output — UAC may have been cancelled or command produced no output)".to_string());
+        let _ = fs::remove_file(&tmp_script);
+        let _ = fs::remove_file(&tmp_output);
         let db = state.0.lock().map_err(|e| e.to_string())?;
         let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('fix',?1,?2,0,?3)",
-            params![id, name, msg]);
-        return Ok(RunResult { success: true, output: "Launched with administrator privileges.\nOutput is not captured for elevated processes.".to_string() });
+            params![id, name, output]);
+        return Ok(RunResult { success: true, output });
     }
 
     // Prefix PowerShell commands with UTF-8 output encoding to avoid garbled characters

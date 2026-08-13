@@ -11,7 +11,7 @@ export async function load(search = '') {
 
   const [scripts, lastRuns] = await Promise.all([
     inv('get_scripts', { search }),
-    inv('get_last_runs', { item_type: 'script' }).catch(() => []),
+    inv('get_last_runs', { itemType: 'script' }).catch(() => []),
   ]);
   _render(el, scripts, lastRuns);
 }
@@ -97,7 +97,7 @@ function _wireSearch(el, initial) {
       timer = setTimeout(async () => {
         const [scripts, lastRuns] = await Promise.all([
           inv('get_scripts', { search: f.value.trim() }),
-          inv('get_last_runs', { item_type: 'script' }).catch(() => []),
+          inv('get_last_runs', { itemType: 'script' }).catch(() => []),
         ]);
         _render(el, scripts, lastRuns);
       }, 180);
@@ -114,14 +114,14 @@ async function _run(id) {
     const el = document.getElementById('scripts-scroll');
     const [scripts, lastRuns] = await Promise.all([
       inv('get_scripts', { search: document.getElementById('scripts-filter')?.value.trim() || '' }),
-      inv('get_last_runs', { item_type: 'script' }).catch(() => []),
+      inv('get_last_runs', { itemType: 'script' }).catch(() => []),
     ]);
     _render(el, scripts, lastRuns);
   } catch (e) { toast(String(e), 'err'); }
 }
 
 async function _showHistory(id, name) {
-  const entries = await inv('get_run_history', { item_type: 'script', item_id: id, limit: 10 }).catch(() => []);
+  const entries = await inv('get_run_history', { itemType: 'script', itemId: id, limit: 10 }).catch(() => []);
   if (!entries.length) { toast('No run history yet', 'info'); return; }
   const rows = entries.map(e => `
     <div class="hist-row">

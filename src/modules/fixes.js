@@ -13,7 +13,7 @@ export async function load(search = '') {
 
   const [fixes, lastRuns] = await Promise.all([
     inv('get_fixes', { search }),
-    inv('get_last_runs', { item_type: 'fix' }).catch(() => []),
+    inv('get_last_runs', { itemType: 'fix' }).catch(() => []),
   ]);
   _render(el, fixes, lastRuns);
 }
@@ -105,7 +105,7 @@ function _wireSearch(el, initial) {
       timer = setTimeout(async () => {
         const [fixes, lastRuns] = await Promise.all([
           inv('get_fixes', { search: f.value.trim() }),
-          inv('get_last_runs', { item_type: 'fix' }).catch(() => []),
+          inv('get_last_runs', { itemType: 'fix' }).catch(() => []),
         ]);
         _render(el, fixes, lastRuns);
       }, 180);
@@ -125,14 +125,14 @@ async function _run(id, el, confirmRequired) {
     toast(r.success ? 'Done' : 'Fix failed', r.success ? 'ok' : 'err');
     const [fixes, lastRuns] = await Promise.all([
       inv('get_fixes', { search: document.getElementById('fixes-filter')?.value.trim() || '' }),
-      inv('get_last_runs', { item_type: 'fix' }).catch(() => []),
+      inv('get_last_runs', { itemType: 'fix' }).catch(() => []),
     ]);
     _render(el || document.getElementById('fixes-scroll'), fixes, lastRuns);
   } catch (e) { toast(String(e), 'err'); }
 }
 
 async function _showHistory(itemType, id, name) {
-  const entries = await inv('get_run_history', { item_type: itemType, item_id: id, limit: 10 }).catch(() => []);
+  const entries = await inv('get_run_history', { itemType, itemId: id, limit: 10 }).catch(() => []);
   if (!entries.length) { toast('No run history yet', 'info'); return; }
   const rows = entries.map(e => `
     <div class="hist-row">

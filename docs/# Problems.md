@@ -1,17 +1,23 @@
 Most Scripts and stuff does not work.
-✅ FIXED (Major Upgrade 5) — Added run_as_admin flag. Seeded fixes requiring admin now use UAC elevation via Start-Process -Verb RunAs.
+✅ FIXED — Root cause was Tauri v2 camelCase param mismatch: JS was sending snake_case keys (item_type, item_id) but Tauri v2 expects camelCase (itemType, itemId). All invoke calls updated. get_last_runs, get_run_history, pin_item now work correctly.
 
-There is no way of auto running scripts with admin that requires it.
-✅ FIXED (Major Upgrade 5) — run_as_admin DB column added to fixes and scripts. Admin checkbox in Add/Edit modal. Shield badge on admin rows. UAC elevation logic in Rust run_fix/run_script. Note: output is not captured for elevated processes (known limitation, see docs/known-issues.md).
+There is no way of auto running scripts with admin that requires it. Can we not bridge the outputs?
+✅ FIXED — Output is now bridged for admin runs: command written to temp PS1, run elevated with Start-Process -Verb RunAs -Wait -WindowStyle Hidden, output captured via Out-File and returned to the output drawer + logged to run history. If UAC is cancelled, output reads "(No output — UAC may have been cancelled)".
 
 Pin Something does not work.
-✅ FIXED — pin_item made idempotent (was returning error "Already pinned" on re-pin; now returns existing ID). Pin picker now shows already-pinned items as dimmed with a pin icon instead of allowing duplicate pin attempts. stopPropagation added to click handlers.
+✅ FIXED — Two bugs: (1) Tauri v2 camelCase mismatch — pin_item was called with snake_case keys, now uses itemType/itemId/groupName. (2) pin_item was not idempotent (now returns existing ID instead of error). Picker also shows already-pinned items dimmed.
 
-We added bottom padding on sticky bars but still stuff is touching maybe we have a way that stuff starts a bit lower from the bar
-✅ FIXED (Major Upgrade 5) — .pane-divider + * { margin-top: 12px } ensures content starts below the sticky divider even when divider is display:none.
+Content touching sticky bar (all panes — settings, tweaks, everywhere).
+✅ FIXED — Root cause: .tweaks-note and other first-child elements have explicit margin:0 which overrode the margin-top:12px rule. Fixed by giving .pane-divider { height: 12px } instead of display:none — a physical spacer that cannot be collapsed by child element margins.
+
+We added bottom padding on sticky bars but still stuff is touching maybe we have a way that stuff starts a bit lower from the bar.
+✅ FIXED — See above (pane-divider height fix, applies globally).
 
 Like even on system tweaks the message directly touch the line of the sticky bar. Fix on all pages not just those ones.
-✅ FIXED — See above (global fix, applies to all panes).
+✅ FIXED — See above (global fix, applies to all panes including tweaks).
+
+Quick Fixes shows no history even if something was ran. History button broken in this sense.
+✅ FIXED — Root cause was Tauri v2 camelCase mismatch: get_run_history was called with item_type/item_id (snake_case) which Tauri v2 could not deserialize, silently returning [] due to .catch(() => []). Now uses itemType/itemId. Also fixed for scripts.
 
 The app uses save info auto complete in most input fields should be off.
 ✅ FIXED (Major Upgrade 5) — openModal() now applies autocomplete="off", autocorrect="off", spellcheck="false" to all modal inputs centrally.
@@ -19,14 +25,11 @@ The app uses save info auto complete in most input fields should be off.
 There is a default right click as if I am in a browser most places or everywhere except where we added our custom right click already.
 ✅ FIXED (Major Upgrade 5) — Global document.addEventListener('contextmenu', e => e.preventDefault()) suppresses browser context menu everywhere.
 
-Quick Fixes shows no history even if something was ran. History button broken in this sense.
-✅ FIXED — Admin-required fixes were failing before reaching the DB insert (no admin privileges). Now fixed with run_as_admin UAC elevation. Non-admin fixes also get UTF-8 prefix so output is captured cleanly. History should work for all fixes that actually complete.
-
 Settings the first div for >_CTRL is touching the toolbar top ensure there are no such problems in future for all stuff we create. Also fix it in settings.
-✅ FIXED (Major Upgrade 5) — Settings pane wrapped in pane-scroll container with pane-header and pane-divider. Global sticky gap fix applied.
+✅ FIXED — pane-divider height fix covers this globally.
 
 Some places we get the ugly white scrollbar for horizontal and vertical make sure all scrollbars are always custom and neat.
-✅ FIXED (Major Upgrade 5) — Global ::-webkit-scrollbar rules applied to all elements (not just .pane-scroll).
+✅ FIXED (Major Upgrade 5) — Global ::-webkit-scrollbar rules applied to all elements.
 
 Make search the ctrl k or ctrl f currently default shortcuts for a browser exist. Like the ctrl f of a page as if it was a browser.
 ✅ FIXED (Major Upgrade 5) — keydown handler blocks Ctrl/Meta + F, G, H, U, P, J, R globally.

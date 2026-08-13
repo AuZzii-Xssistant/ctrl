@@ -117,8 +117,6 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
-/* Gap between sticky pane-header and first content element */
-.pane-divider + * { margin-top: 12px; }
 
 /* ── COMMON COMPONENTS ── */
 .section-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; margin-top: 20px; }
@@ -447,8 +445,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
-/* pane-divider is zero-height; keep in DOM as spacer but no longer needs stickiness */
-.pane-divider { display: none; }
+/* pane-divider: 12px spacer below sticky header — must keep height not display:none
+   so element-specific margin:0 rules on first-child can't collapse this gap */
+.pane-divider { height: 12px; }
 .pane-header-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; display: flex; align-items: center; gap: 7px; }
 .pane-header-title i { font-size: 15px; color: var(--amber); }
 .pane-search {
