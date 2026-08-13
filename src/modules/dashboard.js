@@ -10,11 +10,18 @@ export async function load() {
       <div class="stat-cell" data-pane="projects"> <div class="stat-num">—</div><div class="stat-lbl">Projects</div></div>
       <div class="stat-cell" data-pane="workflows"><div class="stat-num">—</div><div class="stat-lbl">Workflows</div></div>
     </div>
+    <div id="sys-info-bar" class="sys-info-bar">
+      <span class="sys-chip" id="si-host"><i class="ti ti-device-desktop"></i> —</span>
+      <span class="sys-chip" id="si-os"><i class="ti ti-brand-windows"></i> —</span>
+      <span class="sys-chip" id="si-ram"><i class="ti ti-cpu"></i> — GB RAM</span>
+      <span class="sys-chip" id="si-up"><i class="ti ti-clock"></i> up —</span>
+    </div>
     <div id="pin-area"></div>`;
 
-  const [stats, pins] = await Promise.all([
+  const [stats, pins, sysInfo] = await Promise.all([
     invoke('get_stats').catch(() => null),
     invoke('get_pinned').catch(() => []),
+    invoke('get_sys_info').catch(() => null),
   ]);
 
   if (stats) {
@@ -23,6 +30,16 @@ export async function load() {
       c.querySelector('.stat-num').textContent = vals[i];
       c.addEventListener('click', () => goPane(c.dataset.pane));
     });
+  }
+
+  if (sysInfo) {
+    const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+    set('si-host', `<i class="ti ti-device-desktop"></i> ${esc(sysInfo.hostname)}`);
+    set('si-os',   `<i class="ti ti-brand-windows"></i> ${esc(sysInfo.os)}`);
+    set('si-ram',  `<i class="ti ti-cpu"></i> ${esc(sysInfo.ram_gb)} GB RAM`);
+    set('si-up',   `<i class="ti ti-clock"></i> up ${esc(sysInfo.uptime)}`);
+    const bar = document.getElementById('sys-info-bar');
+    if (bar) bar.title = sysInfo.cpu;
   }
 
   render(pins, el.querySelector('#pin-area'));

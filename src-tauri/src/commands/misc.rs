@@ -122,6 +122,45 @@ pub fn get_run_history(state: State<AppState>, item_type: String, item_id: i64, 
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
+#[derive(Serialize)]
+pub struct SysInfo {
+    pub hostname: String,
+    pub os: String,
+    pub ram_gb: String,
+    pub uptime: String,
+    pub cpu: String,
+}
+
+#[tauri::command]
+pub async fn get_sys_info(app: tauri::AppHandle) -> Result<SysInfo, String> {
+    let ps = r#"
+$os = Get-CimInstance Win32_OperatingSystem
+$cs = Get-CimInstance Win32_ComputerSystem
+$cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+$up = (Get-Date) - $os.LastBootUpTime
+$upStr = if ($up.Days -gt 0) { "$($up.Days)d $($up.Hours)h" } else { "$($up.Hours)h $($up.Minutes)m" }
+[PSCustomObject]@{
+    hostname = $env:COMPUTERNAME
+    os       = $os.Caption -replace 'Microsoft ',''
+    ram_gb   = [string][Math]::Round($cs.TotalPhysicalMemory/1GB,1)
+    uptime   = $upStr
+    cpu      = $cpu -replace '\(R\)|\(TM\)','' -replace '\s+',' '
+} | ConvertTo-Json -Compress
+"#;
+    let out = app.shell().command("powershell")
+        .args(["-NoProfile", "-NonInteractive", "-Command", ps])
+        .output().await.map_err(|e| e.to_string())?;
+    let raw = String::from_utf8_lossy(&out.stdout);
+    let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
+    Ok(SysInfo {
+        hostname: v["hostname"].as_str().unwrap_or("").to_string(),
+        os:       v["os"].as_str().unwrap_or("").to_string(),
+        ram_gb:   v["ram_gb"].as_str().unwrap_or("").to_string(),
+        uptime:   v["uptime"].as_str().unwrap_or("").to_string(),
+        cpu:      v["cpu"].as_str().unwrap_or("").to_string(),
+    })
+}
+
 #[tauri::command]
 pub async fn open_data_folder(app: tauri::AppHandle) -> Result<(), String> {
     let dir = std::env::current_exe().ok()

@@ -9,3 +9,4 @@ pub mod window;
 pub mod workflows;
 pub mod tweaks;
 pub mod backup;
+pub mod env_vars;

@@ -2,6 +2,45 @@
 
 ## 2026-08-13
 
+### Major Upgrade 6 — Environment Variables manager, Dashboard system info, CLI system, Tweaks CRUD
+
+**Environment Variables pane** (new module)
+- User env vars: add, edit, delete via modal — changes persist via `[Environment]::SetEnvironmentVariable` User scope
+- System env vars: read-only list with copy button
+- Search/filter across both sections simultaneously
+- Rust commands: `get_env_vars`, `set_env_var`, `delete_env_var` (all via PowerShell, no new deps)
+
+**Dashboard — system info strip**
+- New `sys-info-bar` below the stats bar: hostname, OS, total RAM, uptime
+- CPU name available on hover over the bar
+- Single PowerShell CIM query on dashboard load (`get_sys_info`)
+
+**System Tweaks CRUD** (Loop 11)
+- `custom_tweaks` table; add/edit/delete custom tweaks alongside 18 built-ins
+- Custom tweaks appear grouped by category below built-in sections
+
+**CLI system** (`ctrl-cli.exe`)
+- Standalone binary in same Cargo crate (no new deps)
+- `add project|script|fix|tweak` with `--flag value` pairs
+- `update project|script|fix|tweak --id N [--field value]` patch-in-place
+- `list projects|scripts|fixes|tweaks` formatted table output
+- DB auto-detected next to binary; `--db PATH` override
+
+**Projects: browse folder button**
+- Browse button next to path field in Add/Edit modal (reuses existing `browse_for_folder` command)
+- Project types expanded: tauri, node, web, rust, python, other (with matching icons)
+
+**Scripts in DB** (Loop 10)
+- `content TEXT` column; scripts run from temp file without a file on disk
+- Browse/Import reads file content into textarea automatically
+
+**Bug fixes**
+- Tauri v2 camelCase param mismatch fixed across all invoke calls
+- Admin script/fix output now captured via temp PS1 + Out-File bridge
+- Modal scroll: `max-height:85vh`, scrollable body prevents off-screen overflow
+- Project status `active` not in STATUS_ORDER — CTRL project corrected to `working`
+- `default-run = "ctrl"` in Cargo.toml fixes `dev.bat`/`build.bat` after ctrl-cli was added
+
 ### Major Upgrade 5 — Admin elevation, Recent Activity pane, output drawer redesign, UX fixes
 
 **Admin elevation (run_as_admin)**

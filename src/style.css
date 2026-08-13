@@ -597,3 +597,17 @@ kbd {
 /* ── TAG TYPE BADGE ── */
 .tag-tool   { background: #1f1a2e; color: #C479D4; }
 .tag-script { background: #1a2044; color: #7B9FE8; }
+
+/* ── SYS INFO BAR (dashboard) ── */
+.sys-info-bar { display:flex; gap:8px; flex-wrap:wrap; padding:8px 0 4px; }
+.sys-chip { font-size:11px; font-family:var(--mono); color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:4px 10px; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px; }
+.sys-chip .ti { color:var(--accent); font-size:12px; flex-shrink:0; }
+
+/* ── ENV VARS PANE ── */
+.env-table { display:flex; flex-direction:column; gap:2px; margin-bottom:14px; }
+.env-row { display:grid; grid-template-columns:220px 1fr auto; align-items:center; gap:10px; padding:7px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); transition:border-color 120ms; min-width:0; }
+.env-row:hover { border-color:var(--border2); }
+.env-table-readonly .env-row { opacity:.8; }
+.env-name  { font-family:var(--mono); font-size:11px; color:var(--accent); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.env-value { font-family:var(--mono); font-size:11px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.env-actions { display:flex; gap:2px; flex-shrink:0; }
