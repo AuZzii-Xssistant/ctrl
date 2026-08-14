@@ -3,7 +3,6 @@ use rusqlite::params;
 use serde::Serialize;
 use std::collections::HashSet;
 use tauri::State;
-use tauri_plugin_shell::ShellExt;
 use crate::commands::scripts::RunResult;
 use crate::commands::exec::ps_bin;
 

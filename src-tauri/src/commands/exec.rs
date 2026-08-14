@@ -101,15 +101,18 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
     result
 }
 
-/// Run an inline command string elevated (UAC). Returns actual exit code.
-/// UAC cancellation is detected: output file missing → success=false.
+/// Run an inline command string elevated (UAC).
+/// Streams output live via `run-output` events by polling the output file while
+/// the elevated process runs. UAC cancellation → missing exit file → success=false.
 pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: &str) -> Result<RunResult, String> {
+    use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+    use tauri::Emitter;
+
     let cmd_file  = tmp(label, "cmd",  shell.ext());
     let wrap_ps1  = tmp(label, "wrap", "ps1");
     let out_file  = tmp(label, "out",  "txt");
     let exit_file = tmp(label, "exit", "txt");
 
-    // Write the command to its own file
     let cmd_content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
         Shell::Python     => command.to_string(),
@@ -117,54 +120,84 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     };
     fs::write(&cmd_file, &cmd_content).map_err(|e| e.to_string())?;
 
-    // Line that runs the command and redirects stderr→stdout
     let run_line = match shell {
         Shell::PowerShell => format!("& '{}' 2>&1", esc_ps_path(&cmd_file)),
         Shell::Python     => format!("python '{}' 2>&1", esc_ps_path(&cmd_file)),
         Shell::Cmd        => format!("cmd /c '{}' 2>&1", esc_ps_path(&cmd_file)),
     };
+    let out_esc  = esc_ps_path(&out_file);
+    let exit_esc = esc_ps_path(&exit_file);
 
-    // Wrapper captures output + exit code separately
+    // Wrapper: pipe each output line through Add-Content (FileShare.ReadWrite) so
+    // the polling thread can read the file while the elevated process is still writing.
     let wrapper = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $ec=0\n\
          try {{\n\
-           $o=({run_line})\n\
+           ({run_line}) | ForEach-Object {{\n\
+             Add-Content -Path '{out_esc}' -Value $_ -Encoding UTF8\n\
+           }}\n\
            $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
-           $o | Out-File -FilePath '{out}' -Encoding UTF8 -Force\n\
          }} catch {{\n\
-           \"ERROR: $_\" | Out-File -FilePath '{out}' -Encoding UTF8 -Force\n\
+           Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8\n\
            $ec=1\n\
          }}\n\
-         $ec | Out-File -FilePath '{exit}' -Encoding UTF8 -Force\n",
-        out  = esc_ps_path(&out_file),
-        exit = esc_ps_path(&exit_file),
+         $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
     fs::write(&wrap_ps1, &wrapper).map_err(|e| e.to_string())?;
 
-    // Launch wrapper elevated and wait
     let invoke = format!(
         "Start-Process -Verb RunAs -Wait -WindowStyle Hidden -FilePath '{}' \
          -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-NonInteractive','-File','{}')",
         ps_bin(), esc_ps_path(&wrap_ps1)
     );
+
+    // Start polling thread before kicking off elevated process
+    app.emit("run-start", ()).ok();
+    let stop      = Arc::new(AtomicBool::new(false));
+    let stop2     = stop.clone();
+    let out_path2 = out_file.clone();
+    let app2      = app.clone();
+
+    let poll = std::thread::spawn(move || {
+        let mut last_len = 0usize;
+        loop {
+            if stop2.load(Ordering::Relaxed) { break; }
+            // Rust File::open on Windows uses FILE_SHARE_READ|WRITE, safe to read concurrently
+            if let Ok(content) = fs::read_to_string(&out_path2) {
+                if content.len() > last_len {
+                    let chunk = content[last_len..].to_string();
+                    let _ = app2.emit("run-output", chunk);
+                    last_len = content.len();
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(120));
+        }
+    });
+
+    // Wait for elevated process (blocks this async task, UI stays responsive)
     app.shell().command(ps_bin())
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &invoke])
-        .output().await.map_err(|e| e.to_string())?;
+        .output().await
+        .map_err(|e| e.to_string())?;
 
-    // Read results — exit file missing = UAC was cancelled
+    stop.store(true, Ordering::Relaxed);
+    let _ = poll.join();
+
+    // Emit any tail that arrived after the last poll tick
     let output = fs::read_to_string(&out_file)
         .unwrap_or_else(|_| String::from("(No output — UAC may have been cancelled)"));
     let success = fs::read_to_string(&exit_file)
         .ok()
         .and_then(|s| s.trim().parse::<i64>().ok())
         .map(|ec| ec == 0)
-        .unwrap_or(false); // missing exit file = UAC cancelled
+        .unwrap_or(false);
 
-    let _ = fs::remove_file(&cmd_file);
-    let _ = fs::remove_file(&wrap_ps1);
-    let _ = fs::remove_file(&out_file);
-    let _ = fs::remove_file(&exit_file);
+    app.emit("run-done", success).ok();
+
+    for p in &[&cmd_file, &wrap_ps1, &out_file, &exit_file] {
+        let _ = fs::remove_file(p);
+    }
 
     Ok(RunResult { success, output })
 }

@@ -63,6 +63,8 @@ let _termFit    = null;
 let _termInited = false;
 let _ptyStarted = false;
 let _termBuf    = [];     // buffer while xterm not yet mounted
+let _lastCols   = 0;
+let _lastRows   = 0;
 let _shells     = [];
 let _curShell   = null;
 const { listen } = window.__TAURI__.event;
@@ -164,15 +166,20 @@ function _initTermIfNeeded() {
   _term.loadAddon(_termFit);
   _term.open(body);
   _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
+  _lastCols = 0; _lastRows = 0; // reset so first fit always sends initial size
   _flushBuf(); // replay any buffered output that arrived before drawer opened
 }
 
 function _fitTerm() {
-  if (!_termFit) return;
+  if (!_termFit || !_termInited) return;
   try {
     _termFit.fit();
-    if (_ptyStarted && _term) {
-      invoke('pty_resize', { cols: _term.cols, rows: _term.rows }).catch(() => {});
+    // Only send resize to PTY when dimensions actually changed — prevents
+    // PowerShell from redrawing its prompt on every drawer open/close
+    const c = _term?.cols ?? 80, r = _term?.rows ?? 24;
+    if (_ptyStarted && (c !== _lastCols || r !== _lastRows)) {
+      _lastCols = c; _lastRows = r;
+      invoke('pty_resize', { cols: c, rows: r }).catch(() => {});
     }
   } catch {}
 }
@@ -229,7 +236,10 @@ export function showOutput(text, ok = true) {
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
-const _termRo = new ResizeObserver(() => { if (_termFit && _termInited) _fitTerm(); });
+// Only refit when drawer is open — avoids 0-height resize causing PS to repaint
+const _termRo = new ResizeObserver(() => {
+  if (_termFit && _termInited && document.getElementById('output-drawer')?.classList.contains('open')) _fitTerm();
+});
 _termRo.observe(document.getElementById('output-body'));
 
 document.getElementById('output-header').addEventListener('click', e => {
@@ -242,15 +252,29 @@ document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
   // Clear xterm display AND send clear/cls to the shell so prompt redraws
   _term?.clear();
-  if (_ptyStarted) invoke('pty_write', { data: 'cls\r' }).catch(() => {});
+  if (_ptyStarted) {
+    // WSL / Git Bash use 'clear'; Windows shells use 'cls'
+    const isUnix = /wsl|bash/i.test(_curShell?.name ?? '');
+    invoke('pty_write', { data: isUnix ? 'clear\r' : 'cls\r' }).catch(() => {});
+  }
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
 
 document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
   const sel = _term?.getSelection();
-  if (sel) navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => {});
-  else toast('Select text first', 'info');
+  if (!sel) { toast('Select text first', 'info'); return; }
+  // navigator.clipboard needs secure context; execCommand works reliably in WebView2
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = sel;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Copied', 'ok');
+  } catch { toast('Copy failed', 'err'); }
 });
 
 document.getElementById('term-new-shell')?.addEventListener('click', async e => {
