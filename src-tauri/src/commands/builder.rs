@@ -108,8 +108,8 @@ pub async fn run_built_script(app: tauri::AppHandle, code: String, script_type: 
 pub fn save_built_script(state: State<AppState>, code: String, name: String, script_type: String) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO scripts (name,description,category,file_path,script_type,content) \
-         VALUES (?1,'Built with Script Builder','Builder','',?2,?3)",
+        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content) \
+         VALUES (?1,'Built with Script Builder','Builder','',?2,'','active',0,?3)",
         params![name, script_type, code],
     ).map_err(|e| e.to_string())?;
     Ok(())

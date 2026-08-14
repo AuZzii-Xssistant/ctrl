@@ -1,3 +1,4 @@
+pub mod exec;
 pub mod tools;
 pub mod scripts;
 pub mod fixes;

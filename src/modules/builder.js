@@ -1,5 +1,5 @@
 'use strict';
-import { esc, toast, showOutput } from '../app.js';
+import { esc, toast, showOutput, goPane } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -327,6 +327,7 @@ document.getElementById('builder-save').addEventListener('click', async () => {
     await inv('save_built_script', { code: raw, name, scriptType: type });
     toast('Saved to Scripts', 'ok');
     document.getElementById('save-name').value = '';
+    goPane('scripts');
   } catch(e) { toast(String(e), 'err'); }
 });
 
