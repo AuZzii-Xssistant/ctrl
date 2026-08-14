@@ -12,3 +12,4 @@ pub mod tweaks;
 pub mod backup;
 pub mod env_vars;
 pub mod snippets;
+pub mod terminal;

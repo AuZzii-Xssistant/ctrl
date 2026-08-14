@@ -23,6 +23,7 @@ pub fn run() {
                 .expect("failed to open ctrl.db");
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
+            app.manage(commands::terminal::TermState(Mutex::new(None)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -97,6 +98,10 @@ pub fn run() {
             commands::backup::delete_backup_job,
             commands::backup::run_backup,
             commands::backup::browse_for_folder,
+            commands::terminal::pty_open,
+            commands::terminal::pty_write,
+            commands::terminal::pty_resize,
+            commands::terminal::pty_close,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");

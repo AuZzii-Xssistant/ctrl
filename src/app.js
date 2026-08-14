@@ -25,6 +25,7 @@ const _paneLoaders = {
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
+  terminal: ()  => import('./modules/terminal.js').then(m => { m.load(); m.initEvents(); }),
   activity: ()  => import('./modules/activity.js').then(m => m.load()),
   settings: ()  => import('./modules/settings.js').then(m => m.load()),
 };
@@ -63,7 +64,7 @@ export function showOutput(text, ok = true) {
   const out = document.getElementById('output-text');
   const ts  = document.getElementById('output-ts');
   const dot = document.getElementById('output-new-dot');
-  out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text.replace(_ansi, ''))}</span>`;
+  out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text.replace(_ansi, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n'))}</span>`;
   if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (dot) dot.style.display = '';
   // If already open, scroll to bottom

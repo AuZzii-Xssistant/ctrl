@@ -825,3 +825,25 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 }
 .snip-tags { display:flex; gap:5px; flex-wrap:wrap; }
 .snip-tag  { font-family:var(--mono); font-size:10px; color:var(--text3); background:var(--bg4); border:1px solid var(--border); border-radius:4px; padding:1px 7px; }
+
+/* ── TERMINAL PANE ── */
+#terminal-pane { display:flex; flex-direction:column; overflow:hidden; padding:0; }
+#term-toolbar {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+  background:var(--bg2);
+}
+#term-shell-label { font-family:var(--mono); font-size:12px; color:var(--accent); font-weight:600; min-width:70px; }
+.term-shell-btns  { display:flex; gap:2px; }
+.term-shell-opt   { background:var(--bg4); border:1px solid var(--border); color:var(--text2); border-radius:4px; padding:2px 9px; font-size:11px; font-family:var(--mono); cursor:pointer; transition:all 120ms; }
+.term-shell-opt:hover { border-color:var(--border2); color:var(--text); }
+.term-spacer      { flex:1; }
+.btn-danger       { background:rgba(220,50,50,.15); border:1px solid rgba(220,50,50,.3); color:#e06060; }
+.btn-danger:hover { background:rgba(220,50,50,.25); border-color:rgba(220,50,50,.5); }
+#term-wrap {
+  flex:1; min-height:0;
+  padding:6px 8px;
+  background:#0d0d0d;
+}
+/* Override xterm.js default font to inherit our CSS var */
+.xterm { font-feature-settings: "liga" 0; }

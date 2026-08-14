@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CTRL</title>
 <link rel="stylesheet" href="assets/tabler-icons.css" />
+<link rel="stylesheet" href="assets/xterm.css" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -40,6 +41,7 @@
       <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
       <button class="nav-btn"        data-pane="env">    <i class="ti ti-list-details"></i>     <span class="tip">Environment</span></button>
       <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
+      <button class="nav-btn"        data-pane="terminal"><i class="ti ti-terminal-2"></i>        <span class="tip">Terminal</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-btn"        data-pane="activity"><i class="ti ti-history"></i>           <span class="tip">Recent Activity</span></button>
       <button class="nav-btn"        data-pane="settings"><i class="ti ti-settings"></i>         <span class="tip">Settings</span></button>
@@ -158,6 +160,23 @@
         <div class="pane-scroll" id="snippets-scroll"></div>
       </div>
 
+      <!-- TERMINAL -->
+      <div class="pane" id="terminal-pane">
+        <div id="term-toolbar">
+          <span id="term-shell-label">PowerShell</span>
+          <div class="term-shell-btns">
+            <button class="term-shell-opt" id="term-shell-ps"  title="PowerShell">PS</button>
+            <button class="term-shell-opt" id="term-shell-cmd" title="Command Prompt">CMD</button>
+          </div>
+          <div class="term-spacer"></div>
+          <button class="action-btn btn-ghost"    id="term-btn-clear" title="Clear screen">Clear</button>
+          <button class="action-btn btn-ghost"    id="term-btn-kill"  title="Kill process" disabled>Kill</button>
+          <button class="action-btn btn-secondary" id="term-btn-start" title="Start shell">Start</button>
+          <button class="action-btn btn-danger"   id="term-btn-admin" title="Open elevated PowerShell (UAC prompt)"><i class="ti ti-shield"></i> Admin</button>
+        </div>
+        <div id="term-wrap"></div>
+      </div>
+
       <!-- RECENT ACTIVITY -->
       <div class="pane" id="activity-pane">
         <div class="pane-scroll" id="activity-scroll"></div>
@@ -209,6 +228,8 @@
   <div class="toast-bar"></div>
 </div>
 
+<script src="assets/xterm.js"></script>
+<script src="assets/xterm-addon-fit.js"></script>
 <script src="app.js" type="module"></script>
 </body>
 </html>
