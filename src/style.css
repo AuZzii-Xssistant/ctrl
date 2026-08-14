@@ -269,8 +269,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   transition: background 0.1s;
 }
 #output-header:hover { background: var(--bg3); }
-#output-body { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
-#output-drawer.open #output-body { max-height: 200px; overflow-y: auto; }
+#output-body { height: 0; overflow: hidden; transition: height 0.2s ease; background: #0d0d0d; }
+#output-drawer.open #output-body { height: 260px; overflow: hidden; }
 /* Rotate chevron when open */
 #output-drawer.open #output-toggle i { transform: rotate(180deg); }
 #output-toggle i { transition: transform 0.2s ease; }
@@ -847,3 +847,13 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 }
 /* Override xterm.js default font to inherit our CSS var */
 .xterm { font-feature-settings: "liga" 0; }
+
+/* ── TERMINAL DRAWER ADDITIONS ── */
+#term-shell-toggle { display:flex; gap:2px; margin:0 4px; }
+.term-sh-btn { background:var(--bg4); border:1px solid var(--border); color:var(--text3); border-radius:3px; padding:1px 7px; font-size:10px; font-family:var(--mono); cursor:pointer; transition:all 100ms; }
+.term-sh-btn.active,.term-sh-btn:hover { border-color:var(--accent); color:var(--accent); }
+#term-new-shell { background:none; border:none; color:var(--text3); font-size:11px; cursor:pointer; padding:0 4px; }
+#term-new-shell:hover { color:var(--text2); }
+/* xterm.js inside output-body */
+#output-body .xterm { height:100%; }
+#output-body .xterm-viewport { border-radius:0; }

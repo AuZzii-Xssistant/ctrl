@@ -210,10 +210,8 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         },
         _     => ("cmd", vec!["/c".into(), exec_path.clone()]),
     };
-    let out = app.shell().command(program).args(&args).output().await.map_err(|e| e.to_string())?;
+    let RunResult { success, output } = crate::commands::exec::spawn_streaming(&app, program, args).await?;
     if let Some(p) = &tmp_content_file { let _ = fs::remove_file(p); }
-    let output = String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
-    let success = out.status.success();
     {
         let db = state.0.lock().map_err(|e| e.to_string())?;
         let code: i64 = if success { 0 } else { 1 };

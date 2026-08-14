@@ -50,42 +50,53 @@ fn esc_ps_path(p: &PathBuf) -> String {
     p.to_string_lossy().replace('\'', "''")
 }
 
-/// Run an inline command string non-elevated.
+/// Stream a process (program + args) to the frontend via events, return full output.
+pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) -> Result<RunResult, String> {
+    use tauri::Emitter;
+    use tauri_plugin_shell::process::CommandEvent;
+
+    let (mut rx, _child) = app.shell().command(program).args(&args)
+        .spawn().map_err(|e| e.to_string())?;
+
+    app.emit("run-start", ()).ok();
+
+    let mut output = String::new();
+    let mut success = false;
+    while let Some(event) = rx.recv().await {
+        match event {
+            CommandEvent::Stdout(chunk) | CommandEvent::Stderr(chunk) => {
+                let s = String::from_utf8_lossy(&chunk).to_string();
+                output.push_str(&s);
+                app.emit("run-output", s).ok();
+            }
+            CommandEvent::Terminated(p) => {
+                success = p.code.map(|c| c == 0).unwrap_or(false);
+                break;
+            }
+            _ => {}
+        }
+    }
+    Ok(RunResult { success, output })
+}
+
+/// Run an inline command string non-elevated (streams output to frontend).
 pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunResult, String> {
     let script = tmp("exec", "cmd", shell.ext());
-
     let content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
         Shell::Python     => command.to_string(),
         Shell::Cmd        => format!("@echo off\n{command}"),
     };
     fs::write(&script, &content).map_err(|e| e.to_string())?;
-
     let path_str = script.to_string_lossy().to_string();
-    let result = match shell {
-        Shell::PowerShell => {
-            app.shell().command(ps_bin())
-                .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-NonInteractive", "-File", &path_str])
-                .output().await
-        }
-        Shell::Python => {
-            app.shell().command("python").args([&path_str]).output().await
-        }
-        Shell::Cmd => {
-            app.shell().command("cmd").args(["/c", &path_str]).output().await
-        }
+    let (program, args) = match shell {
+        Shell::PowerShell => (ps_bin(), vec!["-ExecutionPolicy".into(), "Bypass".into(), "-NoProfile".into(), "-File".into(), path_str.clone()]),
+        Shell::Python     => ("python", vec![path_str.clone()]),
+        Shell::Cmd        => ("cmd",    vec!["/c".into(), path_str.clone()]),
     };
-
+    let result = spawn_streaming(app, program, args).await;
     let _ = fs::remove_file(&script);
-    let out = result.map_err(|e| e.to_string())?;
-    let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-    let output = match (stdout.trim().is_empty(), stderr.trim().is_empty()) {
-        (false, false) => format!("{stdout}\n{stderr}"),
-        (true,  false) => stderr,
-        _              => stdout,
-    };
-    Ok(RunResult { success: out.status.success(), output })
+    result
 }
 
 /// Run an inline command string elevated (UAC). Returns actual exit code.

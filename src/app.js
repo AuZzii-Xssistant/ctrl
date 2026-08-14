@@ -25,7 +25,6 @@ const _paneLoaders = {
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
-  terminal: ()  => import('./modules/terminal.js').then(m => { m.load(); m.initEvents(); }),
   activity: ()  => import('./modules/activity.js').then(m => m.load()),
   settings: ()  => import('./modules/settings.js').then(m => m.load()),
 };
@@ -58,55 +57,145 @@ export function toast(msg, type = 'info') {
   _toastTimer = setTimeout(() => { el.className = el.className.replace('show', '').trim(); }, 2800);
 }
 
-// ── Output drawer ────────────────────────────────────────────────────────────
-const _ansi = /\x1b\[[0-9;]*[mGKHF]/g;
-export function showOutput(text, ok = true) {
-  const out = document.getElementById('output-text');
-  const ts  = document.getElementById('output-ts');
-  const dot = document.getElementById('output-new-dot');
-  out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text.replace(_ansi, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n'))}</span>`;
-  if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  if (dot) dot.style.display = '';
-  // If already open, scroll to bottom
+// ── Terminal / Output drawer ─────────────────────────────────────────────────
+let _term = null;
+let _termFit = null;
+let _termShell = 'powershell.exe';
+const { listen } = window.__TAURI__.event;
+
+function _initTerm() {
+  if (_term || !window.Terminal) return;
   const body = document.getElementById('output-body');
-  if (body && document.getElementById('output-drawer').classList.contains('open')) {
-    requestAnimationFrame(() => requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; }));
-  }
+  if (!body) return;
+
+  _term = new window.Terminal({
+    theme: { background: '#0d0d0d', foreground: '#d4d4d4', cursor: '#f0a500',
+             black: '#1a1a1a', red: '#ef4444', green: '#10b981', yellow: '#f5a623',
+             blue: '#60a5fa', magenta: '#a78bfa', cyan: '#34d399', white: '#e5e7eb',
+             brightBlack: '#4b5563', brightWhite: '#f9fafb' },
+    fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
+    fontSize: 12,
+    cursorBlink: true,
+    scrollback: 5000,
+    convertEol: true,
+    allowTransparency: true,
+  });
+  _termFit = new window.FitAddon.FitAddon();
+  _term.loadAddon(_termFit);
+  _term.open(body);
+
+  // Keyboard → PTY
+  _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
+
+  // Script run events → terminal
+  listen('run-start', () => {
+    _openDrawer();
+    _term.write('\r\n\x1b[90m── run ──────────────────────────────────\x1b[0m\r\n');
+    const dot = document.getElementById('output-new-dot');
+    if (dot) dot.style.display = '';
+    const ts = document.getElementById('output-ts');
+    if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  });
+  listen('run-output', e => { _term.write(e.payload); });
+
+  // PTY shell events
+  listen('pty-data', e => { _term.write(e.payload); });
+  listen('pty-exit', () => { _term.write('\r\n\x1b[33m[shell exited — click "new shell" to restart]\x1b[0m\r\n'); });
+}
+
+async function _startPtyShell() {
+  try {
+    const body = document.getElementById('output-body');
+    const cols = Math.max(60, Math.floor(((body?.offsetWidth  || 700) - 16) / 7));
+    const rows = Math.max(8,  Math.floor(((body?.offsetHeight || 260) - 8)  / 17));
+    await invoke('pty_open', { shell: _termShell, cols, rows });
+  } catch (e) { console.warn('PTY start:', e); }
+}
+
+function _fitTerm() {
+  if (!_termFit) return;
+  requestAnimationFrame(() => { try { _termFit.fit(); } catch {} });
+}
+
+function _openDrawer() {
+  const drawer = document.getElementById('output-drawer');
+  if (drawer.classList.contains('open')) return;
+  drawer.classList.add('open');
+  const icon = document.querySelector('#output-toggle i');
+  if (icon) icon.className = 'ti ti-chevron-down';
+  requestAnimationFrame(() => { _fitTerm(); _term?.focus(); });
 }
 
 function _toggleOutputDrawer() {
   const drawer = document.getElementById('output-drawer');
   const dot    = document.getElementById('output-new-dot');
   const icon   = document.querySelector('#output-toggle i');
+  const wasOpen = drawer.classList.contains('open');
   drawer.classList.toggle('open');
   if (dot) dot.style.display = 'none';
-  if (icon) icon.className = drawer.classList.contains('open') ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
-  if (drawer.classList.contains('open')) {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const body = document.getElementById('output-body');
-      if (body) body.scrollTop = body.scrollHeight;
-    }));
+  if (icon) icon.className = wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+  if (!wasOpen) requestAnimationFrame(() => { _fitTerm(); _term?.focus(); });
+}
+
+export function showOutput(text, ok = true) {
+  if (_term) {
+    const col = ok ? '\x1b[32m' : '\x1b[31m';
+    const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
+    _term.write(`\r\n${col}${clean}\x1b[0m`);
+    const dot = document.getElementById('output-new-dot');
+    if (dot) dot.style.display = '';
+    const ts = document.getElementById('output-ts');
+    if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return;
   }
+  // Fallback before xterm loads
+  console.log('[output]', text);
 }
 
 document.getElementById('output-header').addEventListener('click', e => {
-  if (e.target.closest('#output-clear, #output-copy, #output-toggle')) return;
+  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell')) return;
   _toggleOutputDrawer();
 });
 document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
 
 document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
-  document.getElementById('output-text').innerHTML = '';
-  const ts = document.getElementById('output-ts');
-  if (ts) ts.textContent = '';
+  _term?.clear();
   const dot = document.getElementById('output-new-dot');
   if (dot) dot.style.display = 'none';
 });
 document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
-  const text = document.getElementById('output-text').innerText;
-  navigator.clipboard.writeText(text).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
+  const sel = _term?.getSelection();
+  if (sel) {
+    navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
+  } else {
+    toast('Select text in terminal first', 'info');
+  }
+});
+document.getElementById('term-new-shell')?.addEventListener('click', async e => {
+  e.stopPropagation();
+  await invoke('pty_close').catch(() => {});
+  _openDrawer();
+  await _startPtyShell();
+});
+document.getElementById('term-sh-ps')?.addEventListener('click', e => {
+  e.stopPropagation();
+  _termShell = 'powershell.exe';
+  document.getElementById('term-sh-ps').classList.add('active');
+  document.getElementById('term-sh-cmd').classList.remove('active');
+});
+document.getElementById('term-sh-cmd')?.addEventListener('click', e => {
+  e.stopPropagation();
+  _termShell = 'cmd.exe';
+  document.getElementById('term-sh-cmd').classList.add('active');
+  document.getElementById('term-sh-ps').classList.remove('active');
+});
+
+// Init after DOM ready — xterm needs the container visible to measure
+requestAnimationFrame(() => {
+  _initTerm();
+  _startPtyShell();
 });
 
 // ── Custom modal ─────────────────────────────────────────────────────────────
