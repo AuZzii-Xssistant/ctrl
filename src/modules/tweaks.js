@@ -193,7 +193,7 @@ function _render(q) {
       btn.disabled = true; btn.textContent = '…';
       try {
         const r = await inv('run_tweak_cmd', { cmd, admin });
-        showOutput(r.output || '(no output)', r.success);
+        showOutput(r.output, r.success); // empty = already streamed; admin output returned non-empty
         toast(r.success ? 'Done' : 'Command returned an error', r.success ? 'ok' : 'err');
         if (r.success) {
           const set = _getApplied();

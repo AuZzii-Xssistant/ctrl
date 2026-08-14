@@ -172,10 +172,9 @@ pub async fn run_built_script(app: tauri::AppHandle, code: String, script_type: 
         "ps1" => (ps_bin(), vec!["-ExecutionPolicy".into(), "Bypass".into(), "-File".into(), path]),
         _     => ("cmd", vec!["/c".into(), path]),
     };
-    let out = app.shell().command(program).args(&args).output().await.map_err(|e| e.to_string())?;
-    let output = String::from_utf8_lossy(&out.stdout).to_string()
-              + &String::from_utf8_lossy(&out.stderr);
-    Ok(RunResult { success: out.status.success(), output })
+    let result = crate::commands::exec::spawn_streaming(&app, program, args).await?;
+    // Output was streamed via events; return empty so JS doesn't double-write
+    Ok(RunResult { success: result.success, output: String::new() })
 }
 
 #[tauri::command]

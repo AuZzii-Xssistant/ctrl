@@ -192,8 +192,9 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
 
     // Find AutoHotkey.exe in common install locations
     let ahk_path: String;
+    let ps = crate::commands::exec::ps_bin();
     let (program, args) = match script_type.as_str() {
-        "ps1" => ("powershell", vec!["-ExecutionPolicy".into(), "Bypass".into(), "-File".into(), exec_path.clone()]),
+        "ps1" => (ps, vec!["-ExecutionPolicy".into(), "Bypass".into(), "-NoProfile".into(), "-File".into(), exec_path.clone()]),
         "py"  => ("python", vec![exec_path.clone()]),
         "vbs" => ("cscript", vec!["//NoLogo".into(), exec_path.clone()]),
         "ahk" => {
@@ -218,7 +219,8 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,?3,?4)",
             params![id, name, code, output]);
     }
-    Ok(RunResult { success, output })
+    // Output was already streamed via run-output events; return empty so JS doesn't double-write
+    Ok(RunResult { success, output: String::new() })
 }
 
 #[tauri::command]

@@ -110,5 +110,6 @@ pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64)
         "INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('fix',?1,?2,?3,?4)",
         params![id, name, code, result.output],
     );
-    Ok(result)
+    // Non-admin output already streamed via events; admin output returned for display
+    Ok(RunResult { success: result.success, output: if run_as_admin { result.output } else { String::new() } })
 }

@@ -852,8 +852,10 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 #term-shell-toggle { display:flex; gap:2px; margin:0 4px; }
 .term-sh-btn { background:var(--bg4); border:1px solid var(--border); color:var(--text3); border-radius:3px; padding:1px 7px; font-size:10px; font-family:var(--mono); cursor:pointer; transition:all 100ms; }
 .term-sh-btn.active,.term-sh-btn:hover { border-color:var(--accent); color:var(--accent); }
-#term-new-shell { background:none; border:none; color:var(--text3); font-size:11px; cursor:pointer; padding:0 4px; }
+#term-new-shell   { background:none; border:none; color:var(--text3); font-size:11px; cursor:pointer; padding:0 4px; }
 #term-new-shell:hover { color:var(--text2); }
+#term-admin-shell { background:none; border:1px solid var(--border); color:var(--text3); font-size:10px; cursor:pointer; padding:1px 6px; border-radius:3px; display:flex; align-items:center; gap:3px; }
+#term-admin-shell:hover { border-color:#f59e0b; color:#f59e0b; }
 /* xterm.js inside output-body */
 #output-body .xterm { height:100%; }
 #output-body .xterm-viewport { border-radius:0; }

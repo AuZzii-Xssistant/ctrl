@@ -58,29 +58,26 @@ export function toast(msg, type = 'info') {
 }
 
 // ── Terminal / Output drawer ─────────────────────────────────────────────────
-let _term      = null;
-let _termFit   = null;
+let _term       = null;
+let _termFit    = null;
 let _termInited = false;
 let _ptyStarted = false;
-let _shells    = [];   // [{name, path, args}]
-let _curShell  = null; // currently selected shell
+let _termBuf    = [];     // buffer while xterm not yet mounted
+let _shells     = [];
+let _curShell   = null;
 const { listen } = window.__TAURI__.event;
 
-// Wire run events (always listen, even before term is visible)
-listen('run-start', () => {
-  _openDrawer();
-  _termWrite('\r\n\x1b[90m── run ──────────────────────────────────\x1b[0m\r\n');
-  _bumpTs();
-});
-listen('run-output', e => _termWrite(e.payload));
-listen('pty-data',   e => _termWrite(e.payload));
-listen('pty-exit',   () => {
-  _ptyStarted = false;
-  _termWrite('\r\n\x1b[33m[shell exited — click New Shell to restart]\x1b[0m\r\n');
-});
-
+// Write to xterm — buffer if not ready yet (events can arrive before drawer opens)
 function _termWrite(s) {
-  if (_term) _term.write(s);
+  if (_term) { _term.write(s); }
+  else       { _termBuf.push(s); }
+}
+
+function _flushBuf() {
+  if (_termBuf.length && _term) {
+    _termBuf.forEach(s => _term.write(s));
+    _termBuf = [];
+  }
 }
 
 function _bumpTs() {
@@ -90,14 +87,39 @@ function _bumpTs() {
   if (ts)  ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-// Load available shells from Rust, build picker dropdown
+// Run-event listeners wired immediately — buffered until xterm mounts
+listen('run-start', () => {
+  _openDrawer();
+  _termWrite('\r\n\x1b[90m──────────────────── run ────────────────────\x1b[0m\r\n');
+  _bumpTs();
+});
+listen('run-output', e => _termWrite(e.payload));
+listen('run-done',   e => {
+  const ok = e.payload === true;
+  _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone ✓' : '\x1b[31mfailed ✗'}\x1b[90m ────────────────\x1b[0m\r\n`);
+});
+listen('pty-data', e => _termWrite(e.payload));
+listen('pty-exit', () => {
+  _ptyStarted = false;
+  _termWrite('\r\n\x1b[33m[shell exited — click New Shell to restart]\x1b[0m\r\n');
+});
+
+// ── Shell picker ──────────────────────────────────────────────────────────────
+
 async function _loadShells() {
   try { _shells = await invoke('list_shells'); } catch { _shells = []; }
-  if (!_shells.length) {
-    _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
-  }
+  if (!_shells.length) _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
   _curShell = _shells[0];
   _buildShellPicker();
+}
+
+function _shellLabel(name) {
+  if (/PowerShell 7|pwsh/i.test(name))  return 'PS7';
+  if (/Windows PowerShell/i.test(name)) return 'PS5';
+  if (/Command/i.test(name))            return 'CMD';
+  if (/WSL/i.test(name))                return 'WSL';
+  if (/Git/i.test(name))                return 'Bash';
+  return name.slice(0, 4);
 }
 
 function _buildShellPicker() {
@@ -112,7 +134,6 @@ function _buildShellPicker() {
       wrap.querySelectorAll('.term-sh-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       _curShell = _shells[+btn.dataset.idx];
-      // Restart shell with new selection
       await invoke('pty_close').catch(() => {});
       _ptyStarted = false;
       _term?.clear();
@@ -121,16 +142,8 @@ function _buildShellPicker() {
   });
 }
 
-function _shellLabel(name) {
-  if (name.includes('PowerShell') && !name.includes('Windows')) return 'PS7';
-  if (name.includes('Windows PowerShell')) return 'PS5';
-  if (name.includes('Command')) return 'CMD';
-  if (name.includes('WSL')) return 'WSL';
-  if (name.includes('Git')) return 'Bash';
-  return name.slice(0, 4);
-}
+// ── xterm lifecycle ───────────────────────────────────────────────────────────
 
-// Lazy init — only when drawer actually opens (so container has real height)
 function _initTermIfNeeded() {
   if (_termInited || !window.Terminal) return;
   _termInited = true;
@@ -144,19 +157,20 @@ function _initTermIfNeeded() {
       brightBlack: '#4b5563', brightWhite: '#f9fafb',
     },
     fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
-    fontSize: 12, cursorBlink: true, scrollback: 5000, convertEol: true,
+    fontSize: 12, cursorBlink: true, scrollback: 10000, convertEol: true,
+    allowProposedApi: true,
   });
   _termFit = new window.FitAddon.FitAddon();
   _term.loadAddon(_termFit);
   _term.open(body);
   _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
+  _flushBuf(); // replay any buffered output that arrived before drawer opened
 }
 
 function _fitTerm() {
   if (!_termFit) return;
   try {
     _termFit.fit();
-    // Notify Rust of new size
     if (_ptyStarted && _term) {
       invoke('pty_resize', { cols: _term.cols, rows: _term.rows }).catch(() => {});
     }
@@ -164,91 +178,100 @@ function _fitTerm() {
 }
 
 async function _startPtyShell() {
-  if (!_curShell) return;
+  if (!_curShell || _ptyStarted) return;
   try {
     await invoke('pty_open', {
       shell: _curShell.path,
       args:  _curShell.args,
-      cols:  _term?.cols  ?? 80,
-      rows:  _term?.rows  ?? 24,
+      cols:  _term?.cols ?? 80,
+      rows:  _term?.rows ?? 24,
     });
     _ptyStarted = true;
-  } catch (e) {
-    _termWrite(`\r\n\x1b[31m[Failed to start shell: ${e}]\x1b[0m\r\n`);
+  } catch (err) {
+    _termWrite(`\r\n\x1b[31m[PTY error: ${err}]\x1b[0m\r\n`);
   }
 }
 
+// ── Drawer open/close ─────────────────────────────────────────────────────────
+
 function _openDrawer() {
-  const drawer = document.getElementById('output-drawer');
-  if (drawer.classList.contains('open')) return;
-  _doOpenDrawer(drawer);
+  const d = document.getElementById('output-drawer');
+  if (!d || d.classList.contains('open')) return;
+  _doOpen(d);
 }
 
-function _doOpenDrawer(drawer) {
-  drawer.classList.add('open');
+function _doOpen(d) {
+  d.classList.add('open');
   document.querySelector('#output-toggle i')?.setAttribute('class', 'ti ti-chevron-down');
-  // Wait for CSS height transition (200ms) before fitting
-  setTimeout(() => {
-    _initTermIfNeeded();
-    _fitTerm();
-    _term?.focus();
-    if (!_ptyStarted) _startPtyShell();
-  }, 220);
+  setTimeout(() => { _initTermIfNeeded(); _fitTerm(); _term?.focus(); if (!_ptyStarted) _startPtyShell(); }, 220);
 }
 
 function _toggleOutputDrawer() {
-  const drawer = document.getElementById('output-drawer');
-  const wasOpen = drawer.classList.contains('open');
-  drawer.classList.toggle('open');
+  const d = document.getElementById('output-drawer');
+  const wasOpen = d.classList.contains('open');
+  d.classList.toggle('open');
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
   document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
-  if (!wasOpen) {
-    setTimeout(() => {
-      _initTermIfNeeded();
-      _fitTerm();
-      _term?.focus();
-      if (!_ptyStarted) _startPtyShell();
-    }, 220);
-  }
+  if (!wasOpen) setTimeout(() => { _initTermIfNeeded(); _fitTerm(); _term?.focus(); if (!_ptyStarted) _startPtyShell(); }, 220);
 }
 
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/** Show admin/static output in the terminal (not streamed). No-op on empty. */
 export function showOutput(text, ok = true) {
+  if (!text) return; // non-admin output already streamed via events; ignore empty
   const col   = ok ? '\x1b[32m' : '\x1b[31m';
   const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
-  _termWrite(`\r\n${col}${clean}\x1b[0m`);
+  _termWrite(`\r\n${col}${clean}\x1b[0m\r\n`);
   _bumpTs();
   _openDrawer();
 }
 
-// Resize observer — refit when drawer width changes
+// ── Event wiring ──────────────────────────────────────────────────────────────
+
 const _termRo = new ResizeObserver(() => { if (_termFit && _termInited) _fitTerm(); });
 _termRo.observe(document.getElementById('output-body'));
 
 document.getElementById('output-header').addEventListener('click', e => {
-  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell')) return;
+  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell,#term-admin-shell')) return;
   _toggleOutputDrawer();
 });
 document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
+
 document.getElementById('output-clear').addEventListener('click', e => {
-  e.stopPropagation(); _term?.clear();
+  e.stopPropagation();
+  // Clear xterm display AND send clear/cls to the shell so prompt redraws
+  _term?.clear();
+  if (_ptyStarted) invoke('pty_write', { data: 'cls\r' }).catch(() => {});
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
+
 document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
   const sel = _term?.getSelection();
   if (sel) navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => {});
   else toast('Select text first', 'info');
 });
+
 document.getElementById('term-new-shell')?.addEventListener('click', async e => {
   e.stopPropagation();
   await invoke('pty_close').catch(() => {});
   _ptyStarted = false;
   _term?.clear();
   _openDrawer();
-  _startPtyShell();
+  await _startPtyShell();
 });
 
-// Load shells at startup
+document.getElementById('term-admin-shell')?.addEventListener('click', async e => {
+  e.stopPropagation();
+  try {
+    await invoke('open_elevated_terminal');
+    toast('Elevated terminal opened', 'ok');
+  } catch (err) {
+    toast(`Admin terminal: ${err}`, 'err');
+  }
+});
+
 _loadShells();
 
 // ── Custom modal ─────────────────────────────────────────────────────────────

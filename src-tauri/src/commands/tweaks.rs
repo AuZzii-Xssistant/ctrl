@@ -32,11 +32,15 @@ pub async fn run_tweak_cmd(app: tauri::AppHandle, cmd: String, admin: Option<boo
         return Ok(RunResult { success: true, output: format!("SANDBOX: would run:\n{cmd}") });
     }
     let shell = Shell::PowerShell;
-    if admin.unwrap_or(false) {
-        exec_elevated(&app, &cmd, &shell, "tweak").await
+    let is_admin = admin.unwrap_or(false);
+    let result = if is_admin {
+        exec_elevated(&app, &cmd, &shell, "tweak").await?
     } else {
-        exec_run(&app, &cmd, &shell).await
-    }
+        exec_run(&app, &cmd, &shell).await?
+    };
+    // Non-admin output already streamed via events; admin output returned for display
+    use crate::commands::scripts::RunResult;
+    Ok(RunResult { success: result.success, output: if is_admin { result.output } else { String::new() } })
 }
 
 #[tauri::command]

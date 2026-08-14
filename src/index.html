@@ -176,13 +176,11 @@
           <span class="output-title">terminal</span>
           <span id="output-new-dot" style="display:none"></span>
           <span id="output-ts"></span>
-          <div id="term-shell-toggle">
-            <button class="term-sh-btn active" id="term-sh-ps"  title="PowerShell">PS</button>
-            <button class="term-sh-btn"        id="term-sh-cmd" title="CMD">CMD</button>
-          </div>
-          <button id="output-clear" title="Clear terminal">clear</button>
-          <button id="output-copy"  title="Copy selection">copy</button>
-          <button id="term-new-shell" title="New shell">new shell</button>
+          <div id="term-shell-toggle"><!-- filled by _buildShellPicker() --></div>
+          <button id="output-clear"     title="Clear">clear</button>
+          <button id="output-copy"      title="Copy selection">copy</button>
+          <button id="term-new-shell"   title="New shell">new shell</button>
+          <button id="term-admin-shell" title="Open elevated terminal (UAC)"><i class="ti ti-shield" style="font-size:11px"></i> admin</button>
           <button class="icon-btn" id="output-toggle" title="Toggle terminal"><i class="ti ti-chevron-up"></i></button>
         </div>
         <div id="output-body"></div>

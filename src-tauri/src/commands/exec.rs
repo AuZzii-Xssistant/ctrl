@@ -50,7 +50,8 @@ fn esc_ps_path(p: &PathBuf) -> String {
     p.to_string_lossy().replace('\'', "''")
 }
 
-/// Stream a process (program + args) to the frontend via events, return full output.
+/// Stream a process to the frontend via events. Returns (success, full_output).
+/// Emits `run-start` at the start and `run-output` per chunk.
 pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) -> Result<RunResult, String> {
     use tauri::Emitter;
     use tauri_plugin_shell::process::CommandEvent;
@@ -76,6 +77,7 @@ pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) 
             _ => {}
         }
     }
+    app.emit("run-done", success).ok();
     Ok(RunResult { success, output })
 }
 
