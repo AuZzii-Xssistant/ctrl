@@ -96,24 +96,78 @@ pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) 
     Ok(RunResult { success, output })
 }
 
-/// Run an inline command string non-elevated (streams output to frontend).
+/// Run an inline command string non-elevated.
+/// Routes execution through the PTY shell so output flows via pty-data — ConPTY
+/// cursor stays in sync and Starship redraws land in the right place.
+/// The wrapper .ps1 writes the run/done dividers and a sentinel file on completion;
+/// we poll for the sentinel instead of spawn_streaming so callers get a real RunResult.
 pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunResult, String> {
-    let script = tmp("exec", "cmd", shell.ext());
+    use tauri::Emitter;
+
+    let script   = tmp("exec", "cmd",      shell.ext());
+    let wrapper  = tmp("exec", "wrap",     "ps1");
+    let sentinel = tmp("exec", "sentinel", "txt");
+
     let content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
         Shell::Python     => command.to_string(),
         Shell::Cmd        => format!("@echo off\n{command}"),
     };
     fs::write(&script, &content).map_err(|e| e.to_string())?;
-    let path_str = script.to_string_lossy().to_string();
-    let (program, args) = match shell {
-        Shell::PowerShell => (ps_bin(), vec!["-ExecutionPolicy".into(), "Bypass".into(), "-NoProfile".into(), "-File".into(), path_str.clone()]),
-        Shell::Python     => ("python", vec![path_str.clone()]),
-        Shell::Cmd        => ("cmd",    vec!["/c".into(), path_str.clone()]),
+
+    let run_line = match shell {
+        Shell::PowerShell => format!("& '{}'", esc_ps_path(&script)),
+        Shell::Python     => format!("python '{}'", esc_ps_path(&script)),
+        Shell::Cmd        => format!("cmd /c '{}'", esc_ps_path(&script)),
     };
-    let result = spawn_streaming(app, program, args).await;
-    let _ = fs::remove_file(&script);
-    result
+    let s_esc  = esc_ps_path(&sentinel);
+    let sc_esc = esc_ps_path(&script);
+    let w_esc  = esc_ps_path(&wrapper);
+
+    // Wrapper embeds run/done dividers and writes sentinel file when done.
+    // All output flows through pty-data — no _termWrite injection needed.
+    let wrapper_content = format!(
+        "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+         $e=[char]27\n\
+         Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} run \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         $ec=0\n\
+         try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
+         catch {{ Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1 }}\n\
+         if ($ec -eq 0) {{\n\
+           Write-Host \"\"\n\
+           Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[32mdone$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         }} else {{\n\
+           Write-Host \"\"\n\
+           Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         }}\n\
+         $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
+         Remove-Item '{sc_esc}' -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{w_esc}' -Force -ErrorAction SilentlyContinue\n"
+    );
+    fs::write(&wrapper, &wrapper_content).map_err(|e| e.to_string())?;
+
+    app.emit("run-start",   ()).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&wrapper))).ok();
+
+    // Poll for sentinel written by wrapper on completion (max 10 min, blocking thread).
+    let success = tauri::async_runtime::spawn_blocking(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            if sentinel.exists() {
+                let ec = fs::read_to_string(&sentinel)
+                    .ok()
+                    .and_then(|s| s.trim().parse::<i64>().ok())
+                    .unwrap_or(1);
+                let _ = fs::remove_file(&sentinel);
+                return ec == 0;
+            }
+            if std::time::Instant::now() > deadline { return false; }
+        }
+    }).await.unwrap_or(false);
+
+    app.emit("run-done", success).ok();
+    Ok(RunResult { success, output: String::new() })
 }
 
 /// Run an inline command string elevated (UAC).

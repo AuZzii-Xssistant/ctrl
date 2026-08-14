@@ -84,22 +84,18 @@ let _runLock = false;
 export function acquireRun() { if (_runLock) return false; _runLock = true; return true; }
 export function releaseRun() { _runLock = false; }
 
-// Run-event listeners wired immediately — buffered until xterm mounts
-listen('run-start', () => {
-  _openDrawer();
-  // \r\x1b[0J: carriage-return + erase-to-end — clears any PSReadLine suggestions
-  // drawn below the cursor so the run divider appears on a clean line.
-  _termWrite('\r\x1b[0J\r\n\x1b[90m──────────────────── run ────────────────────\x1b[0m\r\n');
-  _bumpTs();
-});
-listen('run-output', e => _termWrite(e.payload));
-listen('run-done',   e => {
-  const ok = e.payload === true;
-  _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone' : '\x1b[31mfailed'}\x1b[90m ────────────────\x1b[0m\r\n`);
-  _term?.blur();
-  // Input was blocked during the run so PTY buffer is empty — \r is safe:
-  // it submits an empty line, causing the shell to redraw a fresh prompt below.
-  if (_ptyStarted) invoke('pty_write', { data: '\r' }).catch(() => {});
+// Run-event listeners wired immediately — buffered until xterm mounts.
+// Non-admin scripts run through the PTY via run-pty-cmd: output flows via pty-data
+// so ConPTY cursor stays in sync and Starship redraws land in the right place.
+// Admin scripts still use an external window and emit run-output for status messages.
+listen('run-start',   ()  => { _openDrawer(); _bumpTs(); });
+listen('run-output',  e   => _termWrite(e.payload));  // admin mode status messages only
+listen('run-done',    ()  => _term?.blur());
+listen('run-pty-cmd', async e => {
+  // Wait for PTY if it hasn't started yet (e.g. very fast click on first load)
+  for (let i = 0; i < 30 && !_ptyStarted; i++)
+    await new Promise(r => setTimeout(r, 100));
+  if (_ptyStarted) invoke('pty_write', { data: e.payload + '\r' }).catch(() => {});
 });
 listen('pty-data', e => _termWrite(e.payload));
 listen('pty-exit', () => {
