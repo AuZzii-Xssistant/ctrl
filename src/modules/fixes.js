@@ -1,4 +1,4 @@
-import { esc, groupBy, sectionHdr, emptyState, skeletonRows, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, timeAgo, scriptIcon } from '../app.js';
+import { esc, groupBy, sectionHdr, emptyState, skeletonRows, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, timeAgo, scriptIcon, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -118,6 +118,7 @@ async function _run(id, el, confirmRequired) {
     const ok = await confirmDialog('This fix is marked as potentially dangerous. Run it?', true);
     if (!ok) return;
   }
+  if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
   toast('Running…', 'info');
   try {
     const r = await inv('run_fix', { id });
@@ -128,7 +129,7 @@ async function _run(id, el, confirmRequired) {
       inv('get_last_runs', { itemType: 'fix' }).catch(() => []),
     ]);
     _render(el || document.getElementById('fixes-scroll'), fixes, lastRuns);
-  } catch (e) { toast(String(e), 'err'); }
+  } catch (e) { toast(String(e), 'err'); } finally { releaseRun(); }
 }
 
 async function _showHistory(itemType, id, name) {

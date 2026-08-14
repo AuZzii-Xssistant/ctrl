@@ -161,34 +161,24 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
     // For admin runs: use UAC elevation only when CTRL itself is NOT already elevated.
     // When CTRL is admin, fall through to the normal streaming path below.
     if run_as_admin && !crate::commands::exec::running_as_admin() {
-        let tmp_script = std::env::temp_dir().join(format!("ctrl_script_{}.ps1", id));
-        let tmp_output = std::env::temp_dir().join(format!("ctrl_script_{}_out.txt", id));
-        let out_path = tmp_output.to_string_lossy().replace('\'', "''");
+        use crate::commands::exec::{Shell, run_elevated};
+        // Build a one-liner that runs the script file in the appropriate shell
         let exec_esc = exec_path.replace('\'', "''");
-        let script_body = match script_type.as_str() {
-            "ps1" => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n& '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
-            "py"  => format!("python '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
-            "vbs" => format!("cscript //NoLogo '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
-            "ahk" => format!("Start-Process -FilePath AutoHotkey -ArgumentList '{}' -Wait 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
-            _     => format!("cmd /c '{}' 2>&1 | Out-File -FilePath '{}' -Encoding UTF8\n", exec_esc, out_path),
+        let (shell, cmd) = match script_type.as_str() {
+            "ps1"       => (Shell::PowerShell, format!("& '{exec_esc}'")),
+            "py"        => (Shell::Python,     format!("'{exec_esc}'")),
+            "vbs"       => (Shell::PowerShell, format!("cscript //NoLogo '{exec_esc}'")),
+            "ahk"       => (Shell::PowerShell, format!("Start-Process -FilePath AutoHotkey -ArgumentList '{exec_esc}' -Wait")),
+            _           => (Shell::Cmd,        format!("call \"{exec_esc}\"")),
         };
-        fs::write(&tmp_script, &script_body).map_err(|e| e.to_string())?;
-        let ps_invoke = format!(
-            "Start-Process -Verb RunAs -FilePath powershell -Wait -WindowStyle Hidden -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
-            tmp_script.to_string_lossy().replace('\'', "''")
-        );
-        app.shell().command("powershell")
-            .args(["-ExecutionPolicy", "Bypass", "-Command", &ps_invoke])
-            .output().await.map_err(|e| e.to_string())?;
-        let output = fs::read_to_string(&tmp_output)
-            .unwrap_or_else(|_| "(No output — UAC may have been cancelled or script produced no output)".to_string());
-        let _ = fs::remove_file(&tmp_script);
-        let _ = fs::remove_file(&tmp_output);
+        let result = run_elevated(&app, &cmd, &shell, &format!("script_{id}")).await?;
         if let Some(p) = &tmp_content_file { let _ = fs::remove_file(p); }
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,0,?3)",
-            params![id, name, output]);
-        return Ok(RunResult { success: true, output });
+        {
+            let db = state.0.lock().map_err(|e| e.to_string())?;
+            let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,?3,?4)",
+                params![id, name, if result.success { 0i64 } else { 1i64 }, ""]);
+        }
+        return Ok(RunResult { success: result.success, output: String::new() });
     }
 
     // Find AutoHotkey.exe in common install locations

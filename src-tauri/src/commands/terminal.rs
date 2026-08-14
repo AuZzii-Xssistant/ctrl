@@ -42,20 +42,6 @@ pub fn is_process_elevated() -> bool {
 #[tauri::command]
 pub fn is_elevated() -> bool { is_process_elevated() }
 
-/// Relaunch ctrl.exe with UAC elevation. UAC prompt appears; if approved
-/// a new elevated CTRL window opens. Current window stays open.
-#[tauri::command]
-pub async fn restart_as_admin(app: AppHandle) -> Result<(), String> {
-    use tauri_plugin_shell::ShellExt;
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let path = exe.to_string_lossy().replace('\'', "''");
-    app.shell()
-        .command(crate::commands::exec::ps_bin())
-        .args(["-NoProfile", "-Command", &format!("Start-Process '{}' -Verb RunAs", path)])
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    Ok(())
-}
 
 static CONSOLE_ALLOC: std::sync::Once = std::sync::Once::new();
 

@@ -10,6 +10,14 @@ use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
 
+/// Whether admin scripts open a visible external terminal (true) or run hidden (false).
+static ADMIN_VISIBLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+pub fn is_admin_visible() -> bool { ADMIN_VISIBLE.load(std::sync::atomic::Ordering::Relaxed) }
+
+#[tauri::command]
+pub fn set_admin_visible(visible: bool) { ADMIN_VISIBLE.store(visible, std::sync::atomic::Ordering::Relaxed); }
+
 /// Cached elevation check — computed once at first use.
 pub fn running_as_admin() -> bool {
     use std::sync::OnceLock;
@@ -109,10 +117,10 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
 }
 
 /// Run an inline command string elevated (UAC).
-/// Streams output live via `run-output` events by polling the output file while
-/// the elevated process runs. UAC cancellation → missing exit file → success=false.
+/// Visible mode (default): opens a real terminal window the user can watch; CTRL shows status.
+/// Background mode: hidden window, output captured and shown in CTRL after completion.
+/// Toggle with set_admin_visible() / ADMIN_VISIBLE flag.
 pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: &str) -> Result<RunResult, String> {
-    use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
     use tauri::Emitter;
 
     let cmd_file  = tmp(label, "cmd",  shell.ext());
@@ -134,9 +142,12 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     };
     let out_esc  = esc_ps_path(&out_file);
     let exit_esc = esc_ps_path(&exit_file);
+    let visible  = is_admin_visible();
 
-    // Wrapper: pipe each output line through Add-Content (FileShare.ReadWrite) so
-    // the polling thread can read the file while the elevated process is still writing.
+    // Visible: Write-Host shows output in the external window; Add-Content captures for CTRL.
+    // Background: only Add-Content (no console output needed — window is hidden).
+    let write_host = if visible { "Write-Host $line\n               " } else { "" };
+    let close_line = if visible { "\nRead-Host 'Done \u{2014} press Enter to close'" } else { "" };
     let wrapper = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $ec=0\n\
@@ -145,89 +156,58 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
            ({run_line}) | ForEach-Object {{\n\
              $line=\"$_\"\n\
              if ($line -ne $prev) {{\n\
-               Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
+               {write_host}Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
                $prev=$line\n\
              }}\n\
            }}\n\
            $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
          }} catch {{\n\
-           Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8\n\
+           $msg=\"ERROR: $_\"\n\
+           {write_host}Add-Content -Path '{out_esc}' -Value $msg -Encoding UTF8\n\
            $ec=1\n\
          }}\n\
-         $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
+         $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force{close_line}\n"
     );
     fs::write(&wrap_ps1, &wrapper).map_err(|e| e.to_string())?;
 
+    let win_style = if visible { "Normal" } else { "Hidden" };
     let invoke = format!(
-        "Start-Process -Verb RunAs -Wait -WindowStyle Hidden -FilePath '{}' \
-         -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-NonInteractive','-File','{}')",
+        "Start-Process -Verb RunAs -Wait -WindowStyle {win_style} -FilePath '{}' \
+         -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
         ps_bin(), esc_ps_path(&wrap_ps1)
     );
 
-    // Start polling thread before kicking off elevated process
     app.emit("run-start", ()).ok();
-    let stop        = Arc::new(AtomicBool::new(false));
-    let stop2       = stop.clone();
-    let out_path2   = out_file.clone();
-    let app2        = app.clone();
-    let last_emitted = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let last_emitted2 = last_emitted.clone();
+    if visible {
+        app.emit("run-output", "\x1b[33m\u{26a1} Running in admin terminal \u{2014} see external window\x1b[0m\r\n").ok();
+    } else {
+        app.emit("run-output", "\x1b[33m\u{26a1} Running as administrator\u{2026}\x1b[0m\r\n").ok();
+    }
 
-    let poll = std::thread::spawn(move || {
-        let mut last_len = 0usize;
-        loop {
-            if stop2.load(Ordering::Relaxed) { break; }
-            // FILE_SHARE_READ|WRITE on Windows — safe to read while elevated PS writes
-            if let Ok(content) = fs::read_to_string(&out_path2) {
-                if content.len() > last_len {
-                    // Strip \r: file has \r\n endings; xterm convertEol:true converts \n→\r\n,
-                    // so \r\n would become \r\r\n (extra blank line per output line).
-                    let chunk = content[last_len..].replace('\r', "");
-                    if !chunk.is_empty() {
-                        let _ = app2.emit("run-output", chunk);
-                    }
-                    last_len = content.len();
-                    last_emitted2.store(last_len, Ordering::Relaxed);
-                }
-            }
-            std::thread::sleep(std::time::Duration::from_millis(120));
-        }
-    });
-
-    // Wait for elevated process (blocks this async task, UI stays responsive)
+    // Blocks this async task until elevated process exits (UI thread stays responsive)
     app.shell().command(ps_bin())
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &invoke])
         .output().await
         .map_err(|e| e.to_string())?;
-
-    stop.store(true, Ordering::Relaxed);
-    let _ = poll.join();
-
-    // Emit any tail the poll thread missed in its last sleep window
-    let emitted_up_to = last_emitted.load(Ordering::Relaxed);
-    if let Ok(full) = fs::read_to_string(&out_file) {
-        if full.len() > emitted_up_to {
-            let tail = full[emitted_up_to..].replace('\r', "");
-            if !tail.is_empty() { app.emit("run-output", tail).ok(); }
-        }
-    }
 
     let success = fs::read_to_string(&exit_file)
         .ok()
         .and_then(|s| s.trim().parse::<i64>().ok())
         .map(|ec| ec == 0)
         .unwrap_or_else(|| {
-            // exit file missing = UAC cancelled or process never started
-            app.emit("run-output", "(No output — UAC may have been cancelled)\r\n".to_string()).ok();
+            app.emit("run-output", "(No output \u{2014} UAC may have been cancelled)\r\n").ok();
             false
         });
 
+    // Show captured output in CTRL terminal (strip \r to avoid blank-line doubling)
+    if let Ok(out) = fs::read_to_string(&out_file) {
+        if !out.is_empty() {
+            app.emit("run-output", out.replace('\r', "")).ok();
+        }
+    }
     app.emit("run-done", success).ok();
 
-    for p in &[&cmd_file, &wrap_ps1, &out_file, &exit_file] {
-        let _ = fs::remove_file(p);
-    }
+    for p in &[&cmd_file, &wrap_ps1, &out_file, &exit_file] { let _ = fs::remove_file(p); }
 
-    // Output already streamed via events — return empty so JS doesn't double-display
     Ok(RunResult { success, output: String::new() })
 }

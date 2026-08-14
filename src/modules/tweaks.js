@@ -1,4 +1,4 @@
-import { esc, sectionHdr, paneHeader, toast, showOutput, openModal, closeModal, confirmDialog } from '../app.js';
+import { esc, sectionHdr, paneHeader, toast, showOutput, openModal, closeModal, confirmDialog, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const LS_KEY = 'ctrl_tweaks_applied';
@@ -190,10 +190,11 @@ function _render(q) {
       const action = btn.getAttribute('data-action');
       const admin = btn.getAttribute('data-admin') === '1';
       const orig = btn.textContent;
+      if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
       btn.disabled = true; btn.textContent = '…';
       try {
         const r = await inv('run_tweak_cmd', { cmd, admin });
-        showOutput(r.output, r.success); // empty = already streamed; admin output returned non-empty
+        showOutput(r.output, r.success);
         toast(r.success ? 'Done' : 'Command returned an error', r.success ? 'ok' : 'err');
         if (r.success) {
           const set = _getApplied();
@@ -201,9 +202,10 @@ function _render(q) {
           _setApplied(set);
           const q = document.getElementById('tweaks-filter')?.value.toLowerCase().trim() || '';
           _render(q);
+          releaseRun();
           return;
         }
-      } catch (e) { toast(String(e), 'err'); }
+      } catch (e) { toast(String(e), 'err'); } finally { releaseRun(); }
       btn.disabled = false; btn.textContent = orig;
     });
   });

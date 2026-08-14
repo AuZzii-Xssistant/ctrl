@@ -79,6 +79,11 @@ function _bumpTs() {
   if (ts)  ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+// ── Run queue — prevent concurrent admin/streaming runs ───────────────────────
+let _runLock = false;
+export function acquireRun() { if (_runLock) return false; _runLock = true; return true; }
+export function releaseRun() { _runLock = false; }
+
 // Run-event listeners wired immediately — buffered until xterm mounts
 listen('run-start', () => {
   _openDrawer();
@@ -89,6 +94,8 @@ listen('run-output', e => _termWrite(e.payload));
 listen('run-done',   e => {
   const ok = e.payload === true;
   _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone ✓' : '\x1b[31mfailed ✗'}\x1b[90m ────────────────\x1b[0m\r\n`);
+  // Release focus so keystrokes don't get eaten by xterm after a run finishes
+  _term?.blur();
 });
 listen('pty-data', e => _termWrite(e.payload));
 listen('pty-exit', () => {
@@ -211,6 +218,7 @@ function _toggleOutputDrawer() {
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
   document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
   if (!wasOpen) setTimeout(_onDrawerOpened, 220);
+  else _term?.blur(); // release xterm focus so typing doesn't go to the PTY
 }
 
 function _onDrawerOpened() {
@@ -305,62 +313,41 @@ document.getElementById('term-new-shell')?.addEventListener('click', async e => 
 
 // ── Admin elevation state ─────────────────────────────────────────────────────
 
-let _isElevated = false;
+// Sync visible/background setting to Rust on startup
+invoke('set_admin_visible', { visible: localStorage.getItem('ctrl-admin-visible') !== 'background' });
 
 invoke('is_elevated').then(elevated => {
-  _isElevated = elevated;
   if (!elevated) return;
-  // Show admin badge on button and header
   const btn = document.getElementById('term-admin-shell');
   if (btn) {
     btn.classList.add('elevated');
-    btn.title = 'Running as Administrator — right-click to change mode';
+    btn.title = 'Running as Administrator';
     btn.innerHTML = '<i class="ti ti-shield-check"></i> admin';
   }
-  const hdr = document.getElementById('output-header');
-  if (hdr) hdr.dataset.elevated = '1';
-  // Also show in topbar
-  const logo = document.querySelector('.logo');
-  if (logo) logo.title = 'Running as Administrator';
 });
 
-document.getElementById('term-admin-shell')?.addEventListener('click', async e => {
+// Click: open external admin terminal
+document.getElementById('term-admin-shell')?.addEventListener('click', e => {
   e.stopPropagation();
-  const mode = localStorage.getItem('ctrl-admin-mode') ?? 'external';
-
-  if (_isElevated) {
-    // Already elevated — inform user; all commands already run as admin
-    toast('Running as admin — close this window to return to normal mode', 'info');
-    return;
-  }
-
-  if (mode === 'switch') {
-    const ok = await confirmDialog(
-      'Restart CTRL as Administrator?\n\nA UAC prompt will appear. The current window stays open — close it once the admin session is running.',
-      false
-    );
-    if (ok) invoke('restart_as_admin').catch(err => toast(String(err), 'err'));
-  } else {
-    // External: open floating admin terminal (original behaviour)
-    invoke('open_elevated_terminal')
-      .then(() => toast('Admin terminal opened', 'ok'))
-      .catch(err => toast(String(err), 'err'));
-  }
+  invoke('open_elevated_terminal')
+    .then(() => toast('Admin terminal opened', 'ok'))
+    .catch(err => toast(String(err), 'err'));
 });
 
+// Right-click: toggle visible vs background mode for admin scripts
 document.getElementById('term-admin-shell')?.addEventListener('contextmenu', e => {
   e.stopPropagation();
-  const cur = localStorage.getItem('ctrl-admin-mode') ?? 'external';
+  const isVisible = localStorage.getItem('ctrl-admin-visible') !== 'background';
   showContextMenu(e, [
     {
-      label: `${cur === 'external' ? '✓ ' : ''}External terminal (open floating window)`,
-      icon: 'ti-square-arrow-up-right',
-      fn: () => { localStorage.setItem('ctrl-admin-mode', 'external'); toast('Admin mode: external floating terminal', 'info'); },
+      label: `${isVisible ? '✓ ' : ''}Visible terminal (show window when running)`,
+      icon: 'ti-terminal-2',
+      fn: () => { localStorage.setItem('ctrl-admin-visible', 'visible'); invoke('set_admin_visible', { visible: true }); toast('Admin scripts: visible terminal', 'info'); },
     },
     {
-      label: `${cur === 'switch' ? '✓ ' : ''}Switch this instance to admin (restart elevated)`,
-      icon: 'ti-arrows-exchange',
-      fn: () => { localStorage.setItem('ctrl-admin-mode', 'switch'); toast('Admin mode: restart as admin', 'info'); },
+      label: `${!isVisible ? '✓ ' : ''}Background (silent, output shown when done)`,
+      icon: 'ti-terminal',
+      fn: () => { localStorage.setItem('ctrl-admin-visible', 'background'); invoke('set_admin_visible', { visible: false }); toast('Admin scripts: background', 'info'); },
     },
   ]);
 });

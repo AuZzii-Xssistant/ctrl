@@ -858,7 +858,6 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 #term-admin-shell:hover { border-color:#f59e0b; color:#f59e0b; }
 #term-admin-shell.elevated { border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,.1); }
 #output-header[data-elevated] { border-top:1px solid rgba(245,158,11,.35); }
-#output-header[data-elevated]::before { content:'⚡ admin'; position:absolute; right:10px; top:4px; font-size:9px; color:#f59e0b; letter-spacing:.5px; pointer-events:none; }
 /* xterm.js inside output-body */
 #output-body .xterm { height:100%; }
 #output-body .xterm-viewport { border-radius:0; }

@@ -1,4 +1,4 @@
-import { esc, groupBy, sectionHdr, emptyState, skeletonCards, paneHeader, toast, openModal, closeModal, confirmDialog, scriptIcon, showContextMenu, showOutput, timeAgo } from '../app.js';
+import { esc, groupBy, sectionHdr, emptyState, skeletonCards, paneHeader, toast, openModal, closeModal, confirmDialog, scriptIcon, showContextMenu, showOutput, timeAgo, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -107,6 +107,7 @@ function _wireSearch(el, initial) {
 }
 
 async function _run(id) {
+  if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
   toast('Running…', 'info');
   try {
     const r = await inv('run_script', { id });
@@ -118,7 +119,7 @@ async function _run(id) {
       inv('get_last_runs', { itemType: 'script' }).catch(() => []),
     ]);
     _render(el, scripts, lastRuns);
-  } catch (e) { toast(String(e), 'err'); }
+  } catch (e) { toast(String(e), 'err'); } finally { releaseRun(); }
 }
 
 async function _showHistory(id, name) {
