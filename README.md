@@ -1,8 +1,29 @@
 # >_ CTRL
 
-A local-first, portable desktop control centre for personal automation, scripting, tooling, and system management. One app to replace scattered scripts, desktop shortcuts, taskbar pins, and half-finished utilities.
+**Your personal Windows control centre. Portable. Local. No BS.**
 
-Built with Tauri v2 (Rust + WebView2). Ships as a single portable folder — no installer, no browser, no internet required.
+CTRL replaces the scattered mess of scripts, shortcuts, batch files, and AutoHotkey hacks that every power user accumulates — and puts everything in one dark, fast, offline-capable desktop app.
+
+Drop the folder on a USB drive. Copy it to a new PC. Run it anywhere. No installer. No admin rights needed. No internet. No telemetry. Everything local, everything yours.
+
+**What it does:**
+- Run PowerShell / Python / batch scripts with one click
+- Launch tools and executables with optional elevation
+- Apply Windows tweaks and quick fixes without looking them up
+- Build custom PC-setup scripts with a toggle-based builder (WinScript integration)
+- Track projects, manage environment variables, run backup jobs
+- Chain scripts into automated workflows
+- Store and copy reusable code snippets
+
+Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database travels with the app.
+
+**[⬇ Download the latest release →](https://github.com/AuZzii-Xssistant/ctrl/releases)**
+
+---
+
+> **⚠️ Beta** — CTRL is functional and actively used. Expect rough edges and breaking changes between releases. Back up your `ctrl.db` before upgrading.
+
+> **🤖 Vibe Coded** — CTRL is a vibe-coded project, built entirely through AI-assisted development (Claude). The code works, but it's been grown organically rather than architected from scratch. Contributions and issues welcome.
 
 ---
 
