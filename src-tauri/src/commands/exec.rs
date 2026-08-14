@@ -127,10 +127,8 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
          try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
          catch {{ Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1 }}\n\
          if ($ec -eq 0) {{\n\
-           Write-Host \"\"\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[32mdone$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }} else {{\n\
-           Write-Host \"\"\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }}\n\
          $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
@@ -217,34 +215,26 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let ps       = ps_bin();
 
     // PTY wrapper: runs non-elevated in the embedded terminal.
-    // Shows run divider + UAC notice, triggers elevation, displays captured output,
-    // shows done/failed divider, writes sentinel for Rust completion detection.
+    // Shows run divider, opens visible elevated window, waits, shows done/failed divider.
+    // Captured output not shown (user watched it live in the external terminal).
     let pty_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $e=[char]27\n\
          Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} run \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
-         Write-Host \"$($e)[33mRequires administrator \u{2014} approve UAC prompt to continue$($e)[0m\"\n\
-         $uac_ok=$true\n\
+         Write-Host \"$($e)[33mRunning as administrator \u{2014} see external terminal$($e)[0m\"\n\
+         $ec=1\n\
          try {{\n\
-           Start-Process -Verb RunAs -Wait -WindowStyle Hidden \
+           Start-Process -Verb RunAs -Wait -WindowStyle Normal \
              -FilePath '{ps}' \
              -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{elev_esc}')\n\
-         }} catch {{\n\
-           Write-Host \"$($e)[33mUAC cancelled or access denied$($e)[0m\"\n\
-           $uac_ok=$false\n\
-         }}\n\
-         $ec=1\n\
-         if ($uac_ok) {{\n\
            $ec_str=(Get-Content '{exit_esc2}' -ErrorAction SilentlyContinue)\n\
            if ($null -ne $ec_str) {{ $ec=[int]$ec_str.Trim() }}\n\
-           $captured=(Get-Content '{out_esc2}' -Raw -ErrorAction SilentlyContinue)\n\
-           if ($captured) {{ Write-Host $captured.TrimEnd() }}\n\
+         }} catch {{\n\
+           Write-Host \"$($e)[33mUAC cancelled or access denied$($e)[0m\"\n\
          }}\n\
          if ($ec -eq 0) {{\n\
-           Write-Host \"\"\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[32mdone$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }} else {{\n\
-           Write-Host \"\"\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }}\n\
          $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
