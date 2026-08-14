@@ -121,9 +121,9 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     fs::write(&cmd_file, &cmd_content).map_err(|e| e.to_string())?;
 
     let run_line = match shell {
-        Shell::PowerShell => format!("& '{}' 2>&1", esc_ps_path(&cmd_file)),
-        Shell::Python     => format!("python '{}' 2>&1", esc_ps_path(&cmd_file)),
-        Shell::Cmd        => format!("cmd /c '{}' 2>&1", esc_ps_path(&cmd_file)),
+        Shell::PowerShell => format!("& '{}'", esc_ps_path(&cmd_file)),
+        Shell::Python     => format!("python '{}'", esc_ps_path(&cmd_file)),
+        Shell::Cmd        => format!("cmd /c '{}'", esc_ps_path(&cmd_file)),
     };
     let out_esc  = esc_ps_path(&out_file);
     let exit_esc = esc_ps_path(&exit_file);
@@ -154,10 +154,12 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
 
     // Start polling thread before kicking off elevated process
     app.emit("run-start", ()).ok();
-    let stop      = Arc::new(AtomicBool::new(false));
-    let stop2     = stop.clone();
-    let out_path2 = out_file.clone();
-    let app2      = app.clone();
+    let stop        = Arc::new(AtomicBool::new(false));
+    let stop2       = stop.clone();
+    let out_path2   = out_file.clone();
+    let app2        = app.clone();
+    let last_emitted = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let last_emitted2 = last_emitted.clone();
 
     let poll = std::thread::spawn(move || {
         let mut last_len = 0usize;
@@ -169,6 +171,7 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
                     let chunk = content[last_len..].to_string();
                     let _ = app2.emit("run-output", chunk);
                     last_len = content.len();
+                    last_emitted2.store(last_len, Ordering::Relaxed);
                 }
             }
             std::thread::sleep(std::time::Duration::from_millis(120));
@@ -184,14 +187,23 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     stop.store(true, Ordering::Relaxed);
     let _ = poll.join();
 
-    // Emit any tail that arrived after the last poll tick
-    let output = fs::read_to_string(&out_file)
-        .unwrap_or_else(|_| String::from("(No output — UAC may have been cancelled)"));
+    // Emit any tail the poll thread missed in its last sleep window
+    let emitted_up_to = last_emitted.load(Ordering::Relaxed);
+    if let Ok(full) = fs::read_to_string(&out_file) {
+        if full.len() > emitted_up_to {
+            app.emit("run-output", full[emitted_up_to..].to_string()).ok();
+        }
+    }
+
     let success = fs::read_to_string(&exit_file)
         .ok()
         .and_then(|s| s.trim().parse::<i64>().ok())
         .map(|ec| ec == 0)
-        .unwrap_or(false);
+        .unwrap_or_else(|| {
+            // exit file missing = UAC cancelled or process never started
+            app.emit("run-output", "(No output — UAC may have been cancelled)\r\n".to_string()).ok();
+            false
+        });
 
     app.emit("run-done", success).ok();
 
@@ -199,5 +211,6 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
         let _ = fs::remove_file(p);
     }
 
-    Ok(RunResult { success, output })
+    // Output already streamed via events — return empty so JS doesn't double-display
+    Ok(RunResult { success, output: String::new() })
 }

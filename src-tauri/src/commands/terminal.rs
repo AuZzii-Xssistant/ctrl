@@ -12,7 +12,6 @@ extern "system" {
     fn GetConsoleWindow() -> *mut std::ffi::c_void;
     fn AllocConsole() -> i32;
     fn ShowWindow(hwnd: *mut std::ffi::c_void, n_cmd_show: i32) -> i32;
-    fn FreeConsole() -> i32;
 }
 
 static CONSOLE_ALLOC: std::sync::Once = std::sync::Once::new();

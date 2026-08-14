@@ -236,11 +236,11 @@ export function showOutput(text, ok = true) {
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
-// Only refit when drawer is open — avoids 0-height resize causing PS to repaint
-const _termRo = new ResizeObserver(() => {
+// Refit on window resize only — ResizeObserver fires during CSS transitions (partial height)
+// which trims xterm's scrollback buffer. Window resize events are safe; drawer CSS handles its own layout.
+window.addEventListener('resize', () => {
   if (_termFit && _termInited && document.getElementById('output-drawer')?.classList.contains('open')) _fitTerm();
 });
-_termRo.observe(document.getElementById('output-body'));
 
 document.getElementById('output-header').addEventListener('click', e => {
   if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell,#term-admin-shell')) return;
