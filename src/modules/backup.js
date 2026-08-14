@@ -5,7 +5,7 @@ const inv = window.__TAURI__.core.invoke;
 export async function load() {
   const el = document.getElementById('backup-scroll');
   el.innerHTML = paneHeader('ti-device-floppy', 'Backup & Restore', 'New Job', 'window._showBackupModal(null)', null)
-    + `<div class="tweaks-note"><i class="ti ti-info-circle"></i> Copies folders using robocopy. Supports incremental backup — only changed files are copied.</div>`
+    + `<div class="tweaks-note"><div class="tweaks-note-inner"><i class="ti ti-info-circle"></i> Copies folders using robocopy. Supports incremental backup — only changed files are copied.</div></div>`
     + `<div id="bk-body">${skeletonRows(3)}</div>`;
 
   const jobs = await inv('get_backup_jobs');

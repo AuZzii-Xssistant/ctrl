@@ -171,24 +171,10 @@ function parseTabBody(body, en) {
 
     if (nextSG === -1 && nextST === -1 && nextBE === -1) break;
 
-    // ButtonEntry — quick-launch shortcut (no PS1, runs immediately)
+    // ButtonEntry — skip; these live in the Tools tab Quick Launch section, not the builder
     if (nextBE !== -1 && (nextSG === -1 || nextBE < nextSG) && (nextST === -1 || nextBE < nextST)) {
       const tagEnd = body.indexOf('/>', nextBE);
-      if (tagEnd === -1) { i = nextBE + 1; continue; }
-      const propsStr = body.slice(nextBE + '<ButtonEntry'.length, tagEnd);
-      const idM      = /buttonId="([^"]+)"/.exec(propsStr);
-      const titleP   = extractProp(propsStr, 'title');
-      i = tagEnd + 2;
-      if (!idM) continue;
-      const id  = idM[1];
-      const cmd = BUTTON_CMDS[id];
-      if (!cmd) continue; // unknown button, skip
-      items.push({
-        type:  'shortcut',
-        id,
-        label: propValue(titleP, en) || id,
-        cmd,   // e.g. 'ms-settings:', 'devmgmt.msc'
-      });
+      i = tagEnd >= 0 ? tagEnd + 2 : nextBE + 1;
       continue;
     }
 
@@ -296,7 +282,6 @@ function loadScriptsAndPresets(jsPath) {
 // ── Attach ps1 scripts recursively ───────────────────────────────────────────
 function attachScripts(items, scriptMap) {
   for (const item of items) {
-    if (item.type === 'shortcut') continue; // no PS1, handled by UI
     if (item.type === 'toggle') {
       // Check special overrides first
       item.ps1 = SPECIAL_PS1[item.id] || scriptMap[item.id] || null;
@@ -310,7 +295,6 @@ function attachScripts(items, scriptMap) {
     }
   }
   return items.filter(item => {
-    if (item.type === 'shortcut') return true;
     if (item.type === 'toggle')   return !!item.ps1;
     return (item.items || []).length > 0;
   });

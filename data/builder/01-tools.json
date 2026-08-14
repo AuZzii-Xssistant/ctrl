@@ -4,42 +4,6 @@
   "icon": "ti-tool",
   "items": [
     {
-      "type": "shortcut",
-      "id": "openSettings",
-      "label": "Windows Settings",
-      "cmd": "ms-settings:"
-    },
-    {
-      "type": "shortcut",
-      "id": "openDeviceManager",
-      "label": "Device Manager",
-      "cmd": "devmgmt.msc"
-    },
-    {
-      "type": "shortcut",
-      "id": "openControlPanel",
-      "label": "Control Panel",
-      "cmd": "control"
-    },
-    {
-      "type": "shortcut",
-      "id": "openPageFile",
-      "label": "Virtual Memory",
-      "cmd": "SystemPropertiesAdvanced"
-    },
-    {
-      "type": "shortcut",
-      "id": "openVisualEffects",
-      "label": "Visual Effects",
-      "cmd": "SystemPropertiesPerformance"
-    },
-    {
-      "type": "shortcut",
-      "id": "openMSConfig",
-      "label": "MSConfig",
-      "cmd": "msconfig"
-    },
-    {
       "type": "group",
       "label": "Clean-up",
       "desc": "Free up disk space by cleaning up temporary files.",

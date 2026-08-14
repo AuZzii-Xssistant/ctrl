@@ -8,6 +8,15 @@ function _toolIcon(path) {
   return EXT_ICON[ext] || 'ti-app-window';
 }
 
+const QUICK_LAUNCH = [
+  { id: 'ql-settings',  label: 'Windows Settings',  icon: 'ti-settings',          cmd: 'ms-settings:' },
+  { id: 'ql-devmgmt',   label: 'Device Manager',     icon: 'ti-cpu',               cmd: 'devmgmt.msc' },
+  { id: 'ql-control',   label: 'Control Panel',      icon: 'ti-layout-grid',       cmd: 'control' },
+  { id: 'ql-msconfig',  label: 'MSConfig',           icon: 'ti-adjustments',       cmd: 'msconfig' },
+  { id: 'ql-pagefile',  label: 'Virtual Memory',     icon: 'ti-layers-subtract',   cmd: 'SystemPropertiesAdvanced' },
+  { id: 'ql-effects',   label: 'Visual Effects',     icon: 'ti-eye',               cmd: 'SystemPropertiesPerformance' },
+];
+
 export async function load(search = '') {
   const el = document.getElementById('tools-scroll');
   el.innerHTML = paneHeader('ti-app-window', 'Tools', 'Add Tool', 'window._showToolModal(null)', 'tools-filter')
@@ -26,8 +35,17 @@ function _render(el, tools) {
   const groups = groupBy(tools, 'category');
   let html = '';
 
+  // Static Quick Launch section — Windows system shortcuts
+  html += `<div class="section-hdr"><span class="section-label">Quick Launch</span><span class="section-count">${QUICK_LAUNCH.length}</span></div>`;
+  html += '<div class="row-list">' + QUICK_LAUNCH.map(q => `
+    <div class="data-row">
+      <i class="ti ${q.icon} row-icon" style="color:var(--amber)"></i>
+      <div style="flex:1;min-width:0"><div class="row-name">${esc(q.label)}</div></div>
+      <button class="run-chip ql-open-btn" data-cmd="${esc(q.cmd)}"><i class="ti ti-external-link" style="font-size:10px"></i> Open</button>
+    </div>`).join('') + '</div>';
+
   if (!tools.length) {
-    html = emptyState('ti-app-window', 'No tools registered yet.', '+ Add Tool', 'window._showToolModal(null)');
+    html += emptyState('ti-app-window', 'No tools registered yet.', '+ Add Tool', 'window._showToolModal(null)');
   } else {
     for (const [cat, items] of Object.entries(groups)) {
       html += sectionHdr(cat, items.length) + '<div class="card-grid">';
@@ -55,6 +73,10 @@ function _render(el, tools) {
     }
   }
   body.innerHTML = html;
+
+  body.querySelectorAll('.ql-open-btn').forEach(btn =>
+    btn.addEventListener('click', () => inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err')))
+  );
 
   body.querySelectorAll('.card[data-id]').forEach(card => {
     card.addEventListener('contextmenu', e => {

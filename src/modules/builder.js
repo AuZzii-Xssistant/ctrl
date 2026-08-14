@@ -176,11 +176,10 @@ function _renderItems(items) {
   });
 }
 
-// ── Apps UI (08-apps.json) ────────────────────────────────────────────────────
+// ── Apps UI (08-apps.json) — uses ws-group/ws-sub pattern like other builder tabs ─────
 function _renderAppsUI(el) {
   if (!_appsCat) { el.innerHTML = ''; return; }
 
-  // Package manager selector
   const mgrs = [
     { id: 'winget', label: 'winget', icon: 'ti-brand-windows' },
     { id: 'choco',  label: 'Chocolatey', icon: 'ti-brand-chocolatey' },
@@ -191,52 +190,61 @@ function _renderAppsUI(el) {
       <i class="ti ${m.icon}"></i> ${m.label}
     </button>`).join('')}
     <span style="flex:1"></span>
-    <button class="action-btn btn-ghost apps-clear" style="font-size:10px;padding:3px 8px"><i class="ti ti-x"></i> Clear All</button>
+    <button class="action-btn btn-ghost apps-clear" style="font-size:10px;padding:3px 8px"><i class="ti ti-x"></i> Clear</button>
   </div>`;
-
-  // Filter search
   html += `<div style="padding:0 12px 8px"><input class="pane-search apps-filter" style="width:100%" placeholder="Filter apps…" autocomplete="off" /></div>`;
 
-  // Category sections
+  // Each category → ws-group (collapsible), each app → ws-sub row with checkbox + pkg id
   for (const cat of (_appsCat.categories || [])) {
-    const filtered = cat.apps.filter(a => _pkgMgr === 'winget' ? a.winget : a.choco);
-    if (!filtered.length) continue;
-    html += `<div class="apps-category">
-      <div class="apps-cat-hdr">${esc(cat.label)} <span class="apps-cat-count">${filtered.length}</span></div>
-      ${filtered.map(a => {
+    const apps = cat.apps.filter(a => _pkgMgr === 'winget' ? a.winget : a.choco);
+    if (!apps.length) continue;
+    const selCount = apps.filter(a => _appsSel.has(a.id)).length;
+    html += `<details class="ws-group apps-group" data-cat="${esc(cat.label)}">
+      <summary class="ws-entry ws-group-hdr">
+        <div class="ws-entry-info">
+          <div class="ws-entry-text"><h1>${esc(cat.label)}</h1><p>${apps.length} apps</p></div>
+        </div>
+        <div class="ws-chevron-wrap">
+          <span class="ws-sel-count">${selCount > 0 ? `${selCount}/${apps.length}` : ''}</span>
+          <i class="ti ti-chevron-down ws-chevron"></i>
+        </div>
+      </summary>
+      ${apps.map(a => {
         const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
         const checked = _appsSel.has(a.id);
-        return `<label class="apps-row${checked ? ' apps-sel' : ''}">
-          <input type="checkbox" class="app-cb" data-id="${esc(a.id)}" ${checked ? 'checked' : ''} />
-          <span class="apps-name">${esc(a.label)}</span>
-          <span class="apps-pkg">${esc(pkg || '')}</span>
-        </label>`;
+        return `<div class="ws-entry ws-sub app-row${checked ? ' ws-sub-active' : ''}" data-cat="${esc(cat.label)}">
+          <div class="ws-entry-info">
+            <div class="ws-entry-text">
+              <h1>${esc(a.label)}</h1>
+              ${pkg ? `<p class="apps-pkg-id">${esc(pkg)}</p>` : ''}
+            </div>
+          </div>
+          <div class="ws-entry-ctrl">
+            <span class="ws-indicator">${checked ? 'On' : 'Off'}</span>
+            <label class="ws-switch">
+              <input type="checkbox" class="app-cb" data-id="${esc(a.id)}" ${checked ? 'checked' : ''} />
+              <span class="ws-slider"></span>
+            </label>
+          </div>
+        </div>`;
       }).join('')}
-    </div>`;
+    </details>`;
   }
 
   el.innerHTML = html;
 
-  // Wire mgr buttons
-  el.querySelectorAll('.apps-mgr-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      _pkgMgr = btn.dataset.mgr;
-      localStorage.setItem('ctrl_builder_pkgmgr', _pkgMgr);
-      _renderAppsUI(el);
-    });
+  el.querySelectorAll('.apps-mgr-btn').forEach(btn => btn.addEventListener('click', () => {
+    _pkgMgr = btn.dataset.mgr;
+    localStorage.setItem('ctrl_builder_pkgmgr', _pkgMgr);
+    _renderAppsUI(el);
+  }));
+
+  let timer;
+  el.querySelector('.apps-filter')?.addEventListener('input', e => {
+    clearTimeout(timer);
+    timer = setTimeout(() => _applyAppsFilter(el, e.target.value.toLowerCase()), 100);
   });
 
-  // Wire filter
-  const filter = el.querySelector('.apps-filter');
-  if (filter) {
-    let timer;
-    filter.addEventListener('input', () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => _applyAppsFilter(el, filter.value.toLowerCase()), 100);
-    });
-  }
-
-  // Wire clear
   el.querySelector('.apps-clear')?.addEventListener('click', () => {
     _appsSel.clear();
     localStorage.setItem('ctrl_builder_apps', '[]');
@@ -244,28 +252,38 @@ function _renderAppsUI(el) {
     _updateBadge();
   });
 
-  // Wire checkboxes
-  el.querySelectorAll('.app-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) _appsSel.add(cb.dataset.id);
-      else            _appsSel.delete(cb.dataset.id);
-      localStorage.setItem('ctrl_builder_apps', JSON.stringify([..._appsSel]));
-      cb.closest('.apps-row')?.classList.toggle('apps-sel', cb.checked);
-      _renderNav();
-      _updateBadge();
-    });
-  });
+  el.querySelectorAll('.app-cb').forEach(cb => cb.addEventListener('change', () => {
+    if (cb.checked) _appsSel.add(cb.dataset.id);
+    else            _appsSel.delete(cb.dataset.id);
+    localStorage.setItem('ctrl_builder_apps', JSON.stringify([..._appsSel]));
+    const row = cb.closest('.app-row');
+    if (row) {
+      row.classList.toggle('ws-sub-active', cb.checked);
+      row.querySelector('.ws-indicator').textContent = cb.checked ? 'On' : 'Off';
+      // Update category badge
+      const grp = cb.closest('.apps-group');
+      if (grp) {
+        const cbs  = [...grp.querySelectorAll('.app-cb')];
+        const sel  = cbs.filter(c => c.checked).length;
+        const badge = grp.querySelector('summary .ws-sel-count');
+        if (badge) badge.textContent = sel > 0 ? `${sel}/${cbs.length}` : '';
+      }
+    }
+    _renderNav();
+    _updateBadge();
+  }));
 }
 
 function _applyAppsFilter(el, q) {
-  el.querySelectorAll('.apps-row').forEach(row => {
-    const name = row.querySelector('.apps-name')?.textContent.toLowerCase() || '';
-    const pkg  = row.querySelector('.apps-pkg')?.textContent.toLowerCase() || '';
+  el.querySelectorAll('.app-row').forEach(row => {
+    const name = (row.querySelector('.ws-entry-text h1')?.textContent || '').toLowerCase();
+    const pkg  = (row.querySelector('.apps-pkg-id')?.textContent || '').toLowerCase();
     row.style.display = (!q || name.includes(q) || pkg.includes(q)) ? '' : 'none';
   });
-  el.querySelectorAll('.apps-category').forEach(cat => {
-    const any = [...cat.querySelectorAll('.apps-row')].some(r => r.style.display !== 'none');
-    cat.style.display = any ? '' : 'none';
+  el.querySelectorAll('.apps-group').forEach(grp => {
+    const any = [...grp.querySelectorAll('.app-row')].some(r => r.style.display !== 'none');
+    grp.style.display = any ? '' : 'none';
+    if (q) grp.open = any; // auto-open matching groups
   });
 }
 

@@ -58,11 +58,12 @@ export function toast(msg, type = 'info') {
 }
 
 // ── Output drawer ────────────────────────────────────────────────────────────
+const _ansi = /\x1b\[[0-9;]*[mGKHF]/g;
 export function showOutput(text, ok = true) {
   const out = document.getElementById('output-text');
   const ts  = document.getElementById('output-ts');
   const dot = document.getElementById('output-new-dot');
-  out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text)}</span>`;
+  out.innerHTML = `<span class="${ok ? 'out-ok' : 'out-err'}">${esc(text.replace(_ansi, ''))}</span>`;
   if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   if (dot) dot.style.display = '';
   // If already open, scroll to bottom
