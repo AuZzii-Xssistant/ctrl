@@ -27,61 +27,71 @@ const EMBEDDED_BUILDER: &[(&str, &str)] = &[
     ("_meta.json",           include_str!("../../../data/builder/_meta.json")),
 ];
 
-/// Seed data/builder/ from embedded bytes if the directory doesn't exist yet.
-fn seed_builder_data(dir: &std::path::Path) {
-    if dir.exists() { return; }
-    let _ = std::fs::create_dir_all(dir);
-    for (name, content) in EMBEDDED_BUILDER {
-        let _ = std::fs::write(dir.join(name), content);
-    }
-}
-
-/// Walk up from exe dir to find data/builder (handles dev: target/debug/ctrl.exe → project root).
-/// Falls back to seeding from embedded data next to the exe when not found.
-fn find_builder_dir() -> std::path::PathBuf {
+/// Walk up from exe dir to find data/builder on disk (dev: target/debug/ctrl.exe → project root).
+fn find_builder_dir() -> Option<std::path::PathBuf> {
     let exe_dir = std::env::current_exe().ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-        .unwrap_or_else(|| std::path::PathBuf::from("."));
-    let mut dir = exe_dir.clone();
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))?;
+    let mut dir = exe_dir;
     for _ in 0..6 {
         let candidate = dir.join("data").join("builder");
-        if candidate.exists() { return candidate; }
+        if candidate.exists() { return Some(candidate); }
         if !dir.pop() { break; }
     }
-    // Not found on disk — seed from embedded data next to the exe
-    let target = exe_dir.join("data").join("builder");
-    seed_builder_data(&target);
-    target
+    None
 }
 
+/// Load categories: disk first (dev/user edits), fall back to embedded.
 fn load_categories() -> Vec<serde_json::Value> {
-    let data_dir = find_builder_dir();
     let mut cats = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(&data_dir) {
-        let mut files: Vec<_> = entries.filter_map(|e| e.ok())
-            .filter(|e| {
-                let name = e.file_name();
-                let s = name.to_string_lossy();
-                s.ends_with(".json") && !s.starts_with('_')
-            })
-            .collect();
-        files.sort_by_key(|e| e.file_name());
-        for entry in files {
-            if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
-                    cats.push(val);
+
+    if let Some(data_dir) = find_builder_dir() {
+        if let Ok(entries) = std::fs::read_dir(&data_dir) {
+            let mut files: Vec<_> = entries.filter_map(|e| e.ok())
+                .filter(|e| {
+                    let name = e.file_name();
+                    let s = name.to_string_lossy();
+                    s.ends_with(".json") && !s.starts_with('_')
+                })
+                .collect();
+            files.sort_by_key(|e| e.file_name());
+            for entry in files {
+                if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                        cats.push(val);
+                    }
                 }
             }
         }
     }
+
+    // Disk empty or missing — parse directly from embedded bytes
+    if cats.is_empty() {
+        for (name, content) in EMBEDDED_BUILDER {
+            if name.starts_with('_') { continue; }
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(content) {
+                cats.push(val);
+            }
+        }
+    }
+
     cats
 }
 
 fn load_presets() -> serde_json::Value {
-    let meta_path = find_builder_dir().join("_meta.json");
-    if let Ok(content) = std::fs::read_to_string(meta_path) {
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(p) = val.get("presets") { return p.clone(); }
+    // Try disk first
+    if let Some(dir) = find_builder_dir() {
+        if let Ok(content) = std::fs::read_to_string(dir.join("_meta.json")) {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(p) = val.get("presets") { return p.clone(); }
+            }
+        }
+    }
+    // Fall back to embedded _meta.json
+    for (name, content) in EMBEDDED_BUILDER {
+        if *name == "_meta.json" {
+            if let Ok(val) = serde_json::from_str::<serde_json::Value>(content) {
+                if let Some(p) = val.get("presets") { return p.clone(); }
+            }
         }
     }
     serde_json::Value::Object(Default::default())
