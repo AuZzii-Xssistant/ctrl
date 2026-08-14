@@ -62,25 +62,15 @@ let _term       = null;
 let _termFit    = null;
 let _termInited = false;
 let _ptyStarted = false;
-let _termBuf    = [];     // buffer while xterm not yet mounted
+let _needsFit   = false;  // window resized while drawer was closed — fit+resize PTY on next open
 let _lastCols   = 0;
 let _lastRows   = 0;
 let _shells     = [];
 let _curShell   = null;
 const { listen } = window.__TAURI__.event;
 
-// Write to xterm — buffer if not ready yet (events can arrive before drawer opens)
-function _termWrite(s) {
-  if (_term) { _term.write(s); }
-  else       { _termBuf.push(s); }
-}
-
-function _flushBuf() {
-  if (_termBuf.length && _term) {
-    _termBuf.forEach(s => _term.write(s));
-    _termBuf = [];
-  }
-}
+// Always write directly — xterm is init'd eagerly so _term is always set
+function _termWrite(s) { _term?.write(s); }
 
 function _bumpTs() {
   const dot = document.getElementById('output-new-dot');
@@ -146,10 +136,11 @@ function _buildShellPicker() {
 
 // ── xterm lifecycle ───────────────────────────────────────────────────────────
 
-function _initTermIfNeeded() {
+// xterm.js and FitAddon are loaded synchronously before this module (index.html lines 214-215)
+// so we can init immediately — no lazy init, no event buffering needed.
+function _initTerm() {
   if (_termInited || !window.Terminal) return;
   _termInited = true;
-
   const body = document.getElementById('output-body');
   _term = new window.Terminal({
     theme: {
@@ -166,9 +157,9 @@ function _initTermIfNeeded() {
   _term.loadAddon(_termFit);
   _term.open(body);
   _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
-  _lastCols = 0; _lastRows = 0; // reset so first fit always sends initial size
-  _flushBuf(); // replay any buffered output that arrived before drawer opened
+  // Don't fit/resize yet — drawer is closed; _doOpen will fit on first real open
 }
+_initTerm();
 
 function _fitTerm() {
   if (!_termFit || !_termInited) return;
@@ -210,7 +201,7 @@ function _openDrawer() {
 function _doOpen(d) {
   d.classList.add('open');
   document.querySelector('#output-toggle i')?.setAttribute('class', 'ti ti-chevron-down');
-  setTimeout(() => { _initTermIfNeeded(); _fitTerm(); _term?.focus(); if (!_ptyStarted) _startPtyShell(); }, 220);
+  setTimeout(_onDrawerOpened, 220);
 }
 
 function _toggleOutputDrawer() {
@@ -219,7 +210,29 @@ function _toggleOutputDrawer() {
   d.classList.toggle('open');
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
   document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
-  if (!wasOpen) setTimeout(() => { _initTermIfNeeded(); _fitTerm(); _term?.focus(); if (!_ptyStarted) _startPtyShell(); }, 220);
+  if (!wasOpen) setTimeout(_onDrawerOpened, 220);
+}
+
+function _onDrawerOpened() {
+  if (!_ptyStarted) {
+    // First open: fit and start shell (PTY resize is fine here, shell not running yet)
+    _fitTerm();
+    _startPtyShell();
+  } else if (_needsFit) {
+    // Window was resized while drawer was closed — fit and resize PTY now
+    _needsFit = false;
+    _fitTerm();
+  } else {
+    // Ordinary re-open: re-layout xterm canvas WITHOUT resizing PTY
+    // Resizing PTY causes PS/Oh-My-Posh to redraw the prompt mid-output
+    try {
+      _termFit?.fit();
+      // Keep tracking vars in sync so _fitTerm's guard stays accurate
+      _lastCols = _term?.cols ?? _lastCols;
+      _lastRows = _term?.rows ?? _lastRows;
+    } catch {}
+  }
+  _term?.focus();
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -236,10 +249,14 @@ export function showOutput(text, ok = true) {
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
-// Refit on window resize only — ResizeObserver fires during CSS transitions (partial height)
-// which trims xterm's scrollback buffer. Window resize events are safe; drawer CSS handles its own layout.
+// Track window resize — if drawer is open, fit immediately; if closed, defer to next open
 window.addEventListener('resize', () => {
-  if (_termFit && _termInited && document.getElementById('output-drawer')?.classList.contains('open')) _fitTerm();
+  if (!_termFit || !_termInited) return;
+  if (document.getElementById('output-drawer')?.classList.contains('open')) {
+    _fitTerm(); // drawer visible — resize xterm and PTY now
+  } else {
+    _needsFit = true; // drawer hidden — remember to resize PTY when it opens next
+  }
 });
 
 document.getElementById('output-header').addEventListener('click', e => {

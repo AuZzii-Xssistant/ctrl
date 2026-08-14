@@ -134,8 +134,13 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $ec=0\n\
          try {{\n\
+           $prev=''\n\
            ({run_line}) | ForEach-Object {{\n\
-             Add-Content -Path '{out_esc}' -Value $_ -Encoding UTF8\n\
+             $line=\"$_\"\n\
+             if ($line -ne $prev) {{\n\
+               Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
+               $prev=$line\n\
+             }}\n\
            }}\n\
            $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
          }} catch {{\n\
@@ -165,11 +170,15 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
         let mut last_len = 0usize;
         loop {
             if stop2.load(Ordering::Relaxed) { break; }
-            // Rust File::open on Windows uses FILE_SHARE_READ|WRITE, safe to read concurrently
+            // FILE_SHARE_READ|WRITE on Windows — safe to read while elevated PS writes
             if let Ok(content) = fs::read_to_string(&out_path2) {
                 if content.len() > last_len {
-                    let chunk = content[last_len..].to_string();
-                    let _ = app2.emit("run-output", chunk);
+                    // Strip \r: file has \r\n endings; xterm convertEol:true converts \n→\r\n,
+                    // so \r\n would become \r\r\n (extra blank line per output line).
+                    let chunk = content[last_len..].replace('\r', "");
+                    if !chunk.is_empty() {
+                        let _ = app2.emit("run-output", chunk);
+                    }
                     last_len = content.len();
                     last_emitted2.store(last_len, Ordering::Relaxed);
                 }
@@ -191,7 +200,8 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let emitted_up_to = last_emitted.load(Ordering::Relaxed);
     if let Ok(full) = fs::read_to_string(&out_file) {
         if full.len() > emitted_up_to {
-            app.emit("run-output", full[emitted_up_to..].to_string()).ok();
+            let tail = full[emitted_up_to..].replace('\r', "");
+            if !tail.is_empty() { app.emit("run-output", tail).ok(); }
         }
     }
 
