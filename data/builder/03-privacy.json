@@ -7,6 +7,7 @@
       "type": "group",
       "label": "Disable App Access",
       "desc": "Limit app access to data, files and system.",
+      "icon": "privacy/appaccess.png",
       "items": [
         {
           "id": "locationaccess",
@@ -141,6 +142,7 @@
       "id": "updatepause",
       "label": "Extend Windows Update Pause Limit",
       "desc": "Extends Windows Update pause limit to 20 years.",
+      "icon": "privacy/updatepause.png",
       "ps1": "Write-Host '-- Extend Windows Update Pause Limit to 20 years' -ForegroundColor Green\nWrite-Host \"-- NOTE: This does not disable updates by itself, user needs to pause updates in Windows Settings.\" -ForegroundColor Yellow\nreg add \"HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings\" /v \"FlightSettingsMaxPauseDays\" /t REG_DWORD /d 7300 /f"
     },
     {
@@ -148,6 +150,7 @@
       "id": "wpbt",
       "label": "Disable Windows Platform Binary Table",
       "desc": "WPBT allows your computer vendor to install and execute software without user consent.",
+      "icon": "privacy/wbpt.svg",
       "ps1": "Write-Host '-- Disable Windows Platform Binary Table' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\" /v \"DisableWpbtExecution\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -155,6 +158,7 @@
       "id": "bitlocker",
       "label": "Disable Bitlocker Drive Encryption",
       "desc": "Disables Bitlocker automatic drive encryption.",
+      "icon": "privacy/bitlocker.svg",
       "ps1": "Write-Host '-- Disabling Bitlocker Drive Encryption' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\BitLocker\" /v \"PreventDeviceEncryption\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -162,6 +166,7 @@
       "id": "cloudsync",
       "label": "Disable Cloud Sync",
       "desc": "Disables cloud syncing of settings, themes, and passwords.",
+      "icon": "privacy/cloud.png",
       "ps1": "Write-Host '-- Disabling Cloud Sync' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableSyncOnPaidNetwork\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\" /v \"SyncPolicy\" /t REG_DWORD /d 5 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableApplicationSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableApplicationSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableAppSyncSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableAppSyncSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableCredentialsSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableCredentialsSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Credentials\" /v \"Enabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableDesktopThemeSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableDesktopThemeSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisablePersonalizationSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisablePersonalizationSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableStartLayoutSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableStartLayoutSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWebBrowserSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWindowsSettingSync\" /t REG_DWORD /d 2 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync\" /v \"DisableWindowsSettingSyncUserOverride\" /t REG_DWORD /d 1 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\SettingSync\\Groups\\Language\" /t REG_DWORD /v \"Enabled\" /d 0 /f"
     },
     {
@@ -169,6 +174,7 @@
       "id": "activityfeed",
       "label": "Disable Activity History",
       "desc": "Disables the Activity Feed and timeline history.",
+      "icon": "privacy/activity.png",
       "ps1": "Write-Host '-- Disabling Activity Feed' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System\" /v \"EnableActivityFeed\" /d \"0\" /t REG_DWORD /f"
     },
     {
@@ -176,6 +182,7 @@
       "id": "notificationtray",
       "label": "Disable Notifications Tray",
       "desc": "Disables the notifications center in the taskbar.",
+      "icon": "privacy/notifications.png",
       "ps1": "Write-Host '-- Disabling Notification Tray' -ForegroundColor Green\nreg add \"HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer\" /v \"DisableNotificationCenter\" /d \"1\" /t REG_DWORD /f"
     },
     {
@@ -183,6 +190,7 @@
       "id": "automap",
       "label": "Disable Automatic Map Downloads",
       "desc": "Disables automatic offline map downloads and updates.",
+      "icon": "privacy/map.png",
       "ps1": "Write-Host '-- Disabling Auto Map Downloads' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps\" /v \"AllowUntriggeredNetworkTrafficOnSettingsPage\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps\" /v \"AutoDownloadAndUpdateMapData\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -190,6 +198,7 @@
       "id": "default0user",
       "label": "Remove User 'default0'",
       "desc": "Removes the default0 user created at the OOBE stage.",
+      "icon": "privacy/default0.png",
       "ps1": "Write-Host '-- Deleting Default0 User' -ForegroundColor Green\nRemove-LocalUser -Name \"defaultuser0\""
     },
     {
@@ -197,6 +206,7 @@
       "id": "lockscreencamera",
       "label": "Disable Lockscreen Camera",
       "desc": "Disables camera access from the lock screen.",
+      "icon": "privacy/camera.png",
       "ps1": "Write-Host '-- Disabling Lock Screen Camera' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization\" /v \"NoLockScreenCamera\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -204,6 +214,7 @@
       "id": "biometrics",
       "label": "Disable Biometrics",
       "desc": "Disables biometrics, breaks Windows Hello and fingerprint.",
+      "icon": "privacy/biometrics.png",
       "ps1": "Write-Host '-- Disabling Biometrics (Breaks Windows Hello)' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics\" /v \"Enabled\" /t REG_DWORD /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Biometrics\\Credential Provider\" /v \"Enabled\" /t \"REG_DWORD\" /d \"0\" /f"
     }
   ]

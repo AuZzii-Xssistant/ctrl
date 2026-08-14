@@ -8,6 +8,7 @@
       "label": "Set as DNS",
       "desc": "",
       "group": "dns",
+      "icon": "performance/dns.png",
       "items": [
         {
           "id": "googledns",
@@ -46,6 +47,7 @@
       "label": "Choose Power Plan",
       "desc": "",
       "group": "powerplan",
+      "icon": "performance/powerplan.svg",
       "items": [
         {
           "id": "balanced",
@@ -72,6 +74,7 @@
       "id": "manualservices",
       "label": "Set Services to Manual",
       "desc": "Starts services only when they are needed.",
+      "icon": "performance/manual.png",
       "ps1": "Write-Host '-- Disabling Manual Services' -ForegroundColor Green\n$manualServices = @(\"ALG\",\"AppMgmt\",\"AppReadiness\",\"Appinfo\",\"AxInstSV\",\"BDESVC\",\"BTAGService\",\"BcastDVRUserService\",\"BluetoothUserService\",\"Browser\",\"CDPSvc\",\"COMSysApp\",\"CaptureService\",\"CertPropSvc\",\"ConsentUxUserSvc\",\"CscService\",\"DevQueryBroker\",\"DeviceAssociationService\",\"DeviceInstall\",\"DevicePickerUserSvc\",\"DevicesFlowUserSvc\",\"DisplayEnhancementService\",\"DmEnrollmentSvc\",\"DsSvc\",\"DsmSvc\",\"EFS\",\"EapHost\",\"EntAppSvc\",\"FDResPub\",\"FrameServer\",\"FrameServerMonitor\",\"GraphicsPerfSvc\",\"HvHost\",\"IEEtwCollectorService\",\"InstallService\",\"InventorySvc\",\"IpxlatCfgSvc\",\"KtmRm\",\"LicenseManager\",\"LxpSvc\",\"MSDTC\",\"MSiSCSI\",\"McpManagementService\",\"MicrosoftEdgeElevationService\",\"MsKeyboardFilter\",\"NPSMSvc\",\"NaturalAuthentication\",\"NcaSvc\",\"NcbService\",\"NcdAutoSetup\",\"NetSetupSvc\",\"Netman\",\"NgcCtnrSvc\",\"NgcSvc\",\"NlaSvc\",\"PNRPAutoReg\",\"PcaSvc\",\"PeerDistSvc\",\"PenService\",\"PerfHost\",\"PhoneSvc\",\"PimIndexMaintenanceSvc\",\"PlugPlay\",\"PolicyAgent\",\"PrintNotify\",\"PushToInstall\",\"QWAVE\",\"RasAuto\",\"RasMan\",\"RetailDemo\",\"RmSvc\",\"RpcLocator\",\"SCPolicySvc\",\"SCardSvr\",\"SDRSVC\",\"SEMgrSvc\",\"SNMPTRAP\",\"SNMPTrap\",\"SSDPSRV\",\"ScDeviceEnum\",\"SensorDataService\",\"SensorService\",\"SensrSvc\",\"SessionEnv\",\"SharedAccess\",\"SmsRouter\",\"SstpSvc\",\"StiSvc\",\"StorSvc\",\"TapiSrv\",\"TextInputManagementService\",\"TieringEngineService\",\"TokenBroker\",\"TroubleshootingSvc\",\"TrustedInstaller\",\"UdkUserSvc\",\"UmRdpService\",\"UserDataSvc\",\"UsoSvc\",\"VSS\",\"VacSvc\",\"WEPHOSTSVC\",\"WFDSConMgrSvc\",\"WMPNetworkSvc\",\"WManSvc\",\"WPDBusEnum\",\"WalletService\",\"WarpJITSvc\",\"WbioSrvc\",\"WdNisSvc\",\"WdiServiceHost\",\"WdiSystemHost\",\"WebClient\",\"Wecsvc\",\"WerSvc\",\"WiaRpc\",\"WinRM\",\"WpcMonSvc\",\"WpnService\",\"WwanSvc\",\"autotimesvc\",\"bthserv\",\"camsvc\",\"cbdhsvc\",\"cloudidsvc\",\"dcsvc\",\"defragsvc\",\"diagsvc\",\"dmwappushservice\",\"dot3svc\",\"edgeupdate\",\"edgeupdatem\",\"embeddedmode\",\"fdPHost\",\"fhsvc\",\"hidserv\",\"icssvc\",\"lfsvc\",\"lltdsvc\",\"lmhosts\",\"msiserver\",\"netprofm\",\"p2pimsvc\",\"p2psvc\",\"perceptionsimulation\",\"pla\",\"seclogon\",\"smphost\",\"svsvc\",\"swprv\",\"upnphost\",\"vds\",\"vmicguestinterface\",\"vmicheartbeat\",\"vmickvpexchange\",\"vmicrdv\",\"vmicshutdown\",\"vmictimesync\",\"vmicvmsession\",\"vmicvss\",\"vmvss\",\"wbengine\",\"wcncsvc\",\"webthreatdefsvc\",\"wercplsupport\",\"wisvc\",\"wlidsvc\",\"wlpasvc\",\"wmiApSrv\",\"workfolderssvc\",\"wuauserv\",\"wudfsvc\")\n$disabledServices = @(\"AppVClient\",\"AssignedAccessManagerSvc\",\"DiagTrack\",\"DialogBlockingService\",\"NetTcpPortSharing\",\"RemoteAccess\",\"RemoteRegistry\",\"shpamsvc\",\"ssh-agent\",\"tzautoupdate\")\n$manualServices | ForEach-Object { Set-Service -Name $_ -StartupType Manual }\n$disabledServices | ForEach-Object { Set-Service -Name $_ -StartupType Disabled }"
     },
     {
@@ -79,6 +82,7 @@
       "id": "transparency",
       "label": "Disable Windows Transparency",
       "desc": "Disables transparency, may improve system performance.",
+      "icon": "performance/transparency.png",
       "ps1": "Write-Host '-- Disabling Transparency' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v \"EnableTransparency\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -86,6 +90,7 @@
       "id": "hags",
       "label": "Disable HAGS",
       "desc": "Disables Hardware-Accelerated GPU Scheduling.",
+      "icon": "performance/hags.png",
       "ps1": "Write-Host '-- Disabling HAGS' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\" /v \"HwSchMode\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -93,6 +98,7 @@
       "id": "ipv6",
       "label": "Set IPv4 as Preferred",
       "desc": "Prefers IPv4 over IPv6, can improve latency.",
+      "icon": "performance/ipv6.svg",
       "ps1": "Write-Host '-- Setting IPv4 Priority' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters\" /v \"DisabledComponents\" /t REG_DWORD /d 32 /f"
     },
     {
@@ -100,6 +106,7 @@
       "id": "mousedelay",
       "label": "Disable Mouse Delay",
       "desc": "Disables the 400ms menu show and hover delay.",
+      "icon": "performance/menudelay.png",
       "ps1": "Write-Host '-- Disabling Mouse Delay Times' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Desktop\" /v \"MenuShowDelay\" /t REG_SZ /d 0 /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseHoverTime\" /t REG_SZ /d 0 /f"
     },
     {
@@ -107,6 +114,7 @@
       "id": "limitdefender",
       "label": "Limit Defender CPU Usage",
       "desc": "Limits Defender maximum CPU usage at 25%.",
+      "icon": "performance/limit.png",
       "ps1": "Write-Host '-- Limiting Windows Defender Usage' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan\" /v \"AvgCPULoadFactor\" /t REG_DWORD /d \"25\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Scan\" /v \"ScanAvgCPULoadFactor\" /t REG_DWORD /d \"25\" /f"
     },
     {
@@ -114,6 +122,7 @@
       "id": "coreisolation",
       "label": "Disable Core Isolation",
       "desc": "May improve performance at the cost of security.",
+      "icon": "performance/vbs.png",
       "ps1": "Write-Host '-- Disabling Core Isolation' -ForegroundColor Green\nreg add \"HKLM\\System\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity\" /v \"Enabled\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -121,6 +130,7 @@
       "id": "disableprefetch",
       "label": "Disable SysMain",
       "desc": "Disables prefetch, might improve performance at the cost of app startup time.",
+      "icon": "performance/superfetch.png",
       "ps1": "Write-Host '-- Disabling Prefetch' -ForegroundColor Green\nStop-Service -Name \"sysmain\"\nSet-Service -Name \"sysmain\" -StartupType Disabled"
     },
     {
@@ -128,6 +138,7 @@
       "id": "storagesense",
       "label": "Disable Storage Sense",
       "desc": "Disables Storage Sense, stops automatic disk cleanup.",
+      "icon": "performance/storage.png",
       "ps1": "Write-Host '-- Disabling Storage Sense' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy\" /v \"01\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -135,6 +146,7 @@
       "id": "wsearch",
       "label": "Disable Search",
       "desc": "Disables Windows Search, disables drive indexing.",
+      "icon": "performance/search.png",
       "ps1": "Write-Host '-- Disabling Windows Search' -ForegroundColor Green\nStop-Service -Name \"wsearch\"\nSet-Service -Name \"wsearch\" -StartupType Disabled"
     },
     {
@@ -142,6 +154,7 @@
       "id": "faststartup",
       "label": "Disable Fast Startup",
       "desc": "Disables Fast Startup, may fix boot and update issues.",
+      "icon": "performance/faststartup.png",
       "ps1": "Write-Host '-- Disabling Fast Startup' -ForegroundColor Green\nreg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power\" /v \"HiberbootEnabled\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -149,6 +162,7 @@
       "id": "disablehibernation",
       "label": "Disable Hibernation",
       "desc": "Not recommended on laptops.",
+      "icon": "performance/hibernation.png",
       "ps1": "Write-Host '-- Disabling Hibernation' -ForegroundColor Green\npowercfg /h off"
     }
   ]

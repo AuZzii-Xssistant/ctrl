@@ -7,6 +7,7 @@
       "type": "group",
       "label": "Clean-up",
       "desc": "Free up disk space by cleaning up temporary files.",
+      "icon": "tools/clean.png",
       "items": [
         {
           "id": "cleanmgr",
@@ -32,6 +33,7 @@
       "type": "group",
       "label": "Repair",
       "desc": "Verify system files integrity and fix corrupt files.",
+      "icon": "tools/sfc.png",
       "items": [
         {
           "id": "dism",
@@ -52,6 +54,7 @@
       "id": "browserhistory",
       "label": "Clear Browser History",
       "desc": "Clears Chrome, Edge, Brave and Firefox history.",
+      "icon": "tools/browser.png",
       "ps1": "Write-Host '-- Clearing Browser History' -ForegroundColor Green\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Google\\Chrome\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\Microsoft\\Edge\\User Data\\Default\\Cookies\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\places.sqlite\" -Recurse -Force\nRemove-Item -Path \"$env:AppData\\Mozilla\\Firefox\\Profiles\\*.default\\cache2\\entries\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\History\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cache\\*\" -Recurse -Force\nRemove-Item -Path \"$env:LocalAppData\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Cookies\" -Recurse -Force"
     },
     {
@@ -59,6 +62,7 @@
       "id": "resetnetwork",
       "label": "Reset Network",
       "desc": "Flushes the DNS and renews the IP address.",
+      "icon": "tools/network.png",
       "ps1": "Write-Host '-- Resetting Network' -ForegroundColor Green\nipconfig /flushdns\nipconfig /release | Out-Null\nipconfig /renew | Out-Null"
     }
   ]

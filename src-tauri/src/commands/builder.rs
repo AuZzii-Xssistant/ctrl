@@ -9,6 +9,7 @@ use crate::commands::scripts::RunResult;
 #[derive(Serialize)]
 pub struct BuilderDefs {
     pub categories: Vec<serde_json::Value>,
+    pub presets: serde_json::Value,
 }
 
 /// Walk up from exe dir to find data/builder (handles dev: target/debug/ctrl.exe → project root)
@@ -30,7 +31,11 @@ fn load_categories() -> Vec<serde_json::Value> {
     let mut cats = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&data_dir) {
         let mut files: Vec<_> = entries.filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|x| x == "json").unwrap_or(false))
+            .filter(|e| {
+                let name = e.file_name();
+                let s = name.to_string_lossy();
+                s.ends_with(".json") && !s.starts_with('_')
+            })
             .collect();
         files.sort_by_key(|e| e.file_name());
         for entry in files {
@@ -44,49 +49,77 @@ fn load_categories() -> Vec<serde_json::Value> {
     cats
 }
 
-/// Recursively collect PS1/bat/cmd strings for selected IDs, in JSON order.
-fn collect_scripts(val: &serde_json::Value, ids: &HashSet<String>, out_type: &str, out: &mut Vec<String>) {
+fn load_presets() -> serde_json::Value {
+    let meta_path = find_builder_dir().join("_meta.json");
+    if let Ok(content) = std::fs::read_to_string(meta_path) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(p) = val.get("presets") { return p.clone(); }
+        }
+    }
+    serde_json::Value::Object(Default::default())
+}
+
+/// Recursively collect PS1 strings for selected IDs, in JSON order.
+fn collect_scripts(val: &serde_json::Value, ids: &HashSet<String>, out: &mut Vec<String>) {
     match val {
         serde_json::Value::Array(arr) => {
-            for item in arr { collect_scripts(item, ids, out_type, out); }
+            for item in arr { collect_scripts(item, ids, out); }
         }
         serde_json::Value::Object(obj) => {
-            // Leaf with an id and a script
             if let Some(id) = obj.get("id").and_then(|v| v.as_str()) {
                 if ids.contains(id) {
-                    let script = match out_type {
-                        "bat" => obj.get("bat"),
-                        "cmd" => obj.get("cmd"),
-                        _     => obj.get("ps1"),
-                    };
-                    if let Some(serde_json::Value::String(s)) = script {
+                    if let Some(serde_json::Value::String(s)) = obj.get("ps1") {
                         if !s.is_empty() { out.push(s.clone()); }
                     }
                 }
             }
-            // Recurse into items
             if let Some(items) = obj.get("items") {
-                collect_scripts(items, ids, out_type, out);
+                collect_scripts(items, ids, out);
             }
         }
         _ => {}
     }
 }
 
+const SCRIPT_HEADER: &str = r#"# Requires -RunAsAdministrator
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+$ErrorActionPreference = 'SilentlyContinue'
+"#;
+
+const SCRIPT_FOOTER: &str = r#"
+# ── Finalise ──────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "Restarting Explorer..." -ForegroundColor Cyan
+Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+Start-Process explorer
+Write-Host "Done." -ForegroundColor Green
+Read-Host "Press Enter to exit"
+"#;
+
 #[tauri::command]
 pub fn get_builder_actions(_app: tauri::AppHandle) -> Result<BuilderDefs, String> {
-    Ok(BuilderDefs { categories: load_categories() })
+    Ok(BuilderDefs { categories: load_categories(), presets: load_presets() })
 }
 
 #[tauri::command]
 pub fn build_script(_app: tauri::AppHandle, action_ids: Vec<String>, output_type: String) -> Result<String, String> {
+    let _ = output_type; // PS1 only
     let cats = load_categories();
     let ids: HashSet<String> = action_ids.into_iter().collect();
     let mut scripts = Vec::new();
     for cat in &cats {
-        collect_scripts(cat, &ids, &output_type, &mut scripts);
+        collect_scripts(cat, &ids, &mut scripts);
     }
-    Ok(scripts.join("\n"))
+    let body = if scripts.is_empty() {
+        String::from("# No actions selected.\n")
+    } else {
+        scripts.join("\n")
+    };
+    Ok(format!("{}{}{}", SCRIPT_HEADER, body, SCRIPT_FOOTER))
 }
 
 #[tauri::command]

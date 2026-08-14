@@ -1,0 +1,1272 @@
+{
+  "id": "apps",
+  "label": "App Install",
+  "icon": "ti-package",
+  "categories": [
+    {
+      "label": "Utilities",
+      "apps": [
+        {
+          "id": "Intel",
+          "label": "Intel",
+          "choco": "intel-dsa",
+          "winget": "Intel.DriverAndSupportAssistant"
+        },
+        {
+          "id": "NVIDIA",
+          "label": "NVIDIA",
+          "choco": "nvidia-display-driver",
+          "winget": "TechPowerUp.NVCleanstall"
+        },
+        {
+          "id": "Ryzen",
+          "label": "Ryzen",
+          "choco": "amd-ryzen-chipset",
+          "winget": null
+        },
+        {
+          "id": "Brave",
+          "label": "Brave",
+          "choco": "brave",
+          "winget": "Brave.Brave"
+        },
+        {
+          "id": "Chrome",
+          "label": "Chrome",
+          "choco": "googlechrome",
+          "winget": "Google.Chrome"
+        },
+        {
+          "id": "Chromium",
+          "label": "Chromium",
+          "choco": "chromium",
+          "winget": "Hibbiki.Chromium"
+        },
+        {
+          "id": "Falkon",
+          "label": "Falkon",
+          "choco": "falkon",
+          "winget": "KDE.Falkon"
+        },
+        {
+          "id": "Firefox",
+          "label": "Firefox",
+          "choco": "firefox",
+          "winget": "Mozilla.Firefox"
+        },
+        {
+          "id": "Floorp",
+          "label": "Floorp",
+          "choco": "floorp",
+          "winget": "Ablaze.Floorp"
+        },
+        {
+          "id": "LibreWolf",
+          "label": "LibreWolf",
+          "choco": "librewolf",
+          "winget": "LibreWolf.LibreWolf"
+        },
+        {
+          "id": "Opera",
+          "label": "Opera",
+          "choco": "opera",
+          "winget": "Opera.Opera"
+        },
+        {
+          "id": "Palemoon",
+          "label": "Palemoon",
+          "choco": "palemoon",
+          "winget": "MoonchildProductions.PaleMoon"
+        },
+        {
+          "id": "Thorium",
+          "label": "Thorium",
+          "choco": "thorium",
+          "winget": "Alex313031.Thorium"
+        },
+        {
+          "id": "Tor",
+          "label": "Tor",
+          "choco": "tor-browser",
+          "winget": "TorProject.TorBrowser"
+        },
+        {
+          "id": "Ungoogled",
+          "label": "Ungoogled",
+          "choco": "ungoogled-chromium",
+          "winget": "eloston.ungoogled-chromium"
+        },
+        {
+          "id": "Vivaldi",
+          "label": "Vivaldi",
+          "choco": "vivaldi",
+          "winget": "Vivaldi.Vivaldi"
+        },
+        {
+          "id": "Waterfox",
+          "label": "Waterfox",
+          "choco": "waterfox",
+          "winget": "Waterfox.Waterfox"
+        },
+        {
+          "id": "ZenBrowser",
+          "label": "ZenBrowser",
+          "choco": "zen-browser",
+          "winget": "Zen-Team.Zen-Browser"
+        },
+        {
+          "id": "7Zip",
+          "label": "7Zip",
+          "choco": "7zip",
+          "winget": "7zip.7zip"
+        },
+        {
+          "id": "NanaZip",
+          "label": "NanaZip",
+          "choco": "nanazip",
+          "winget": "M2Team.NanaZip"
+        },
+        {
+          "id": "PeaZip",
+          "label": "PeaZip",
+          "choco": "peazip",
+          "winget": "Giorgiotani.PeaZip"
+        },
+        {
+          "id": "WinRAR",
+          "label": "WinRAR",
+          "choco": "winrar",
+          "winget": "RARLab.WinRAR"
+        },
+        {
+          "id": "EAApp",
+          "label": "EAApp",
+          "choco": "ea-app",
+          "winget": "ElectronicArts.EADesktop"
+        },
+        {
+          "id": "EpicGames",
+          "label": "EpicGames",
+          "choco": "epicgameslauncher",
+          "winget": "EpicGames.EpicGamesLauncher"
+        },
+        {
+          "id": "FaceIT",
+          "label": "FaceIT",
+          "choco": "faceit",
+          "winget": "FACEITLTD.FACEITClient"
+        },
+        {
+          "id": "GeforceNOW",
+          "label": "GeforceNOW",
+          "choco": "nvidia-geforce-now",
+          "winget": "Nvidia.GeForceNow"
+        },
+        {
+          "id": "GOGGalaxy",
+          "label": "GOGGalaxy",
+          "choco": "goggalaxy",
+          "winget": "GOG.Galaxy"
+        },
+        {
+          "id": "LGHub",
+          "label": "LGHub",
+          "choco": "lghub",
+          "winget": "Logitech.GHUB"
+        },
+        {
+          "id": "Minecraft",
+          "label": "Minecraft",
+          "choco": "minecraft-launcher",
+          "winget": "Mojang.MinecraftLauncher"
+        },
+        {
+          "id": "Modrinth",
+          "label": "Modrinth",
+          "choco": "modrinth-app",
+          "winget": "Modrinth.ModrinthApp"
+        },
+        {
+          "id": "PlayNite",
+          "label": "PlayNite",
+          "choco": "playnite",
+          "winget": "Playnite.Playnite"
+        },
+        {
+          "id": "PrismLauncher",
+          "label": "PrismLauncher",
+          "choco": "prismlauncher",
+          "winget": "PrismLauncher.PrismLauncher"
+        },
+        {
+          "id": "Steam",
+          "label": "Steam",
+          "choco": "steam",
+          "winget": "Valve.Steam"
+        },
+        {
+          "id": "UbisoftConnect",
+          "label": "UbisoftConnect",
+          "choco": "ubisoft-connect",
+          "winget": "Ubisoft.Connect"
+        },
+        {
+          "id": "1Password",
+          "label": "1Password",
+          "choco": "1password",
+          "winget": "AgileBits.1Password"
+        },
+        {
+          "id": "AnyDesk",
+          "label": "AnyDesk",
+          "choco": "anydesk",
+          "winget": "AnyDesk.AnyDesk"
+        },
+        {
+          "id": "AutoHotkey",
+          "label": "AutoHotkey",
+          "choco": "hotkey",
+          "winget": "AutoHotkey.AutoHotkey"
+        },
+        {
+          "id": "BitDefender",
+          "label": "BitDefender",
+          "choco": "bitdefenderavfree",
+          "winget": "Bitdefender.Bitdefender"
+        },
+        {
+          "id": "BitWarden",
+          "label": "BitWarden",
+          "choco": "bitwarden",
+          "winget": "Bitwarden.Bitwarden"
+        },
+        {
+          "id": "BulkCrapUninstaller",
+          "label": "BulkCrapUninstaller",
+          "choco": "bulk-crap-uninstaller",
+          "winget": "Klocman.BulkCrapUninstaller"
+        },
+        {
+          "id": "BulkRename",
+          "label": "BulkRename",
+          "choco": "bulkrenameutility",
+          "winget": "TGRMNSoftware.BulkRenameUtility"
+        },
+        {
+          "id": "CCleaner",
+          "label": "CCleaner",
+          "choco": "ccleaner",
+          "winget": "Piriform.CCleaner"
+        },
+        {
+          "id": "CPU-Z",
+          "label": "CPU-Z",
+          "choco": "cpu-z",
+          "winget": "CPUID.CPU-Z"
+        },
+        {
+          "id": "DropBox",
+          "label": "DropBox",
+          "choco": "dropbox",
+          "winget": "Dropbox.Dropbox"
+        },
+        {
+          "id": "DDU",
+          "label": "DDU",
+          "choco": "ddu",
+          "winget": "Wagnardsoft.DisplayDriverUninstaller"
+        },
+        {
+          "id": "Everything",
+          "label": "Everything",
+          "choco": "everything",
+          "winget": "voidtools.Everything"
+        },
+        {
+          "id": "FlowLauncher",
+          "label": "FlowLauncher",
+          "choco": "flow-launcher",
+          "winget": "Flow-Launcher.Flow-Launcher"
+        },
+        {
+          "id": "FXSound",
+          "label": "FXSound",
+          "choco": "fxsound",
+          "winget": "FXSound.FXSound"
+        },
+        {
+          "id": "GoogleDrive",
+          "label": "GoogleDrive",
+          "choco": "googledrive",
+          "winget": "Google.Drive"
+        },
+        {
+          "id": "GPU-Z",
+          "label": "GPU-Z",
+          "choco": "gpu-z",
+          "winget": "TechPowerUp.GPU-Z"
+        },
+        {
+          "id": "HWInfo",
+          "label": "HWInfo",
+          "choco": "hwinfo",
+          "winget": "REALiX.HWiNFO"
+        },
+        {
+          "id": "HWMonitor",
+          "label": "HWMonitor",
+          "choco": "hwmonitor",
+          "winget": "CPUID.HWMonitor"
+        },
+        {
+          "id": "ImgBurn",
+          "label": "ImgBurn",
+          "choco": "imgburn",
+          "winget": "LIGHTNINGUK.ImgBurn"
+        },
+        {
+          "id": "JDownloader",
+          "label": "JDownloader",
+          "choco": "jdownloader",
+          "winget": "AppWork.JDownloader"
+        },
+        {
+          "id": "KeePass",
+          "label": "KeePass",
+          "choco": "keepass",
+          "winget": "DominikReichl.KeePass"
+        },
+        {
+          "id": "MEGASync",
+          "label": "MEGASync",
+          "choco": "megasync",
+          "winget": "Mega.MEGASync"
+        },
+        {
+          "id": "ModernFlyouts",
+          "label": "ModernFlyouts",
+          "choco": "modernflyouts",
+          "winget": "ModernFlyouts.ModernFlyouts"
+        },
+        {
+          "id": "Afterburner",
+          "label": "Afterburner",
+          "choco": "msiafterburner",
+          "winget": "Guru3D.Afterburner"
+        },
+        {
+          "id": "Shell",
+          "label": "Shell",
+          "choco": "nilesoft-shell",
+          "winget": "Nilesoft.Shell"
+        },
+        {
+          "id": "ProcessLasso",
+          "label": "ProcessLasso",
+          "choco": "plasso",
+          "winget": "BitSum.ProcessLasso"
+        },
+        {
+          "id": "ProtonDrive",
+          "label": "ProtonDrive",
+          "choco": "protondrive",
+          "winget": "Proton.ProtonDrive"
+        },
+        {
+          "id": "ProtonMail",
+          "label": "ProtonMail",
+          "choco": "protonmail",
+          "winget": "Proton.ProtonMailBridge"
+        },
+        {
+          "id": "ProtonPass",
+          "label": "ProtonPass",
+          "choco": "protonpass",
+          "winget": "Proton.ProtonPass"
+        },
+        {
+          "id": "qBitTorrent",
+          "label": "qBitTorrent",
+          "choco": "qbittorrent",
+          "winget": "qBittorrent.qBittorrent"
+        },
+        {
+          "id": "QuickLook",
+          "label": "QuickLook",
+          "choco": "quicklook",
+          "winget": "QL-Win.QuickLook"
+        },
+        {
+          "id": "Rainmeter",
+          "label": "Rainmeter",
+          "choco": "rainmeter",
+          "winget": "Rainmeter.Rainmeter"
+        },
+        {
+          "id": "Revo",
+          "label": "Revo",
+          "choco": "revo-uninstaller",
+          "winget": "RevoUninstaller.RevoUninstaller"
+        },
+        {
+          "id": "RustDesk",
+          "label": "RustDesk",
+          "choco": "rustdesk.install",
+          "winget": "RustDesk.RustDesk"
+        },
+        {
+          "id": "SnappyDriver",
+          "label": "SnappyDriver",
+          "choco": "snappy-driver-installer",
+          "winget": "samlabs-ws.SnappyDriverInstaller"
+        },
+        {
+          "id": "StartAllBack",
+          "label": "StartAllBack",
+          "choco": "startallback",
+          "winget": "StartIsBack.StartAllBack"
+        },
+        {
+          "id": "TeamViewer",
+          "label": "TeamViewer",
+          "choco": "teamviewer",
+          "winget": "TeamViewer.TeamViewer"
+        },
+        {
+          "id": "TotalCommander",
+          "label": "TotalCommander",
+          "choco": "totalcommander",
+          "winget": "Ghisler.TotalCommander"
+        },
+        {
+          "id": "TransluscentTB",
+          "label": "TransluscentTB",
+          "choco": "translucenttb",
+          "winget": "CharlesMilette.TranslucentTB"
+        },
+        {
+          "id": "TreeSize",
+          "label": "TreeSize",
+          "choco": "treesizefree",
+          "winget": "JAMSoftware.TreeSize.Free"
+        },
+        {
+          "id": "VirtualBox",
+          "label": "VirtualBox",
+          "choco": "virtualbox",
+          "winget": "Oracle.VirtualBox"
+        },
+        {
+          "id": "WinDirStat",
+          "label": "WinDirStat",
+          "choco": "windirstat",
+          "winget": "WinDirStat.WinDirStat"
+        },
+        {
+          "id": "WindHawk",
+          "label": "WindHawk",
+          "choco": "windhawk",
+          "winget": "RamenSoftware.Windhawk"
+        },
+        {
+          "id": "WingetUI",
+          "label": "WingetUI",
+          "choco": "wingetui",
+          "winget": "marticliment.UniGetUI"
+        },
+        {
+          "id": "AdvancedIpScanner",
+          "label": "AdvancedIpScanner",
+          "choco": "advanced-ip-scanner",
+          "winget": "Famatech.AdvancedIPScanner"
+        },
+        {
+          "id": "AngryIpScanner",
+          "label": "AngryIpScanner",
+          "choco": "angryip",
+          "winget": "angryziber.AngryIPScanner"
+        },
+        {
+          "id": "MullvadVPN",
+          "label": "MullvadVPN",
+          "choco": "mullvad-app",
+          "winget": "MullvadVPN.MullvadVPN"
+        },
+        {
+          "id": "OpenVPN",
+          "label": "OpenVPN",
+          "choco": "openvpn",
+          "winget": "OpenVPNTechnologies.OpenVPN"
+        },
+        {
+          "id": "ProtonVPN",
+          "label": "ProtonVPN",
+          "choco": "protonvpn",
+          "winget": "Proton.ProtonVPN"
+        },
+        {
+          "id": "PuTTY",
+          "label": "PuTTY",
+          "choco": "putty",
+          "winget": "PuTTY.PuTTY"
+        },
+        {
+          "id": "SimpleWall",
+          "label": "SimpleWall",
+          "choco": "simplewall",
+          "winget": "Henry++.Simplewall"
+        },
+        {
+          "id": "WireShark",
+          "label": "WireShark",
+          "choco": "wireshark",
+          "winget": "WiresharkFoundation.Wireshark"
+        },
+        {
+          "id": "WireGuard",
+          "label": "WireGuard",
+          "choco": "wireguard",
+          "winget": "WireGuard.WireGuard"
+        },
+        {
+          "id": "Autoruns",
+          "label": "Autoruns",
+          "choco": "autoruns",
+          "winget": "Microsoft.Sysinternals.Autoruns"
+        },
+        {
+          "id": "Nuget",
+          "label": "Nuget",
+          "choco": "nuget.commandline",
+          "winget": "Microsoft.NuGet"
+        },
+        {
+          "id": "OneDrive",
+          "label": "OneDrive",
+          "choco": "onedrive",
+          "winget": "Microsoft.OneDrive"
+        },
+        {
+          "id": "PowerToys",
+          "label": "PowerToys",
+          "choco": "powertoys",
+          "winget": "Microsoft.PowerToys"
+        },
+        {
+          "id": "PowerBI",
+          "label": "PowerBI",
+          "choco": "powerbi",
+          "winget": "Microsoft.PowerBI"
+        },
+        {
+          "id": "ProcessMonitor",
+          "label": "ProcessMonitor",
+          "choco": "procmon",
+          "winget": "Microsoft.Sysinternals.ProcessMonitor"
+        },
+        {
+          "id": "vcredist",
+          "label": "vcredist",
+          "choco": "vcredist140",
+          "winget": "Microsoft.VCRedist.2015+.x64"
+        },
+        {
+          "id": "WinTerminal",
+          "label": "WinTerminal",
+          "choco": "microsoft-windows-terminal",
+          "winget": "Microsoft.WindowsTerminal"
+        },
+        {
+          "id": "AIMP",
+          "label": "AIMP",
+          "choco": "aimp",
+          "winget": "AIMP.AIMP"
+        },
+        {
+          "id": "Audacity",
+          "label": "Audacity",
+          "choco": "audacity",
+          "winget": "Audacity.Audacity"
+        },
+        {
+          "id": "Clementine",
+          "label": "Clementine",
+          "choco": "clementine",
+          "winget": "Clementine.Clementine"
+        },
+        {
+          "id": "DarkTable",
+          "label": "DarkTable",
+          "choco": "darktable",
+          "winget": "darktable.darktable"
+        },
+        {
+          "id": "digiKam",
+          "label": "digiKam",
+          "choco": "digikam",
+          "winget": "KDE.digiKam"
+        },
+        {
+          "id": "EarTrumpet",
+          "label": "EarTrumpet",
+          "choco": "eartrumpet",
+          "winget": "File-New-Project.EarTrumpet"
+        },
+        {
+          "id": "EqualizerAPO",
+          "label": "EqualizerAPO",
+          "choco": "equalizerapo",
+          "winget": null
+        },
+        {
+          "id": "FFmpeg",
+          "label": "FFmpeg",
+          "choco": "ffmpeg",
+          "winget": "Gyan.FFmpeg"
+        },
+        {
+          "id": "Flameshot",
+          "label": "Flameshot",
+          "choco": "flameshot",
+          "winget": "Flameshot.Flameshot"
+        },
+        {
+          "id": "foobar2000",
+          "label": "foobar2000",
+          "choco": "foobar2000",
+          "winget": "PeterPawlowski.foobar2000"
+        },
+        {
+          "id": "FreeCAD",
+          "label": "FreeCAD",
+          "choco": "freecad",
+          "winget": "FreeCAD.FreeCAD"
+        },
+        {
+          "id": "HandBrake",
+          "label": "HandBrake",
+          "choco": "handbrake",
+          "winget": "HandBrake.HandBrake"
+        },
+        {
+          "id": "ImageGlass",
+          "label": "ImageGlass",
+          "choco": "imageglass",
+          "winget": "DuongDieuPhap.ImageGlass"
+        },
+        {
+          "id": "iTunes",
+          "label": "iTunes",
+          "choco": "itunes",
+          "winget": "Apple.iTunes"
+        },
+        {
+          "id": "Jellyfin",
+          "label": "Jellyfin",
+          "choco": "jellyfin",
+          "winget": "Jellyfin.Server"
+        },
+        {
+          "id": "KLite",
+          "label": "KLite",
+          "choco": "k-litecodecpackbasic",
+          "winget": "CodecGuide.K-LiteCodecPack.Basic"
+        },
+        {
+          "id": "Kodi",
+          "label": "Kodi",
+          "choco": "kodi",
+          "winget": "XBMCFoundation.Kodi"
+        },
+        {
+          "id": "MediaMonkey",
+          "label": "MediaMonkey",
+          "choco": "mediamonkey",
+          "winget": "Ventis.MediaMonkey.5"
+        },
+        {
+          "id": "MuseScore",
+          "label": "MuseScore",
+          "choco": "musescore",
+          "winget": "Musescore.MuseScore"
+        },
+        {
+          "id": "Nomacs",
+          "label": "Nomacs",
+          "choco": "nomacs",
+          "winget": "Nomacs.Nomacs"
+        },
+        {
+          "id": "OBS",
+          "label": "OBS",
+          "choco": "obs-studio",
+          "winget": "OBSProject.OBSStudio"
+        },
+        {
+          "id": "OpenShot",
+          "label": "OpenShot",
+          "choco": "openshot",
+          "winget": "OpenShot.OpenShot"
+        },
+        {
+          "id": "Plex",
+          "label": "Plex",
+          "choco": "plex",
+          "winget": "Plex.Plex"
+        },
+        {
+          "id": "Shotcut",
+          "label": "Shotcut",
+          "choco": "shotcut",
+          "winget": "Meltytech.Shotcut"
+        },
+        {
+          "id": "Spicetify",
+          "label": "Spicetify",
+          "choco": "spicetify-cli",
+          "winget": "Spicetify.Spicetify"
+        },
+        {
+          "id": "Spotify",
+          "label": "Spotify",
+          "choco": "spotify",
+          "winget": "Spotify.Spotify"
+        },
+        {
+          "id": "Stremio",
+          "label": "Stremio",
+          "choco": "stremio",
+          "winget": "Stremio.Stremio"
+        },
+        {
+          "id": "TagScanner",
+          "label": "TagScanner",
+          "choco": "tagscanner",
+          "winget": "SergeySerkov.TagScanner"
+        },
+        {
+          "id": "Tidal",
+          "label": "Tidal",
+          "choco": "tidal",
+          "winget": "TIDALMusicAS.TIDAL"
+        },
+        {
+          "id": "VLC",
+          "label": "VLC",
+          "choco": "vlc",
+          "winget": "VideoLAN.VLC"
+        },
+        {
+          "id": "VoiceMeeter",
+          "label": "VoiceMeeter",
+          "choco": "voicemeeter",
+          "winget": "VB-Audio.VoiceMeeter"
+        },
+        {
+          "id": "yt-dlp",
+          "label": "yt-dlp",
+          "choco": "yt-dlp",
+          "winget": "yt-dlp.yt-dlp"
+        },
+        {
+          "id": "Beeper",
+          "label": "Beeper",
+          "choco": "beeper-app",
+          "winget": "Beeper.Beeper"
+        },
+        {
+          "id": "BetterBird",
+          "label": "BetterBird",
+          "choco": "betterbird",
+          "winget": "BetterBird.BetterBird"
+        },
+        {
+          "id": "Chatterino",
+          "label": "Chatterino",
+          "choco": "chatterino",
+          "winget": "ChatterinoTeam.Chatterino"
+        },
+        {
+          "id": "Discord",
+          "label": "Discord",
+          "choco": "discord",
+          "winget": "Discord.Discord"
+        },
+        {
+          "id": "Ferdium",
+          "label": "Ferdium",
+          "choco": "ferdium",
+          "winget": "Ferdium.Ferdium"
+        },
+        {
+          "id": "Hexchat",
+          "label": "Hexchat",
+          "choco": "hexchat",
+          "winget": "HexChat.HexChat"
+        },
+        {
+          "id": "Jami",
+          "label": "Jami",
+          "choco": "jami",
+          "winget": "SFLinux.Jami"
+        },
+        {
+          "id": "Linphone",
+          "label": "Linphone",
+          "choco": "linphone",
+          "winget": "BelledonneCommunications.Linphone"
+        },
+        {
+          "id": "Signal",
+          "label": "Signal",
+          "choco": "signal",
+          "winget": "OpenWhisperSystems.Signal"
+        },
+        {
+          "id": "Slack",
+          "label": "Slack",
+          "choco": "slack",
+          "winget": "SlackTechnologies.Slack"
+        },
+        {
+          "id": "Teams",
+          "label": "Teams",
+          "choco": "microsoft-teams",
+          "winget": "Microsoft.Teams"
+        },
+        {
+          "id": "Telegram",
+          "label": "Telegram",
+          "choco": "telegram",
+          "winget": "Telegram.TelegramDesktop"
+        },
+        {
+          "id": "Thunderbird",
+          "label": "Thunderbird",
+          "choco": "thunderbird",
+          "winget": "Mozilla.Thunderbird"
+        },
+        {
+          "id": "Viber",
+          "label": "Viber",
+          "choco": "viber",
+          "winget": "Rakuten.Viber"
+        },
+        {
+          "id": "Whatsapp",
+          "label": "Whatsapp",
+          "choco": "whatsapp",
+          "winget": "WhatsApp.WhatsApp"
+        },
+        {
+          "id": "Zoom",
+          "label": "Zoom",
+          "choco": "zoom",
+          "winget": "Zoom.Zoom"
+        },
+        {
+          "id": "Zulip",
+          "label": "Zulip",
+          "choco": "zulip",
+          "winget": "Zulip.Zulip"
+        },
+        {
+          "id": "Blender",
+          "label": "Blender",
+          "choco": "blender",
+          "winget": "BlenderFoundation.Blender"
+        },
+        {
+          "id": "GIMP",
+          "label": "GIMP",
+          "choco": "gimp",
+          "winget": "GIMP.GIMP.3"
+        },
+        {
+          "id": "Greenshot",
+          "label": "Greenshot",
+          "choco": "greenshot",
+          "winget": "Greenshot.Greenshot"
+        },
+        {
+          "id": "inkScape",
+          "label": "inkScape",
+          "choco": "inkscape",
+          "winget": "Inkscape.Inkscape"
+        },
+        {
+          "id": "KdenLive",
+          "label": "KdenLive",
+          "choco": "kdenlive",
+          "winget": "KDE.Kdenlive"
+        },
+        {
+          "id": "Krita",
+          "label": "Krita",
+          "choco": "krita",
+          "winget": "KDE.Krita"
+        },
+        {
+          "id": "LightShot",
+          "label": "LightShot",
+          "choco": "lightshot",
+          "winget": "Skillbrains.Lightshot"
+        },
+        {
+          "id": "ShareX",
+          "label": "ShareX",
+          "choco": "sharex",
+          "winget": "ShareX.ShareX"
+        },
+        {
+          "id": "Anki",
+          "label": "Anki",
+          "choco": "anki",
+          "winget": "Anki.Anki"
+        },
+        {
+          "id": "AdobeReader",
+          "label": "AdobeReader",
+          "choco": "adobereader",
+          "winget": "Adobe.Acrobat.Reader.64-bit"
+        },
+        {
+          "id": "AFFiNE",
+          "label": "AFFiNE",
+          "choco": "affine-client",
+          "winget": "Toeverything.AFFiNE"
+        },
+        {
+          "id": "FoxItReader",
+          "label": "FoxItReader",
+          "choco": "foxitreader",
+          "winget": "Foxit.FoxitReader"
+        },
+        {
+          "id": "Joplin",
+          "label": "Joplin",
+          "choco": "joplin",
+          "winget": "Joplin.Joplin"
+        },
+        {
+          "id": "LibreOffice",
+          "label": "LibreOffice",
+          "choco": "libreoffice-fresh",
+          "winget": "TheDocumentFoundation.LibreOffice"
+        },
+        {
+          "id": "LogSeq",
+          "label": "LogSeq",
+          "choco": "logseq",
+          "winget": "Logseq.Logseq"
+        },
+        {
+          "id": "NAPS2",
+          "label": "NAPS2",
+          "choco": "naps2",
+          "winget": "Cyanfish.NAPS2"
+        },
+        {
+          "id": "Obsidian",
+          "label": "Obsidian",
+          "choco": "obsidian",
+          "winget": "Obsidian.Obsidian"
+        },
+        {
+          "id": "OpenOffice",
+          "label": "OpenOffice",
+          "choco": "openoffice",
+          "winget": "Apache.OpenOffice"
+        },
+        {
+          "id": "PDF24",
+          "label": "PDF24",
+          "choco": "pdf24",
+          "winget": "geeksoftwareGmbH.PDF24Creator"
+        },
+        {
+          "id": "PDFGear",
+          "label": "PDFGear",
+          "choco": "pdfgear",
+          "winget": "PDFGear.PDFGear"
+        },
+        {
+          "id": "PDFSam",
+          "label": "PDFSam",
+          "choco": "pdfsam",
+          "winget": "PDFSam.PDFSam"
+        },
+        {
+          "id": "simplenote",
+          "label": "simplenote",
+          "choco": "simplenote",
+          "winget": "Automattic.Simplenote"
+        },
+        {
+          "id": "SumatraPDF",
+          "label": "SumatraPDF",
+          "choco": "sumatrapdf",
+          "winget": "SumatraPDF.SumatraPDF"
+        },
+        {
+          "id": "WinMerge",
+          "label": "WinMerge",
+          "choco": "winmerge",
+          "winget": "WinMerge.WinMerge"
+        },
+        {
+          "id": "Xournal",
+          "label": "Xournal",
+          "choco": "xournalplusplus",
+          "winget": "Xournal++.Xournal++"
+        },
+        {
+          "id": "Zotero",
+          "label": "Zotero",
+          "choco": "zotero",
+          "winget": "DigitalScholar.Zotero"
+        },
+        {
+          "id": "Avast",
+          "label": "Avast",
+          "choco": "avastfreeantivirus",
+          "winget": null
+        },
+        {
+          "id": "AVG",
+          "label": "AVG",
+          "choco": "avgantivirusfree",
+          "winget": null
+        },
+        {
+          "id": "ClamAV",
+          "label": "ClamAV",
+          "choco": "clamav",
+          "winget": "Cisco.ClamAV"
+        },
+        {
+          "id": "ESET",
+          "label": "ESET",
+          "choco": "eset-nod32-antivirus",
+          "winget": "ESET.Nod32"
+        },
+        {
+          "id": "Kaspersky",
+          "label": "Kaspersky",
+          "choco": "kav",
+          "winget": null
+        },
+        {
+          "id": "MalwareBytes",
+          "label": "MalwareBytes",
+          "choco": "malwarebytes",
+          "winget": "Malwarebytes.Malwarebytes"
+        },
+        {
+          "id": "Aegisub",
+          "label": "Aegisub",
+          "choco": "aegisub",
+          "winget": "Aegisub.Aegisub"
+        },
+        {
+          "id": "Anaconda3",
+          "label": "Anaconda3",
+          "choco": "anaconda3",
+          "winget": "Anaconda.Anaconda3"
+        },
+        {
+          "id": "Clink",
+          "label": "Clink",
+          "choco": "clink-maintained",
+          "winget": "chrisant996.clink"
+        },
+        {
+          "id": "CMake",
+          "label": "CMake",
+          "choco": "cmake",
+          "winget": "Kitware.CMake"
+        },
+        {
+          "id": "Cursor",
+          "label": "Cursor",
+          "choco": "cursoride",
+          "winget": "Anysphere.Cursor"
+        },
+        {
+          "id": "Docker",
+          "label": "Docker",
+          "choco": "docker-desktop",
+          "winget": "Docker.DockerDesktop"
+        },
+        {
+          "id": "Git",
+          "label": "Git",
+          "choco": "git",
+          "winget": "Git.Git"
+        },
+        {
+          "id": "GitExtensions",
+          "label": "GitExtensions",
+          "choco": "gitextensions",
+          "winget": "GitExtensionsTeam.GitExtensions"
+        },
+        {
+          "id": "GitHub",
+          "label": "GitHub",
+          "choco": "github-desktop",
+          "winget": "GitHub.GitHubDesktop"
+        },
+        {
+          "id": "GitHubCLI",
+          "label": "GitHubCLI",
+          "choco": "gh",
+          "winget": "GitHub.cli"
+        },
+        {
+          "id": "Go",
+          "label": "Go",
+          "choco": "go",
+          "winget": "GoLang.Go"
+        },
+        {
+          "id": "Godot",
+          "label": "Godot",
+          "choco": "godot",
+          "winget": "GodotEngine.GodotEngine"
+        },
+        {
+          "id": "Java",
+          "label": "Java",
+          "choco": "javaruntime",
+          "winget": "Oracle.JavaRuntimeEnvironment"
+        },
+        {
+          "id": "Lazygit",
+          "label": "Lazygit",
+          "choco": "lazygit",
+          "winget": "jesseDuffield.lazygit"
+        },
+        {
+          "id": "Miniconda",
+          "label": "Miniconda",
+          "choco": "miniconda3",
+          "winget": "Anaconda.Miniconda3"
+        },
+        {
+          "id": "Neovim",
+          "label": "Neovim",
+          "choco": "neovim",
+          "winget": "Neovim.Neovim"
+        },
+        {
+          "id": "NET48",
+          "label": "NET48",
+          "choco": "netfx-4.8",
+          "winget": "Microsoft.DotNet.Framework.DeveloperPack_4"
+        },
+        {
+          "id": "NET8",
+          "label": "NET8",
+          "choco": "dotnet",
+          "winget": "Microsoft.DotNet.DesktopRuntime.8"
+        },
+        {
+          "id": "NodeJS",
+          "label": "NodeJS",
+          "choco": "nodejs",
+          "winget": "OpenJS.NodeJS"
+        },
+        {
+          "id": "Notepad++",
+          "label": "Notepad++",
+          "choco": "notepadplusplus",
+          "winget": "Notepad++.Notepad++"
+        },
+        {
+          "id": "OhMyPosh",
+          "label": "OhMyPosh",
+          "choco": "oh-my-posh",
+          "winget": "JanDeDobbeleer.OhMyPosh"
+        },
+        {
+          "id": "Postman",
+          "label": "Postman",
+          "choco": "postman",
+          "winget": "Postman.Postman"
+        },
+        {
+          "id": "Pulsar",
+          "label": "Pulsar",
+          "choco": "pulsar",
+          "winget": "Pulsar-Edit.Pulsar"
+        },
+        {
+          "id": "Python3",
+          "label": "Python3",
+          "choco": "python3",
+          "winget": "Python.Python.3.10"
+        },
+        {
+          "id": "Rust",
+          "label": "Rust",
+          "choco": "rust",
+          "winget": "Rustlang.Rustup"
+        },
+        {
+          "id": "SublimeText",
+          "label": "SublimeText",
+          "choco": "sublimetext3",
+          "winget": "SublimeHQ.SublimeText.3"
+        },
+        {
+          "id": "Vagrant",
+          "label": "Vagrant",
+          "choco": "vagrant",
+          "winget": "Hashicorp.Vagrant"
+        },
+        {
+          "id": "VSCode",
+          "label": "VSCode",
+          "choco": "vscode",
+          "winget": "Microsoft.VisualStudioCode"
+        },
+        {
+          "id": "VSCodium",
+          "label": "VSCodium",
+          "choco": "vscodium",
+          "winget": "VSCodium.VSCodium"
+        },
+        {
+          "id": "VS",
+          "label": "VS",
+          "choco": "visualstudio-installer",
+          "winget": "Microsoft.VisualStudio.2022.Community"
+        },
+        {
+          "id": "WSL2",
+          "label": "WSL2",
+          "choco": "wsl2",
+          "winget": "Microsoft.WSL"
+        },
+        {
+          "id": "Yarn",
+          "label": "Yarn",
+          "choco": "yarn",
+          "winget": "Yarn.Yarn"
+        },
+        {
+          "id": "Zed",
+          "label": "Zed",
+          "choco": "zed",
+          "winget": "ZedIndustries.Zed"
+        },
+        {
+          "id": "Harmonoid",
+          "label": "Harmonoid",
+          "choco": null,
+          "winget": "Harmonoid.Harmonoid"
+        }
+      ]
+    }
+  ]
+}

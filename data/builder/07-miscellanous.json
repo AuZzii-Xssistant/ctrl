@@ -8,6 +8,7 @@
       "id": "classicmenu",
       "label": "Set Classic Right Click Menu",
       "desc": "Restores the Windows 10 context menu on Windows 11.",
+      "icon": "misc/click.png",
       "ps1": "Write-Host '-- Setting Classic Right-Click Menu' -ForegroundColor Green\nreg add \"HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32\" /f /ve"
     },
     {
@@ -15,6 +16,7 @@
       "id": "mpo",
       "label": "Disable Multiplane Overlay (MPO)",
       "desc": "Disables MPO, might help with screen flickering and crashes.",
+      "icon": "misc/mpo.svg",
       "ps1": "Write-Host '-- Disabling Multiplane Overlay (MPO)' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\Dwm\" /v \"OverlayTestMode\" /t REG_DWORD /d \"00000005\" /f"
     },
     {
@@ -22,6 +24,7 @@
       "id": "endtask",
       "label": "Add End Task to Context Menu",
       "desc": "",
+      "icon": "misc/end.png",
       "ps1": "Write-Host '-- Adding End Task to Right-Click' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings\" /v \"TaskbarEndTask\" /t REG_DWORD /d \"1\" /f"
     },
     {
@@ -29,6 +32,7 @@
       "id": "homegallery",
       "label": "Remove Home and Gallery from File Explorer",
       "desc": "",
+      "icon": "misc/home.svg",
       "ps1": "Write-Host '-- Removing Home and Gallery from File Explorer' -ForegroundColor Green\nreg add \"HKCU\\Software\\Classes\\CLSID\\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}\" /v \"System.IsPinnedToNameSpaceTree\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Classes\\CLSID\\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}\" /v \"System.IsPinnedToNameSpaceTree\" /t REG_DWORD /d \"0\" /f\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"LaunchTo\" /t REG_DWORD /d \"1\" /f"
     },
     {
@@ -36,6 +40,7 @@
       "id": "taskbarleft",
       "label": "Move Taskbar Icons to Left",
       "desc": "",
+      "icon": "misc/taskbarleft.png",
       "ps1": "Write-Host '-- Moving Taskbar Icons to the left' -ForegroundColor Green\nreg add \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v TaskbarAl /t REG_DWORD /d 0 /f"
     },
     {
@@ -43,6 +48,7 @@
       "id": "numlockstartup",
       "label": "Disable Numlock on Startup",
       "desc": "",
+      "icon": "misc/numlock.png",
       "ps1": "Write-Host '-- Disabling Num Lock on Startup' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Keyboard\" /v \"InitialKeyboardIndicators\" /t REG_SZ /d \"0\" /f"
     },
     {
@@ -50,6 +56,7 @@
       "id": "darkmode",
       "label": "Enable Dark Mode",
       "desc": "",
+      "icon": "misc/dark.png",
       "ps1": "Write-Host '-- Enabling Dark Mode' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v \"AppsUseLightTheme\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v \"SystemUsesLightTheme\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -57,6 +64,7 @@
       "id": "filextensions",
       "label": "Show File Extensions",
       "desc": "",
+      "icon": "misc/show.png",
       "ps1": "Write-Host '-- Showing File Extensions' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"HideFileExt\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -64,6 +72,7 @@
       "id": "hiddenfiles",
       "label": "Show Hidden Files",
       "desc": "",
+      "icon": "misc/hidden.svg",
       "ps1": "Write-Host '-- Showing Hidden Files' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"Hidden\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -71,6 +80,7 @@
       "id": "stickykeys",
       "label": "Disable Sticky Keys",
       "desc": "",
+      "icon": "misc/sticky.png",
       "ps1": "Write-Host '-- Disabling Sticky Keys' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Accessibility\\StickyKeys\" /v \"Flags\" /t REG_SZ /d \"58\" /f"
     },
     {
@@ -78,6 +88,7 @@
       "id": "snapflyout",
       "label": "Disable Snap Layout",
       "desc": "",
+      "icon": "misc/snap.png",
       "ps1": "Write-Host '-- Disabling Snap Assist Flyout' -ForegroundColor Green\nreg add \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"EnableSnapAssistFlyout\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -85,6 +96,7 @@
       "id": "detailedbsod",
       "label": "Enable Detailed BSOD",
       "desc": "",
+      "icon": "misc/bsod.png",
       "ps1": "Write-Host '-- Enabling Detailed BSOD' -ForegroundColor Green\nreg add \"HKLM\\System\\CurrentControlSet\\Control\\CrashControl\" /v \"DisplayParameters\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -92,6 +104,7 @@
       "id": "verboselogon",
       "label": "Enable Verbose Logon",
       "desc": "",
+      "icon": "misc/verbose.png",
       "ps1": "Write-Host '-- Enabling Verbose Logon' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\" /v \"VerboseStatus\" /t REG_DWORD /d 1 /f"
     }
   ]

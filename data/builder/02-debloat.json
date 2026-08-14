@@ -7,6 +7,7 @@
       "type": "group",
       "label": "Windows Apps",
       "desc": "Uninstall pre-installed apps.",
+      "icon": "debloat/app.png",
       "items": [
         {
           "id": "thirdparty",
@@ -38,6 +39,7 @@
       "type": "group",
       "label": "Windows Features",
       "desc": "Disable pre-installed features.",
+      "icon": "debloat/features.png",
       "items": [
         {
           "id": "consumerfeatures",
@@ -75,6 +77,7 @@
       "type": "group",
       "label": "Windows AI",
       "desc": "Remove AI features from Windows.",
+      "icon": "debloat/copilot.png",
       "items": [
         {
           "id": "hideai",
@@ -119,6 +122,7 @@
       "id": "microsoftstore",
       "label": "Remove Microsoft Store",
       "desc": "You will no longer be able to manage apps from the Microsoft Store.",
+      "icon": "debloat/store.png",
       "ps1": "Write-Host '-- Uninstalling Microsoft Store' -ForegroundColor Green\nGet-AppxPackage \"*Microsoft.WindowsStore*\" | Remove-AppxPackage"
     },
     {
@@ -126,6 +130,7 @@
       "id": "msstoreupdates",
       "label": "Disable Automatic App Updates",
       "desc": "Stops automatic Microsoft Store apps updates.",
+      "icon": "debloat/appupdates.png",
       "ps1": "Write-Host '-- Disabling Microsoft Store App Updates' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsStore\" /v \"AutoDownload\" /t REG_DWORD /d 2 /f"
     },
     {
@@ -133,6 +138,7 @@
       "id": "onedrive",
       "label": "Remove OneDrive",
       "desc": "Be sure to backup your files before removing it.",
+      "icon": "debloat/onedrive.png",
       "ps1": "Write-Host \"Uninstalling OneDrive\" -ForegroundColor Green\nStop-Process -Name \"OneDrive\" -Force\n$onedriveUninstaller = \"$env:SystemRoot\\System32\\OneDriveSetup.exe\"\nif (Test-Path $onedriveUninstaller) {\n    Write-Host \"Uninstalling OneDrive through the installers\"\n    Start-Process -FilePath $onedriveUninstaller -ArgumentList \"/uninstall\" -Wait\n}\nWrite-Host \"Copying OneDrive files to local folders\"\nrobocopy \"$env:USERPROFILE\\OneDrive\" \"$env:USERPROFILE\" /mov /e /xj /ndl /nfl /njh /njs /nc /ns /np | Out-Null\nWrite-Host \"Removing OneDrive from explorer sidebar\"\nRemove-Item -Path \"HKCR:\\WOW6432Node\\CLSID\\{018D5C66-4533-4307-9B53-224DE2ED1FE6}\" -Recurse -Force\nRemove-Item -Path \"HKCR:\\CLSID\\{018D5C66-4533-4307-9B53-224DE2ED1FE6}\" -Recurse -Force\nWrite-Host \"Removing shortcut entry\"\nRemove-Item \"$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\OneDrive.lnk\" -Force\nWrite-Host \"Removing scheduled task\"\nGet-ScheduledTask -TaskPath '\\' -TaskName 'OneDrive*' -ErrorAction SilentlyContinue  | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue\nWrite-Host \"Removing OneDrive leftovers\"\nRemove-Item -Path \"$env:USERPROFILE\\OneDrive\" -Recurse -Force\nRemove-Item -Path \"$env:LOCALAPPDATA\\OneDrive\" -Recurse -Force\nRemove-Item -Path \"$env:LOCALAPPDATA\\Microsoft\\OneDrive\" -Recurse -Force\nRemove-Item -Path \"$env:ProgramData\\Microsoft OneDrive\" -Recurse -Force\nRemove-Item -Path \"C:\\OneDriveTemp\" -Recurse -Force\nRemove-Item -Path \"HKCU:\\Software\\Microsoft\\OneDrive\" -Recurse -Force"
     },
     {
@@ -140,6 +146,7 @@
       "id": "debloatedge",
       "label": "Debloat Edge",
       "desc": "Disables Edge bloatware, telemetry, and promotional features.",
+      "icon": "debloat/debloat-edge.png",
       "ps1": "Write-Host '-- Debloating Edge' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"EdgeEnhanceImagesEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"PersonalizationReportingEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"ShowRecommendationsEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"HideFirstRunExperience\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"UserFeedbackAllowed\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"ConfigureDoNotTrack\" /t REG_DWORD /d 1 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"AlternateErrorPagesEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"EdgeCollectionsEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"EdgeFollowEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"EdgeShoppingAssistantEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"MicrosoftEdgeInsiderPromotionEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"RelatedMatchesCloudServiceEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"ShowMicrosoftRewards\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"WebWidgetAllowed\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"MetricsReportingEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"StartupBoostEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"BingAdsSuppression\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"NewTabPageHideDefaultTopSites\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"PromotionalTabsEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"SendSiteInfoToImproveServices\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"SpotlightExperiencesAndRecommendationsEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"DiagnosticData\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"EdgeAssetDeliveryServiceEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"CryptoWalletEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"WalletDonationEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"HubsSidebarEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\" /v \"CopilotPageAction\" /t \"REG_DWORD\" /d \"0\" /f"
     },
     {
@@ -147,6 +154,7 @@
       "id": "edge",
       "label": "Remove Edge",
       "desc": "Uninstalls the Edge Chromium browser.",
+      "icon": "debloat/edge.png",
       "ps1": "Write-Host '-- Uninstalling Edge' -ForegroundColor Green\n$Path = (Get-ChildItem \"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\*\\Installer\\setup.exe\")[0].FullName\nNew-Item \"C:\\Windows\\SystemApps\\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\\MicrosoftEdge.exe\" -Force | Out-Null\nStart-Process $Path -ArgumentList '--uninstall --system-level --force-uninstall --delete-profile'"
     },
     {
@@ -154,6 +162,7 @@
       "id": "debloatbrave",
       "label": "Debloat Brave",
       "desc": "Disables Brave Rewards, AI, and Crypto Wallet.",
+      "icon": "debloat/debloat-edge.png",
       "ps1": "Write-Host '-- Debloating Brave' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave\" /v \"BraveRewardsDisabled\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave\" /v \"BraveWalletDisabled\" /t \"REG_DWORD\" /d \"1\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave\" /v \"BraveAIChatEnabled\" /t \"REG_DWORD\" /d \"0\" /f\nreg add \"HKLM\\SOFTWARE\\Policies\\BraveSoftware\\Brave\" /v \"BraveStatsPingEnabled\" /t \"REG_DWORD\" /d \"0\" /f"
     },
     {
@@ -161,6 +170,7 @@
       "id": "widgets",
       "label": "Remove Widgets",
       "desc": "Removes the Web Experience package.",
+      "icon": "debloat/widgets.png",
       "ps1": "Write-Host '-- Uninstalling Widgets' -ForegroundColor Green\nGet-AppxPackage *WebExperience* | Remove-AppxPackage\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\MicrosoftWindows.Client.WebExperience_cw5n1h2txyewy\" /f"
     },
     {
@@ -168,6 +178,7 @@
       "id": "taskbarwidgets",
       "label": "Remove Taskbar Widgets",
       "desc": "Disables taskbar widgets such as Task View, Weather etc.",
+      "icon": "debloat/taskbarwidgets.png",
       "ps1": "Write-Host '-- Disabling Taskbar Widgets' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"ShowTaskViewButton\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\default\\NewsAndInterests\\AllowNewsAndInterests\" /v \"value\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Feeds\" /v \"EnableFeeds\" /t REG_DWORD /d 0 /f"
     }
   ]

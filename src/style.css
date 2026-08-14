@@ -475,10 +475,20 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 .ws-radio-none:hover { opacity: 1; }
 .radio-none-btn { font-size: 11px; color: var(--text3); background: transparent; border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; cursor: pointer; }
 .radio-none-btn:hover { border-color: var(--amber); color: var(--amber); }
-/* Radio slider variant — amber dot not sliding, just show checked */
-.ws-radio-switch .ws-slider { background: var(--bg3); border-radius: 10px; }
-.ws-radio-switch input:checked + .ws-slider { background: var(--amber); }
-.ws-radio-switch input:checked + .ws-slider::before { transform: translateX(20px); }
+/* Radio circle dot — WinScript .dot style */
+.ws-radio-label { display: inline-flex; align-items: center; cursor: pointer; }
+.ws-radio-label input[type="radio"] { opacity: 0; width: 0; height: 0; position: absolute; }
+.ws-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  background: var(--bg3); border: 2px solid var(--border2);
+  position: relative; transition: border-color .15s;
+}
+.ws-dot::after {
+  content: ''; position: absolute; inset: 3px; border-radius: 50%;
+  background: var(--amber); opacity: 0; transition: opacity .15s;
+}
+.ws-radio-label input[type="radio"]:checked ~ .ws-dot { border-color: var(--amber); }
+.ws-radio-label input[type="radio"]:checked ~ .ws-dot::after { opacity: 1; }
 /* Clear All button in cat header */
 .clear-tab-btn { font-size: 10px; color: var(--text3); background: transparent; border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 .clear-tab-btn:hover { border-color: var(--amber); color: var(--amber); }
@@ -539,9 +549,15 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 /* .pane-divider defined above in sticky block */
 
 /* ── TWEAKS ── */
-#tweaks-note-area { flex-shrink: 0; padding: 0 16px; }
-.tweaks-note { font-size:11px; color:var(--text3); background:var(--bg3); border:1px solid var(--border); border-radius:var(--r); padding:8px 12px; margin: 8px 0; display:flex; align-items:center; gap:6px; }
-.tweaks-note .ti { flex-shrink:0; color:var(--amber); }
+/* Sticky note — sits just below the pane-header (41px) inside pane-scroll */
+.tweaks-note {
+  position: sticky; top: 41px; z-index: 8;
+  font-size: 11px; color: var(--text3);
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  display: flex; align-items: center; gap: 6px;
+}
+.tweaks-note .ti { flex-shrink: 0; color: var(--amber); }
 
 /* ── CUSTOM CHECKBOXES ── */
 input[type="checkbox"] {

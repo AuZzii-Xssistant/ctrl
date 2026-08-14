@@ -5,6 +5,7 @@ const inv = window.__TAURI__.core.invoke;
 
 // ── State ────────────────────────────────────────────────────────────────────
 let _cats      = [];
+let _presets   = {};   // loaded from _meta.json via get_builder_actions
 let _activeTab = null;
 
 const LS_KEY = 'ctrl_builder_sel';
@@ -16,141 +17,18 @@ function _save() {
   localStorage.setItem(LS_KEY + '_radio',  JSON.stringify(_radio));
 }
 
-// ── WinScript presets (exact IDs from winscript/scripts.js) ──────────────────
-const PRESETS = {
-  basic: {
-    label: 'Basic', ids: [
-      'cleanmgr','cleantemp','sfc','consumerfeatures','recall','debloatedge',
-      'taskbarwidgets','wpbt','diagaccess','aigenerationaccess','updatepause',
-      'activityfeed','wtelemetry','wupdate','wsearchtelemetry','appexperience',
-      'targetads','nvidiatelemetry','deliveryoptimization','ultimateperformance',
-      'manualservices','mousedelay','endtask',
-    ],
-  },
-  strict: {
-    label: 'Strict', ids: [
-      'cleanmgr','cleantemp','sfc','thirdparty','consumerfeatures','recall',
-      'msstoreupdates','debloatedge','copilot','notepadrewrite','aiappxpackages',
-      'hideai','aifiles','taskbarwidgets','accinfoaccess','contactsaccess',
-      'callhistoryaccess','messagingaccess','emailaccess','tasksaccess','diagaccess',
-      'phoneaccess','trustedaccess','calendaraccess','motionaccess','radioaccess',
-      'recordingsaccess','screenshotborderaccess','aigenerationaccess','updatepause',
-      'wpbt','bitlocker','cloudsync','activityfeed','screenrecording','automap',
-      'wtelemetry','wupdate','wsearchtelemetry','officetelemetry','appexperience',
-      'wfeedback','handwriting','windowsdrm','cloudbasedspeech','targetads',
-      'nvidiatelemetry','powershelltelemetry','deliveryoptimization','ultimateperformance',
-      'manualservices','hags','ipv6','mousedelay','limitdefender','disableprefetch',
-      'faststartup','endtask','filextensions','hiddenfiles',
-    ],
-  },
-  extreme: {
-    label: 'Extreme', ids: [
-      'cleanmgr','cleantemp','dism','sfc','resetnetwork','thirdparty','msapps',
-      'xbox','consumerfeatures','recall','microsoftstore','msstoreupdates','onedrive',
-      'debloatedge','copilot','notepadrewrite','aiappxpackages','hideai','aifiles',
-      'taskbarwidgets','locationaccess','accinfoaccess','contactsaccess','callhistoryaccess',
-      'messagingaccess','emailaccess','tasksaccess','diagaccess','voiceactivationaccess',
-      'phoneaccess','trustedaccess','calendaraccess','motionaccess','radioaccess',
-      'recordingsaccess','screenshotborderaccess','aigenerationaccess','updatepause',
-      'wpbt','bitlocker','cloudsync','activityfeed','notificationtray','screenrecording',
-      'automap','default0user','wtelemetry','wupdate','wsearchtelemetry','officetelemetry',
-      'appexperience','wfeedback','handwriting','windowsdrm','cloudbasedspeech','targetads',
-      'adobetelemetry','nvidiatelemetry','vscodetelemetry','mediatelemetry',
-      'powershelltelemetry','ccleanertelemetry','googleupdates','adobeupdates',
-      'deliveryoptimization','gamebar','ultimateperformance','manualservices','hags',
-      'ipv6','mousedelay','limitdefender','coreisolation','disableprefetch','storagesense',
-      'wsearch','faststartup','endtask','homegallery','filextensions','hiddenfiles','stickykeys',
-    ],
-  },
-};
-
-// ── WinScript icon lookup (ID → relative path under assets/ws-icons/) ────────
-const WS_ICONS = {
-  // tools
-  cleanmgr: 'tools/clean.png', cleantemp: 'tools/clean.png', emptyrecycle: 'tools/clean.png',
-  dism: 'tools/sfc.png', sfc: 'tools/sfc.png',
-  browserhistory: 'tools/browser.png',
-  resetnetwork: 'tools/network.png',
-  restorepoint: 'tools/restore.png',
-  shortcuts: 'tools/shortcuts.png',
-  // debloat
-  thirdparty: 'debloat/app.png', msapps: 'debloat/app.png',
-  extensions: 'debloat/app.png', xbox: 'debloat/app.png',
-  consumerfeatures: 'debloat/features.png', hyperv: 'debloat/features.png',
-  iexplorer: 'debloat/features.png', faxscan: 'debloat/features.png',
-  mediaplayer: 'debloat/features.png',
-  hideai: 'debloat/copilot.png', aiappxpackages: 'debloat/copilot.png',
-  copilot: 'debloat/copilot.png', recall: 'debloat/copilot.png',
-  notepadrewrite: 'debloat/copilot.png', aifiles: 'debloat/copilot.png',
-  microsoftstore: 'debloat/store.png',
-  msstoreupdates: 'debloat/appupdates.png',
-  onedrive: 'debloat/onedrive.png',
-  debloatedge: 'debloat/debloat-edge.png', edge: 'debloat/edge.png',
-  debloatbrave: 'debloat/debloat-edge.png',
-  widgets: 'debloat/widgets.png', taskbarwidgets: 'debloat/taskbarwidgets.png',
-  // privacy / app access
-  locationaccess: 'privacy/appaccess.png', accinfoaccess: 'privacy/appaccess.png',
-  contactsaccess: 'privacy/appaccess.png', callhistoryaccess: 'privacy/appaccess.png',
-  messagingaccess: 'privacy/appaccess.png', emailaccess: 'privacy/appaccess.png',
-  tasksaccess: 'privacy/appaccess.png', diagaccess: 'privacy/appaccess.png',
-  voiceactivationaccess: 'privacy/appaccess.png', phoneaccess: 'privacy/appaccess.png',
-  trustedaccess: 'privacy/appaccess.png', calendaraccess: 'privacy/appaccess.png',
-  motionaccess: 'privacy/appaccess.png', radioaccess: 'privacy/appaccess.png',
-  recordingsaccess: 'privacy/appaccess.png', screenshotborderaccess: 'privacy/appaccess.png',
-  aigenerationaccess: 'privacy/appaccess.png',
-  updatepause: 'privacy/updatepause.png',
-  wpbt: 'privacy/wbpt.svg', bitlocker: 'privacy/bitlocker.svg',
-  cloudsync: 'privacy/cloud.png', activityfeed: 'privacy/activity.png',
-  notificationtray: 'privacy/notifications.png', automap: 'privacy/map.png',
-  default0user: 'privacy/default0.png',
-  lockscreencamera: 'privacy/camera.png', biometrics: 'privacy/biometrics.png',
-  screenrecording: 'privacy/record.png',
-  // telemetry
-  wtelemetry: 'telemetry/telemetry.png', officetelemetry: 'telemetry/telemetry.png',
-  adobetelemetry: 'telemetry/3rdparty.png', nvidiatelemetry: 'telemetry/3rdparty.png',
-  vscodetelemetry: 'telemetry/3rdparty.png', mediatelemetry: 'telemetry/3rdparty.png',
-  powershelltelemetry: 'telemetry/3rdparty.png', ccleanertelemetry: 'telemetry/3rdparty.png',
-  googleupdates: 'telemetry/3rdparty.png', adobeupdates: 'telemetry/3rdparty.png',
-  wupdate: 'telemetry/update.svg', wsearchtelemetry: 'telemetry/settings.svg',
-  appexperience: 'telemetry/settings.svg', wfeedback: 'telemetry/settings.svg',
-  handwriting: 'telemetry/settings.svg', windowsdrm: 'telemetry/settings.svg',
-  cloudbasedspeech: 'telemetry/settings.svg', targetads: 'telemetry/settings.svg',
-  deliveryoptimization: 'telemetry/settings.svg',
-  // gaming
-  windowed: 'gaming/windowed.svg', fullscreen: 'gaming/fullscreen.png',
-  mousedelay: 'gaming/mouse.png', gamemode: 'gaming/gamemode.png',
-  gamebar: 'gaming/gamebar.png',
-  // performance
-  dns: 'performance/dns.png', googledns: 'performance/dns.png',
-  cloudflarednds: 'performance/dns.png', quad9dns: 'performance/dns.png',
-  ultimateperformance: 'performance/powerplan.svg', balancedpower: 'performance/powerplan.svg',
-  highperformance: 'performance/powerplan.svg',
-  manualservices: 'performance/manual.png',
-  transparency: 'performance/transparency.png',
-  hags: 'performance/hags.png', ipv6: 'performance/ipv6.svg',
-  limitdefender: 'performance/limit.png',
-  vbs: 'performance/vbs.png', coreisolation: 'performance/vbs.png',
-  superfetch: 'performance/superfetch.png', disableprefetch: 'performance/superfetch.png',
-  storagesense: 'performance/storage.png',
-  wsearch: 'performance/search.png',
-  faststartup: 'performance/faststartup.png', hibernation: 'performance/hibernation.png',
-  // misc
-  endtask: 'misc/end.png', stickykeys: 'misc/sticky.png',
-  homegallery: 'misc/home.svg', filextensions: 'misc/show.png',
-  hiddenfiles: 'misc/hidden.svg', taskbarleft: 'misc/taskbarleft.png',
-  numlock: 'misc/numlock.png',
-};
-
-function _wsIcon(id) {
-  const p = WS_ICONS[id];
-  return p ? `<img class="ws-icon" src="assets/ws-icons/${p}" alt="" />` : '';
+// ── Icon helper — reads icon from JSON item, only used for group headers ──────
+function _wsIcon(iconPath) {
+  if (!iconPath) return '';
+  return `<img class="ws-icon" src="assets/ws-icons/${iconPath}" alt="" />`;
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
 export async function load() {
   try {
     const r = await inv('get_builder_actions');
-    _cats = r.categories || [];
+    _cats    = r.categories || [];
+    _presets = r.presets    || {};
   } catch(e) {
     _cats = [];
     console.error('builder load', e);
@@ -223,7 +101,7 @@ function _renderItems(items) {
   el.innerHTML = items.map(item => {
     if (item.type === 'group')  return _renderGroup(item);
     if (item.type === 'radio')  return _renderRadioGroup(item);
-    if (item.type === 'toggle') return _renderEntry(item, false);
+    if (item.type === 'toggle') return _renderToggle(item);
     return '';
   }).join('');
 
@@ -244,44 +122,21 @@ function _renderItems(items) {
       _save();
       _updateNavBadge(_activeTab);
       _updateBadge();
-      // sync indicators in same radio group
       const group = rb.closest('details.ws-group');
-      if (group) {
-        group.querySelectorAll('.ws-indicator').forEach(ind => {
-          const inp = ind.closest('.ws-entry-ctrl')?.querySelector('input');
-          if (inp) ind.textContent = inp.checked ? 'On' : 'Off';
-        });
-        _syncRadioBadge(group);
-      }
+      if (group) _syncRadioBadge(group);
     });
   });
 
-  // "None" radio clear buttons
   el.querySelectorAll('.radio-none-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const group = btn.dataset.group;
       delete _radio[group];
       _save();
-      // uncheck all radios in that group
-      el.querySelectorAll(`input[type="radio"][name="${group}"]`).forEach(r => {
-        r.checked = false;
-      });
-      el.querySelectorAll(`input[type="radio"][name="${group}"]`).forEach(r => {
-        const ind = r.closest('.ws-entry-ctrl')?.querySelector('.ws-indicator');
-        if (ind) ind.textContent = 'Off';
-      });
+      el.querySelectorAll(`input[type="radio"][name="${group}"]`).forEach(r => { r.checked = false; });
       const grpEl = btn.closest('details.ws-group');
       if (grpEl) _syncRadioBadge(grpEl);
       _updateNavBadge(_activeTab);
       _updateBadge();
-    });
-  });
-
-  el.querySelectorAll('.ws-indicator').forEach(ind => {
-    const inp = ind.closest('.ws-entry-ctrl')?.querySelector('input');
-    if (!inp) return;
-    inp.addEventListener('change', () => {
-      ind.textContent = inp.checked ? 'On' : 'Off';
     });
   });
 }
@@ -316,14 +171,34 @@ function _syncRadioBadge(group) {
   if (badge) badge.textContent = anyChecked ? '1 set' : '';
 }
 
-// ── Entry / Group HTML ────────────────────────────────────────────────────────
-function _renderEntry(item, inGroup) {
+// ── Entry HTML ────────────────────────────────────────────────────────────────
+
+// Standalone toggle — shows its own icon if present
+function _renderToggle(item) {
   const checked = _sel.has(item.id);
-  const cls = inGroup ? 'ws-entry ws-sub' : 'ws-entry ws-standalone';
-  const icon = _wsIcon(item.id);
-  return `<div class="${cls}">
+  return `<div class="ws-entry ws-standalone">
     <div class="ws-entry-info">
-      ${icon}
+      ${_wsIcon(item.icon)}
+      <div class="ws-entry-text">
+        <h1>${esc(item.label)}</h1>
+        ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
+      </div>
+    </div>
+    <div class="ws-entry-ctrl">
+      <span class="ws-indicator">${checked ? 'On' : 'Off'}</span>
+      <label class="ws-switch">
+        <input type="checkbox" data-id="${esc(item.id)}" ${checked ? 'checked' : ''} />
+        <span class="ws-slider"></span>
+      </label>
+    </div>
+  </div>`;
+}
+
+// Sub-item inside group — NO icon (WinScript convention: only group headers have icons)
+function _renderSubItem(item) {
+  const checked = _sel.has(item.id);
+  return `<div class="ws-entry ws-sub">
+    <div class="ws-entry-info">
       <div class="ws-entry-text">
         <h1>${esc(item.label)}</h1>
         ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
@@ -342,12 +217,10 @@ function _renderEntry(item, inGroup) {
 function _renderGroup(item) {
   const subIds   = (item.items || []).map(s => s.id);
   const selCount = subIds.filter(id => _sel.has(id)).length;
-  // pick icon from first item in group
-  const groupIcon = item.items?.length ? _wsIcon(item.items[0].id) : '';
   return `<details class="ws-group">
     <summary class="ws-entry ws-group-hdr">
       <div class="ws-entry-info">
-        ${groupIcon}
+        ${_wsIcon(item.icon)}
         <div class="ws-entry-text">
           <h1>${esc(item.label)}</h1>
           ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
@@ -358,17 +231,35 @@ function _renderGroup(item) {
         <i class="ti ti-chevron-down ws-chevron"></i>
       </div>
     </summary>
-    ${(item.items || []).map(s => _renderEntry(s, true)).join('')}
+    ${(item.items || []).map(s => _renderSubItem(s)).join('')}
   </details>`;
+}
+
+// Radio sub-item — circle dot, no icon
+function _renderRadioSub(sub, groupName, chosen) {
+  const checked = chosen === sub.id;
+  return `<div class="ws-entry ws-sub">
+    <div class="ws-entry-info">
+      <div class="ws-entry-text">
+        <h1>${esc(sub.label)}</h1>
+        ${sub.desc ? `<p>${esc(sub.desc)}</p>` : ''}
+      </div>
+    </div>
+    <div class="ws-entry-ctrl">
+      <label class="ws-radio-label">
+        <input type="radio" name="${esc(groupName)}" data-id="${esc(sub.id)}" ${checked ? 'checked' : ''} />
+        <span class="ws-dot"></span>
+      </label>
+    </div>
+  </div>`;
 }
 
 function _renderRadioGroup(item) {
   const chosen = _radio[item.group] || null;
-  const groupIcon = item.items?.length ? _wsIcon(item.items[0].id) : '';
   return `<details class="ws-group">
     <summary class="ws-entry ws-group-hdr">
       <div class="ws-entry-info">
-        ${groupIcon}
+        ${_wsIcon(item.icon)}
         <div class="ws-entry-text">
           <h1>${esc(item.label)}</h1>
           ${item.desc ? `<p>${esc(item.desc)}</p>` : ''}
@@ -385,26 +276,7 @@ function _renderRadioGroup(item) {
         <button class="radio-none-btn" data-group="${esc(item.group)}">✕ Clear</button>
       </div>
     </div>
-    ${(item.items || []).map(sub => {
-      const checked = chosen === sub.id;
-      const icon = _wsIcon(sub.id);
-      return `<div class="ws-entry ws-sub">
-        <div class="ws-entry-info">
-          ${icon}
-          <div class="ws-entry-text">
-            <h1>${esc(sub.label)}</h1>
-            ${sub.desc ? `<p>${esc(sub.desc)}</p>` : ''}
-          </div>
-        </div>
-        <div class="ws-entry-ctrl">
-          <span class="ws-indicator">${checked ? 'On' : 'Off'}</span>
-          <label class="ws-switch ws-radio-switch">
-            <input type="radio" name="${esc(item.group)}" data-id="${esc(sub.id)}" ${checked ? 'checked' : ''} />
-            <span class="ws-slider"></span>
-          </label>
-        </div>
-      </div>`;
-    }).join('')}
+    ${(item.items || []).map(sub => _renderRadioSub(sub, item.group, chosen)).join('')}
   </details>`;
 }
 
@@ -423,11 +295,6 @@ function _updateBadge() {
 async function _rebuildPreview() {
   _updateBadge();
   const codeEl = document.getElementById('builder-code');
-  const total  = _sel.size + Object.keys(_radio).length;
-  if (!total) {
-    codeEl.innerHTML = '<span class="ps-comment"># Toggle actions on the left to build your script.</span>';
-    return;
-  }
   try {
     const allIds = [..._sel, ...Object.values(_radio)];
     const code   = await inv('build_script', { actionIds: allIds, outputType: 'ps1' });
@@ -444,19 +311,17 @@ function _highlight(code) {
 
 // ── Presets ───────────────────────────────────────────────────────────────────
 function _applyPreset(key) {
-  const preset = PRESETS[key];
-  if (!preset) return;
+  const ids = _presets[key];
+  if (!ids || !ids.length) { toast('Preset not loaded', 'err'); return; }
   _sel.clear();
   _radio = {};
-  for (const id of preset.ids) _sel.add(id);
+  for (const id of ids) _sel.add(id);
   _save();
-  if (_activeTab && _activeTab !== '__run__') {
-    const cat = _cats.find(c => c.id === _activeTab);
-    if (cat) _renderItems(cat.items || []);
-  }
   _renderNav();
   _updateBadge();
-  toast(`${preset.label} preset — ${_sel.size} actions selected`, 'ok');
+  toast(`${key.charAt(0).toUpperCase() + key.slice(1)} preset — ${_sel.size} actions selected`, 'ok');
+  // Navigate to run tab to show the generated script immediately
+  _setTab('__run__');
 }
 
 // ── Wire toolbar ──────────────────────────────────────────────────────────────
@@ -477,7 +342,7 @@ document.getElementById('builder-clear-tab').addEventListener('click', _clearAll
 
 document.getElementById('builder-copy').addEventListener('click', async () => {
   const raw = document.getElementById('builder-code').textContent;
-  if (!raw.trim() || raw.includes('Toggle actions')) { toast('Nothing to copy', 'err'); return; }
+  if (!raw.trim()) { toast('Nothing to copy', 'err'); return; }
   try { await navigator.clipboard.writeText(raw); toast('Copied', 'ok'); }
   catch { toast('Copy failed', 'err'); }
 });
@@ -485,7 +350,7 @@ document.getElementById('builder-copy').addEventListener('click', async () => {
 document.getElementById('builder-save').addEventListener('click', async () => {
   const raw  = document.getElementById('builder-code').textContent;
   const name = document.getElementById('save-name').value.trim();
-  if (!raw.trim() || raw.includes('Toggle actions')) { toast('Nothing to save', 'err'); return; }
+  if (!raw.trim()) { toast('Nothing to save', 'err'); return; }
   if (!name) { toast('Enter a script name', 'err'); document.getElementById('save-name').focus(); return; }
   try {
     await inv('save_built_script', { code: raw, name, scriptType: 'ps1' });
@@ -497,7 +362,7 @@ document.getElementById('builder-save').addEventListener('click', async () => {
 
 document.getElementById('builder-run').addEventListener('click', async () => {
   const raw = document.getElementById('builder-code').textContent;
-  if (!raw.trim() || raw.includes('Toggle actions')) { toast('Nothing to run', 'err'); return; }
+  if (!raw.trim()) { toast('Nothing to run', 'err'); return; }
   toast('Running…', 'info');
   try {
     const r = await inv('run_built_script', { code: raw, scriptType: 'ps1' });

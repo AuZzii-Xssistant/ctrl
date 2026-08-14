@@ -8,6 +8,7 @@
       "id": "windowedoptimizations",
       "label": "Disable Optimizations for Windowed Games",
       "desc": "",
+      "icon": "gaming/windowed.svg",
       "ps1": "Write-Host '-- Disabling Optimizations for Windowed Games' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences\" /v \"DirectXUserGlobalSettings\" /t REG_SZ /d \"SwapEffectUpgradeEnable=0;\" /f"
     },
     {
@@ -15,6 +16,7 @@
       "id": "fullscreenoptimizations",
       "label": "Disable Fullscreen Optimizations",
       "desc": "",
+      "icon": "gaming/fullscreen.png",
       "ps1": "Write-Host '-- Disabling Fullscreen Optimizations' -ForegroundColor Green\nreg add \"HKCU\\System\\GameConfigStore\" /v \"GameDVR_DXGIHonorFSEWindowsCompatible\" /t REG_DWORD /d 1 /f"
     },
     {
@@ -22,6 +24,7 @@
       "id": "mouseacc",
       "label": "Disable Mouse Acceleration",
       "desc": "",
+      "icon": "gaming/mouse.png",
       "ps1": "Write-Host '-- Disabling Mouse Acceleration' -ForegroundColor Green\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseSpeed\" /t REG_SZ /d \"0\" /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseThreshold1\" /t REG_SZ /d \"0\" /f\nreg add \"HKCU\\Control Panel\\Mouse\" /v \"MouseThreshold2\" /t REG_SZ /d \"0\" /f"
     },
     {
@@ -29,6 +32,7 @@
       "id": "gamemode",
       "label": "Disable Game Mode",
       "desc": "",
+      "icon": "gaming/gamemode.png",
       "ps1": "Write-Host '-- Disabling Game Mode' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR\" /v \"AutoGameModeEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"AutoGameModeEnabled\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -36,6 +40,7 @@
       "id": "gamebar",
       "label": "Disable Game Bar",
       "desc": "",
+      "icon": "gaming/gamebar.png",
       "ps1": "Write-Host '-- Disabling Game Bar' -ForegroundColor Green\nreg add \"HKLM\\SOFTWARE\\Polices\\Microsoft\\Windows\\GameDVR\" /v \"AllowGameDVR\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR\" /v \"AppCaptureEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"UseNexusForGameBarEnabled\" /t REG_DWORD /d 0 /f\nreg add \"HKCU\\SOFTWARE\\Microsoft\\GameBar\" /v \"ShowStartupPanel\" /t REG_DWORD /d 0 /f"
     },
     {
@@ -43,6 +48,7 @@
       "id": "screenrecording",
       "label": "Disable Captures",
       "desc": "",
+      "icon": "privacy/record.png",
       "ps1": "Write-Host '-- Disabling Xbox Screen Recording' -ForegroundColor Green\nreg add \"HKCU\\System\\GameConfigStore\" /v \"GameDVR_Enabled\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR\" /v \"AllowGameDVR\" /t REG_DWORD /d 0 /f"
     }
   ]
