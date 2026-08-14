@@ -58,145 +58,198 @@ export function toast(msg, type = 'info') {
 }
 
 // ── Terminal / Output drawer ─────────────────────────────────────────────────
-let _term = null;
-let _termFit = null;
-let _termShell = 'powershell.exe';
+let _term      = null;
+let _termFit   = null;
+let _termInited = false;
+let _ptyStarted = false;
+let _shells    = [];   // [{name, path, args}]
+let _curShell  = null; // currently selected shell
 const { listen } = window.__TAURI__.event;
 
-function _initTerm() {
-  if (_term || !window.Terminal) return;
-  const body = document.getElementById('output-body');
-  if (!body) return;
+// Wire run events (always listen, even before term is visible)
+listen('run-start', () => {
+  _openDrawer();
+  _termWrite('\r\n\x1b[90m── run ──────────────────────────────────\x1b[0m\r\n');
+  _bumpTs();
+});
+listen('run-output', e => _termWrite(e.payload));
+listen('pty-data',   e => _termWrite(e.payload));
+listen('pty-exit',   () => {
+  _ptyStarted = false;
+  _termWrite('\r\n\x1b[33m[shell exited — click New Shell to restart]\x1b[0m\r\n');
+});
 
+function _termWrite(s) {
+  if (_term) _term.write(s);
+}
+
+function _bumpTs() {
+  const dot = document.getElementById('output-new-dot');
+  const ts  = document.getElementById('output-ts');
+  if (dot) dot.style.display = '';
+  if (ts)  ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// Load available shells from Rust, build picker dropdown
+async function _loadShells() {
+  try { _shells = await invoke('list_shells'); } catch { _shells = []; }
+  if (!_shells.length) {
+    _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
+  }
+  _curShell = _shells[0];
+  _buildShellPicker();
+}
+
+function _buildShellPicker() {
+  const wrap = document.getElementById('term-shell-toggle');
+  if (!wrap) return;
+  wrap.innerHTML = _shells.map((s, i) =>
+    `<button class="term-sh-btn${i === 0 ? ' active' : ''}" data-idx="${i}" title="${s.name}">${_shellLabel(s.name)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.term-sh-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      wrap.querySelectorAll('.term-sh-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _curShell = _shells[+btn.dataset.idx];
+      // Restart shell with new selection
+      await invoke('pty_close').catch(() => {});
+      _ptyStarted = false;
+      _term?.clear();
+      _startPtyShell();
+    });
+  });
+}
+
+function _shellLabel(name) {
+  if (name.includes('PowerShell') && !name.includes('Windows')) return 'PS7';
+  if (name.includes('Windows PowerShell')) return 'PS5';
+  if (name.includes('Command')) return 'CMD';
+  if (name.includes('WSL')) return 'WSL';
+  if (name.includes('Git')) return 'Bash';
+  return name.slice(0, 4);
+}
+
+// Lazy init — only when drawer actually opens (so container has real height)
+function _initTermIfNeeded() {
+  if (_termInited || !window.Terminal) return;
+  _termInited = true;
+
+  const body = document.getElementById('output-body');
   _term = new window.Terminal({
-    theme: { background: '#0d0d0d', foreground: '#d4d4d4', cursor: '#f0a500',
-             black: '#1a1a1a', red: '#ef4444', green: '#10b981', yellow: '#f5a623',
-             blue: '#60a5fa', magenta: '#a78bfa', cyan: '#34d399', white: '#e5e7eb',
-             brightBlack: '#4b5563', brightWhite: '#f9fafb' },
+    theme: {
+      background: '#0d0d0d', foreground: '#d4d4d4', cursor: '#f0a500',
+      black: '#1a1a1a', red: '#ef4444', green: '#10b981', yellow: '#f5a623',
+      blue: '#60a5fa', magenta: '#a78bfa', cyan: '#34d399', white: '#e5e7eb',
+      brightBlack: '#4b5563', brightWhite: '#f9fafb',
+    },
     fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
-    fontSize: 12,
-    cursorBlink: true,
-    scrollback: 5000,
-    convertEol: true,
-    allowTransparency: true,
+    fontSize: 12, cursorBlink: true, scrollback: 5000, convertEol: true,
   });
   _termFit = new window.FitAddon.FitAddon();
   _term.loadAddon(_termFit);
   _term.open(body);
-
-  // Keyboard → PTY
   _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
-
-  // Script run events → terminal
-  listen('run-start', () => {
-    _openDrawer();
-    _term.write('\r\n\x1b[90m── run ──────────────────────────────────\x1b[0m\r\n');
-    const dot = document.getElementById('output-new-dot');
-    if (dot) dot.style.display = '';
-    const ts = document.getElementById('output-ts');
-    if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  });
-  listen('run-output', e => { _term.write(e.payload); });
-
-  // PTY shell events
-  listen('pty-data', e => { _term.write(e.payload); });
-  listen('pty-exit', () => { _term.write('\r\n\x1b[33m[shell exited — click "new shell" to restart]\x1b[0m\r\n'); });
-}
-
-async function _startPtyShell() {
-  try {
-    const body = document.getElementById('output-body');
-    const cols = Math.max(60, Math.floor(((body?.offsetWidth  || 700) - 16) / 7));
-    const rows = Math.max(8,  Math.floor(((body?.offsetHeight || 260) - 8)  / 17));
-    await invoke('pty_open', { shell: _termShell, cols, rows });
-  } catch (e) { console.warn('PTY start:', e); }
 }
 
 function _fitTerm() {
   if (!_termFit) return;
-  requestAnimationFrame(() => { try { _termFit.fit(); } catch {} });
+  try {
+    _termFit.fit();
+    // Notify Rust of new size
+    if (_ptyStarted && _term) {
+      invoke('pty_resize', { cols: _term.cols, rows: _term.rows }).catch(() => {});
+    }
+  } catch {}
+}
+
+async function _startPtyShell() {
+  if (!_curShell) return;
+  try {
+    await invoke('pty_open', {
+      shell: _curShell.path,
+      args:  _curShell.args,
+      cols:  _term?.cols  ?? 80,
+      rows:  _term?.rows  ?? 24,
+    });
+    _ptyStarted = true;
+  } catch (e) {
+    _termWrite(`\r\n\x1b[31m[Failed to start shell: ${e}]\x1b[0m\r\n`);
+  }
 }
 
 function _openDrawer() {
   const drawer = document.getElementById('output-drawer');
   if (drawer.classList.contains('open')) return;
+  _doOpenDrawer(drawer);
+}
+
+function _doOpenDrawer(drawer) {
   drawer.classList.add('open');
-  const icon = document.querySelector('#output-toggle i');
-  if (icon) icon.className = 'ti ti-chevron-down';
-  requestAnimationFrame(() => { _fitTerm(); _term?.focus(); });
+  document.querySelector('#output-toggle i')?.setAttribute('class', 'ti ti-chevron-down');
+  // Wait for CSS height transition (200ms) before fitting
+  setTimeout(() => {
+    _initTermIfNeeded();
+    _fitTerm();
+    _term?.focus();
+    if (!_ptyStarted) _startPtyShell();
+  }, 220);
 }
 
 function _toggleOutputDrawer() {
   const drawer = document.getElementById('output-drawer');
-  const dot    = document.getElementById('output-new-dot');
-  const icon   = document.querySelector('#output-toggle i');
   const wasOpen = drawer.classList.contains('open');
   drawer.classList.toggle('open');
-  if (dot) dot.style.display = 'none';
-  if (icon) icon.className = wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
-  if (!wasOpen) requestAnimationFrame(() => { _fitTerm(); _term?.focus(); });
+  document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
+  document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
+  if (!wasOpen) {
+    setTimeout(() => {
+      _initTermIfNeeded();
+      _fitTerm();
+      _term?.focus();
+      if (!_ptyStarted) _startPtyShell();
+    }, 220);
+  }
 }
 
 export function showOutput(text, ok = true) {
-  if (_term) {
-    const col = ok ? '\x1b[32m' : '\x1b[31m';
-    const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
-    _term.write(`\r\n${col}${clean}\x1b[0m`);
-    const dot = document.getElementById('output-new-dot');
-    if (dot) dot.style.display = '';
-    const ts = document.getElementById('output-ts');
-    if (ts) ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    return;
-  }
-  // Fallback before xterm loads
-  console.log('[output]', text);
+  const col   = ok ? '\x1b[32m' : '\x1b[31m';
+  const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
+  _termWrite(`\r\n${col}${clean}\x1b[0m`);
+  _bumpTs();
+  _openDrawer();
 }
+
+// Resize observer — refit when drawer width changes
+const _termRo = new ResizeObserver(() => { if (_termFit && _termInited) _fitTerm(); });
+_termRo.observe(document.getElementById('output-body'));
 
 document.getElementById('output-header').addEventListener('click', e => {
   if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell')) return;
   _toggleOutputDrawer();
 });
 document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
-
 document.getElementById('output-clear').addEventListener('click', e => {
-  e.stopPropagation();
-  _term?.clear();
-  const dot = document.getElementById('output-new-dot');
-  if (dot) dot.style.display = 'none';
+  e.stopPropagation(); _term?.clear();
+  document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
 document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
   const sel = _term?.getSelection();
-  if (sel) {
-    navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
-  } else {
-    toast('Select text in terminal first', 'info');
-  }
+  if (sel) navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => {});
+  else toast('Select text first', 'info');
 });
 document.getElementById('term-new-shell')?.addEventListener('click', async e => {
   e.stopPropagation();
   await invoke('pty_close').catch(() => {});
+  _ptyStarted = false;
+  _term?.clear();
   _openDrawer();
-  await _startPtyShell();
-});
-document.getElementById('term-sh-ps')?.addEventListener('click', e => {
-  e.stopPropagation();
-  _termShell = 'powershell.exe';
-  document.getElementById('term-sh-ps').classList.add('active');
-  document.getElementById('term-sh-cmd').classList.remove('active');
-});
-document.getElementById('term-sh-cmd')?.addEventListener('click', e => {
-  e.stopPropagation();
-  _termShell = 'cmd.exe';
-  document.getElementById('term-sh-cmd').classList.add('active');
-  document.getElementById('term-sh-ps').classList.remove('active');
-});
-
-// Init after DOM ready — xterm needs the container visible to measure
-requestAnimationFrame(() => {
-  _initTerm();
   _startPtyShell();
 });
+
+// Load shells at startup
+_loadShells();
 
 // ── Custom modal ─────────────────────────────────────────────────────────────
 let _confirmResolve = null;

@@ -98,6 +98,7 @@ pub fn run() {
             commands::backup::delete_backup_job,
             commands::backup::run_backup,
             commands::backup::browse_for_folder,
+            commands::terminal::list_shells,
             commands::terminal::pty_open,
             commands::terminal::pty_write,
             commands::terminal::pty_resize,
