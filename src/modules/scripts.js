@@ -26,30 +26,30 @@ function _render(el, scripts, lastRuns = []) {
     html = emptyState('ti-code', 'No scripts yet.', '+ Add Script', 'window._showScriptModal(null)');
   } else {
     for (const [cat, items] of Object.entries(groups)) {
-      html += sectionHdr(cat, items.length) + '<div class="card-grid">';
+      html += sectionHdr(cat, items.length) + '<div class="row-list">';
       for (const s of items) {
         const ext = s.script_type?.toLowerCase() || 'ps1';
-        const tags = s.tags ? s.tags.split(',').filter(Boolean).map(t => `<span class="chip">${esc(t.trim())}</span>`).join('') : '';
         const lr = runMap[s.id];
         const dot = lr ? `<span class="run-dot ${lr.success ? 'ok' : 'err'}" title="Last run: ${lr.success ? 'success' : 'failed'}"></span>` : `<span class="run-dot none" title="Never run"></span>`;
         const runTime = lr ? `<span class="run-time">${timeAgo(lr.ran_at)}</span>` : '';
         const adminBadge = s.run_as_admin ? '<span class="badge-admin" title="Runs as Administrator"><i class="ti ti-shield"></i> admin</span>' : '';
         const dbBadge = s.content ? '<span class="badge-db" title="Content stored in database"><i class="ti ti-database"></i></span>' : '';
-        html += `<div class="card" data-id="${s.id}">
-          <div class="card-icon"><i class="ti ${scriptIcon(ext)}"></i></div>
-          <div class="card-name" title="${esc(s.name)}" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}${dbBadge}</div>
-          <div class="card-sub">${esc(s.description||'')}</div>
-          ${tags ? `<div class="card-tags">${tags}</div>` : ''}
+        const desc = s.description ? esc(s.description) : esc(s.file_path || '');
+        const hasLoc = !s.content && s.file_path;
+        html += `<div class="data-row" data-id="${s.id}">
+          <i class="ti ${scriptIcon(ext)} row-icon"></i>
+          <div style="flex:1;min-width:0">
+            <div class="row-name" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}${dbBadge}</div>
+            ${desc ? `<div class="fix-cmd-preview">${desc}</div>` : ''}
+          </div>
           <div class="run-meta-row">${dot}${runTime}</div>
-          <div class="card-footer">
-            <span class="tag tag-${ext}">.${ext}</span>
-            <div class="card-actions">
-              <button class="icon-btn run"  title="Run"     data-run="${s.id}"><i class="ti ti-player-play"></i></button>
-              <button class="icon-btn"      title="History" data-hist="${s.id}" data-name="${esc(s.name)}"><i class="ti ti-history"></i></button>
-              <button class="icon-btn"      title="Edit"    data-edit="${s.id}"><i class="ti ti-edit"></i></button>
-              <button class="icon-btn"      title="Folder"  data-loc="${s.id}"><i class="ti ti-folder"></i></button>
-              <button class="icon-btn del"  title="Remove"  data-del="${s.id}"><i class="ti ti-trash"></i></button>
-            </div>
+          <span class="tag tag-${ext}" style="flex-shrink:0">.${ext}</span>
+          <div class="card-actions">
+            <button class="run-chip" data-run="${s.id}">${s.run_as_admin ? '<i class="ti ti-shield" style="font-size:10px"></i> RUN' : 'RUN'}</button>
+            <button class="icon-btn" title="History"     data-hist="${s.id}" data-name="${esc(s.name)}"><i class="ti ti-history"></i></button>
+            <button class="icon-btn" title="Open editor" data-edit="${s.id}"><i class="ti ti-edit"></i></button>
+            ${hasLoc ? `<button class="icon-btn" title="Show folder" data-loc="${s.id}"><i class="ti ti-folder"></i></button>` : ''}
+            <button class="icon-btn del" title="Remove"  data-del="${s.id}"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
       }
@@ -58,9 +58,9 @@ function _render(el, scripts, lastRuns = []) {
   }
   body.innerHTML = html;
 
-  body.querySelectorAll('.card[data-id]').forEach(card => {
-    card.addEventListener('contextmenu', e => {
-      const id = +card.dataset.id;
+  body.querySelectorAll('.data-row[data-id]').forEach(row => {
+    row.addEventListener('contextmenu', e => {
+      const id = +row.dataset.id;
       const s = scripts.find(x => x.id === id);
       showContextMenu(e, [
         { label: 'Run',         icon: 'ti-player-play', fn: () => _run(id) },

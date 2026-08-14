@@ -7,11 +7,11 @@ let _data = { user: [], system: [] };
 export async function load() {
   const el = document.getElementById('env-scroll');
   el.innerHTML = paneHeader('ti-list-details', 'Environment Variables', 'Add Variable', 'window._showEnvModal(null,"User")', 'env-filter')
-    + `<div class="tweaks-note" style="display:flex;align-items:center;gap:8px">
+    + `<div class="tweaks-note"><div class="tweaks-note-inner" style="gap:8px">
         <span><i class="ti ti-info-circle"></i> User variables are editable. System variables require UAC elevation to modify.</span>
         <button class="action-btn btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="window._showAddToPathModal()"><i class="ti ti-plus"></i> Add to PATH</button>
         <button class="action-btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="window._openPathEditor()" title="Open Windows Environment Variables dialog"><i class="ti ti-external-link"></i> Environment Variables</button>
-       </div>`
+       </div></div>`
     + `<div id="env-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(8)}</div></div>`;
 
   setTimeout(() => {

@@ -117,6 +117,32 @@ function extractTools(propsStr) {
   return tools;
 }
 
+// ── Special items handled by WinScript's main.js (not in scripts.js) ─────────
+// restorepoint and installmas have no PS1 in scripts.js — inject them here.
+// ButtonEntry items open Windows dialogs — stored as type 'shortcut'.
+const SPECIAL_PS1 = {
+  restorepoint: [
+    '$desc = "CTRL Restore Point $(Get-Date -Format \'yyyy-MM-dd HH:mm\')"',
+    'Enable-ComputerRestore -Drive "C:\\" -ErrorAction SilentlyContinue',
+    'Checkpoint-Computer -Description $desc -RestorePointType "MODIFY_SETTINGS"',
+    'Write-Host "Restore point created: $desc"',
+  ].join('\n'),
+  installmas: [
+    '# Microsoft Activation Scripts — activates Windows/Office (requires internet)',
+    '# Source: https://massgrave.dev',
+    'irm https://get.activated.win | iex',
+  ].join('\n'),
+};
+
+const BUTTON_CMDS = {
+  openSettings:       'ms-settings:',
+  openDeviceManager:  'devmgmt.msc',
+  openControlPanel:   'control',
+  openVisualEffects:  'SystemPropertiesPerformance',
+  openPageFile:       'SystemPropertiesAdvanced',
+  openMSConfig:       'msconfig',
+};
+
 // ── Parse MainPage.astro ─────────────────────────────────────────────────────
 function parseAstro(astroPath, en) {
   const src  = fs.readFileSync(astroPath, 'utf8');
@@ -141,8 +167,31 @@ function parseTabBody(body, en) {
   while (i < body.length) {
     const nextSG = body.indexOf('<ScriptGroup', i);
     const nextST = body.indexOf('<ScriptToggle', i);
+    const nextBE = body.indexOf('<ButtonEntry', i);
 
-    if (nextSG === -1 && nextST === -1) break;
+    if (nextSG === -1 && nextST === -1 && nextBE === -1) break;
+
+    // ButtonEntry — quick-launch shortcut (no PS1, runs immediately)
+    if (nextBE !== -1 && (nextSG === -1 || nextBE < nextSG) && (nextST === -1 || nextBE < nextST)) {
+      const tagEnd = body.indexOf('/>', nextBE);
+      if (tagEnd === -1) { i = nextBE + 1; continue; }
+      const propsStr = body.slice(nextBE + '<ButtonEntry'.length, tagEnd);
+      const idM      = /buttonId="([^"]+)"/.exec(propsStr);
+      const titleP   = extractProp(propsStr, 'title');
+      i = tagEnd + 2;
+      if (!idM) continue;
+      const id  = idM[1];
+      const cmd = BUTTON_CMDS[id];
+      if (!cmd) continue; // unknown button, skip
+      items.push({
+        type:  'shortcut',
+        id,
+        label: propValue(titleP, en) || id,
+        cmd,   // e.g. 'ms-settings:', 'devmgmt.msc'
+      });
+      continue;
+    }
+
     const useSG = nextSG !== -1 && (nextST === -1 || nextSG < nextST);
 
     if (useSG) {
@@ -247,8 +296,10 @@ function loadScriptsAndPresets(jsPath) {
 // ── Attach ps1 scripts recursively ───────────────────────────────────────────
 function attachScripts(items, scriptMap) {
   for (const item of items) {
+    if (item.type === 'shortcut') continue; // no PS1, handled by UI
     if (item.type === 'toggle') {
-      item.ps1 = scriptMap[item.id] || null;
+      // Check special overrides first
+      item.ps1 = SPECIAL_PS1[item.id] || scriptMap[item.id] || null;
       if (!item.ps1) console.warn('  warn: no script for toggle', item.id);
     } else if (item.type === 'group' || item.type === 'radio') {
       for (const sub of item.items || []) {
@@ -258,9 +309,11 @@ function attachScripts(items, scriptMap) {
       item.items = (item.items || []).filter(s => s.ps1);
     }
   }
-  return items.filter(item =>
-    item.type === 'toggle' ? !!item.ps1 : (item.items || []).length > 0
-  );
+  return items.filter(item => {
+    if (item.type === 'shortcut') return true;
+    if (item.type === 'toggle')   return !!item.ps1;
+    return (item.items || []).length > 0;
+  });
 }
 
 // ── Parse appinstall.js → apps JSON ──────────────────────────────────────────

@@ -10,6 +10,22 @@ use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
 
+/// Detect best available PowerShell binary (pwsh = PS7+, else powershell).
+/// Result cached after first call.
+pub fn ps_bin() -> &'static str {
+    use std::sync::OnceLock;
+    static BIN: OnceLock<&'static str> = OnceLock::new();
+    *BIN.get_or_init(|| {
+        std::process::Command::new("pwsh")
+            .args(["-NonInteractive", "-Command", "exit 0"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+            .then_some("pwsh")
+            .unwrap_or("powershell")
+    })
+}
+
 pub enum Shell { PowerShell, Cmd, Python }
 
 impl Shell {
@@ -48,7 +64,7 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
     let path_str = script.to_string_lossy().to_string();
     let result = match shell {
         Shell::PowerShell => {
-            app.shell().command("powershell")
+            app.shell().command(ps_bin())
                 .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-NonInteractive", "-File", &path_str])
                 .output().await
         }
@@ -115,11 +131,11 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
 
     // Launch wrapper elevated and wait
     let invoke = format!(
-        "Start-Process -Verb RunAs -Wait -WindowStyle Hidden -FilePath powershell \
+        "Start-Process -Verb RunAs -Wait -WindowStyle Hidden -FilePath '{}' \
          -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-NonInteractive','-File','{}')",
-        esc_ps_path(&wrap_ps1)
+        ps_bin(), esc_ps_path(&wrap_ps1)
     );
-    app.shell().command("powershell")
+    app.shell().command(ps_bin())
         .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &invoke])
         .output().await.map_err(|e| e.to_string())?;
 

@@ -7,6 +7,9 @@ const inv = window.__TAURI__.core.invoke;
 let _cats      = [];
 let _presets   = {};   // loaded from _meta.json via get_builder_actions
 let _activeTab = null;
+let _appsCat   = null; // 08-apps.json data
+let _appsSel   = new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]'));
+let _pkgMgr    = localStorage.getItem('ctrl_builder_pkgmgr') || 'winget';
 
 const LS_KEY = 'ctrl_builder_sel';
 let _sel   = new Set(JSON.parse(localStorage.getItem(LS_KEY)           || '[]'));
@@ -27,8 +30,11 @@ function _wsIcon(iconPath) {
 export async function load() {
   try {
     const r = await inv('get_builder_actions');
-    _cats    = r.categories || [];
-    _presets = r.presets    || {};
+    _presets = r.presets || {};
+    // Split out apps tab (08-apps.json id='apps') from script categories
+    const all = r.categories || [];
+    _appsCat  = all.find(c => c.id === 'apps') || null;
+    _cats     = all.filter(c => c.id !== 'apps');
   } catch(e) {
     _cats = [];
     console.error('builder load', e);
@@ -47,7 +53,7 @@ function _renderNav() {
       <code>node tools/winscript-converter.js</code></div>`;
     return;
   }
-  el.innerHTML = _cats.map(cat => {
+  const catHtml = _cats.map(cat => {
     const n = _countSelected(cat.items || []);
     return `<button class="bnav-item${_activeTab === cat.id ? ' active' : ''}" data-tab="${cat.id}">
       <i class="ti ${cat.icon || 'ti-adjustments'}"></i>
@@ -55,6 +61,14 @@ function _renderNav() {
       ${n > 0 ? `<span class="bnav-count">${n}</span>` : ''}
     </button>`;
   }).join('');
+
+  const appsHtml = _appsCat ? `<button class="bnav-item${_activeTab === 'apps' ? ' active' : ''}" data-tab="apps">
+    <i class="ti ti-package"></i>
+    <span class="bnav-label">App Install</span>
+    ${_appsSel.size > 0 ? `<span class="bnav-count">${_appsSel.size}</span>` : ''}
+  </button>` : '';
+
+  el.innerHTML = catHtml + appsHtml;
   el.querySelectorAll('[data-tab]').forEach(btn =>
     btn.addEventListener('click', () => _setTab(btn.dataset.tab)));
 }
@@ -85,10 +99,16 @@ function _setTab(tabId) {
     togglesEl.style.display = '';
     catHdr.style.display    = '';
     scriptEl.classList.remove('active');
-    const cat = _cats.find(c => c.id === tabId);
-    if (cat) {
-      document.getElementById('builder-cat-title').textContent = cat.label;
-      _renderItems(cat.items || []);
+
+    if (tabId === 'apps' && _appsCat) {
+      document.getElementById('builder-cat-title').textContent = _appsCat.label;
+      _renderAppsUI(togglesEl);
+    } else {
+      const cat = _cats.find(c => c.id === tabId);
+      if (cat) {
+        document.getElementById('builder-cat-title').textContent = cat.label;
+        _renderItems(cat.items || []);
+      }
     }
   }
   _renderNav();
@@ -98,12 +118,27 @@ function _setTab(tabId) {
 // ── Render items ──────────────────────────────────────────────────────────────
 function _renderItems(items) {
   const el = document.getElementById('builder-toggles');
+
+  // Apps tab — completely different UI
+  const appsItems = items.filter(i => i._appsTab);
+  if (appsItems.length || (items.length === 0 && _activeTab === 'apps')) {
+    _renderAppsUI(el);
+    return;
+  }
+
   el.innerHTML = items.map(item => {
-    if (item.type === 'group')  return _renderGroup(item);
-    if (item.type === 'radio')  return _renderRadioGroup(item);
-    if (item.type === 'toggle') return _renderToggle(item);
+    if (item.type === 'group')    return _renderGroup(item);
+    if (item.type === 'radio')    return _renderRadioGroup(item);
+    if (item.type === 'toggle')   return _renderToggle(item);
+    if (item.type === 'shortcut') return _renderShortcut(item);
     return '';
   }).join('');
+
+  el.querySelectorAll('.shortcut-open-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err'));
+    });
+  });
 
   el.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
     cb.addEventListener('change', () => {
@@ -141,6 +176,99 @@ function _renderItems(items) {
   });
 }
 
+// ── Apps UI (08-apps.json) ────────────────────────────────────────────────────
+function _renderAppsUI(el) {
+  if (!_appsCat) { el.innerHTML = ''; return; }
+
+  // Package manager selector
+  const mgrs = [
+    { id: 'winget', label: 'winget', icon: 'ti-brand-windows' },
+    { id: 'choco',  label: 'Chocolatey', icon: 'ti-brand-chocolatey' },
+  ];
+  let html = `<div class="apps-toolbar">
+    <span class="apps-mgr-label">Package manager:</span>
+    ${mgrs.map(m => `<button class="apps-mgr-btn${_pkgMgr === m.id ? ' active' : ''}" data-mgr="${m.id}">
+      <i class="ti ${m.icon}"></i> ${m.label}
+    </button>`).join('')}
+    <span style="flex:1"></span>
+    <button class="action-btn btn-ghost apps-clear" style="font-size:10px;padding:3px 8px"><i class="ti ti-x"></i> Clear All</button>
+  </div>`;
+
+  // Filter search
+  html += `<div style="padding:0 12px 8px"><input class="pane-search apps-filter" style="width:100%" placeholder="Filter apps…" autocomplete="off" /></div>`;
+
+  // Category sections
+  for (const cat of (_appsCat.categories || [])) {
+    const filtered = cat.apps.filter(a => _pkgMgr === 'winget' ? a.winget : a.choco);
+    if (!filtered.length) continue;
+    html += `<div class="apps-category">
+      <div class="apps-cat-hdr">${esc(cat.label)} <span class="apps-cat-count">${filtered.length}</span></div>
+      ${filtered.map(a => {
+        const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
+        const checked = _appsSel.has(a.id);
+        return `<label class="apps-row${checked ? ' apps-sel' : ''}">
+          <input type="checkbox" class="app-cb" data-id="${esc(a.id)}" ${checked ? 'checked' : ''} />
+          <span class="apps-name">${esc(a.label)}</span>
+          <span class="apps-pkg">${esc(pkg || '')}</span>
+        </label>`;
+      }).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = html;
+
+  // Wire mgr buttons
+  el.querySelectorAll('.apps-mgr-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _pkgMgr = btn.dataset.mgr;
+      localStorage.setItem('ctrl_builder_pkgmgr', _pkgMgr);
+      _renderAppsUI(el);
+    });
+  });
+
+  // Wire filter
+  const filter = el.querySelector('.apps-filter');
+  if (filter) {
+    let timer;
+    filter.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => _applyAppsFilter(el, filter.value.toLowerCase()), 100);
+    });
+  }
+
+  // Wire clear
+  el.querySelector('.apps-clear')?.addEventListener('click', () => {
+    _appsSel.clear();
+    localStorage.setItem('ctrl_builder_apps', '[]');
+    _renderAppsUI(el);
+    _updateBadge();
+  });
+
+  // Wire checkboxes
+  el.querySelectorAll('.app-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) _appsSel.add(cb.dataset.id);
+      else            _appsSel.delete(cb.dataset.id);
+      localStorage.setItem('ctrl_builder_apps', JSON.stringify([..._appsSel]));
+      cb.closest('.apps-row')?.classList.toggle('apps-sel', cb.checked);
+      _renderNav();
+      _updateBadge();
+    });
+  });
+}
+
+function _applyAppsFilter(el, q) {
+  el.querySelectorAll('.apps-row').forEach(row => {
+    const name = row.querySelector('.apps-name')?.textContent.toLowerCase() || '';
+    const pkg  = row.querySelector('.apps-pkg')?.textContent.toLowerCase() || '';
+    row.style.display = (!q || name.includes(q) || pkg.includes(q)) ? '' : 'none';
+  });
+  el.querySelectorAll('.apps-category').forEach(cat => {
+    const any = [...cat.querySelectorAll('.apps-row')].some(r => r.style.display !== 'none');
+    cat.style.display = any ? '' : 'none';
+  });
+}
+
 function _updateNavBadge(tabId) {
   const cat = _cats.find(c => c.id === tabId);
   if (!cat) return;
@@ -172,6 +300,20 @@ function _syncRadioBadge(group) {
 }
 
 // ── Entry HTML ────────────────────────────────────────────────────────────────
+
+// Shortcut — launch button (doesn't add to script, runs immediately)
+function _renderShortcut(item) {
+  return `<div class="ws-entry ws-standalone ws-shortcut">
+    <div class="ws-entry-info">
+      <div class="ws-entry-text"><h1>${esc(item.label)}</h1></div>
+    </div>
+    <div class="ws-entry-ctrl">
+      <button class="shortcut-open-btn" data-cmd="${esc(item.cmd)}">
+        <i class="ti ti-external-link"></i> Open
+      </button>
+    </div>
+  </div>`;
+}
 
 // Standalone toggle — shows its own icon if present
 function _renderToggle(item) {
@@ -282,7 +424,7 @@ function _renderRadioGroup(item) {
 
 // ── Badge / count ─────────────────────────────────────────────────────────────
 function _updateBadge() {
-  const n     = _sel.size + Object.keys(_radio).length;
+  const n     = _sel.size + Object.keys(_radio).length + _appsSel.size;
   const badge = document.getElementById('builder-sel-badge');
   const chip  = document.getElementById('builder-sel-chip');
   const count = document.getElementById('sel-count');
@@ -298,7 +440,32 @@ async function _rebuildPreview() {
   try {
     const allIds = [..._sel, ...Object.values(_radio)];
     const code   = await inv('build_script', { actionIds: allIds, outputType: 'ps1' });
-    codeEl.innerHTML = _highlight(code);
+
+    // Append app install block if any apps selected
+    let appsBlock = '';
+    if (_appsSel.size > 0 && _appsCat) {
+      const cmd = _pkgMgr === 'winget' ? 'winget install --exact --id' : 'choco install -y';
+      const lines = [];
+      for (const cat of (_appsCat.categories || [])) {
+        for (const a of cat.apps) {
+          if (!_appsSel.has(a.id)) continue;
+          const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
+          if (pkg) lines.push(`${cmd} "${pkg}"`);
+        }
+      }
+      if (lines.length) {
+        appsBlock = '\n# ── App Installs ──────────────────────────────────────────────────────────────\n' + lines.join('\n');
+      }
+    }
+
+    // Insert apps block before the footer
+    const footerMarker = '# ── Finalise';
+    const footerIdx = code.indexOf(footerMarker);
+    const finalCode = footerIdx >= 0
+      ? code.slice(0, footerIdx) + appsBlock + '\n' + code.slice(footerIdx)
+      : code + appsBlock;
+
+    codeEl.innerHTML = _highlight(finalCode);
   } catch(e) { toast(String(e), 'err'); }
 }
 

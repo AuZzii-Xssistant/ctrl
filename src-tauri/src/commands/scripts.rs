@@ -6,6 +6,36 @@ use tauri::State;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
 
+/// Resolve the best available text editor: VS Code → Notepad++ → Notepad.
+/// Never uses shell file-association (which can execute .ps1 files).
+fn find_editor() -> String {
+    // VS Code: check PATH first, then common install locations
+    if let Ok(out) = std::process::Command::new("where").arg("code").output() {
+        if out.status.success() {
+            let s = String::from_utf8_lossy(&out.stdout);
+            if let Some(p) = s.trim().lines().next() {
+                if !p.is_empty() { return p.to_string(); }
+            }
+        }
+    }
+    for p in [
+        r"C:\Program Files\Microsoft VS Code\bin\code.cmd",
+        r"C:\Program Files (x86)\Microsoft VS Code\bin\code.cmd",
+        r"C:\Users\Public\Desktop\Microsoft VS Code\bin\code.cmd",
+    ] {
+        if std::path::Path::new(p).exists() { return p.to_string(); }
+    }
+    // Notepad++
+    for p in [
+        r"C:\Program Files\Notepad++\notepad++.exe",
+        r"C:\Program Files (x86)\Notepad++\notepad++.exe",
+    ] {
+        if std::path::Path::new(p).exists() { return p.to_string(); }
+    }
+    // Notepad — always available
+    "notepad".to_string()
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Script {
     pub id: i64,
@@ -211,7 +241,9 @@ pub async fn open_script_editor(app: tauri::AppHandle, state: State<'_, AppState
     } else {
         path
     };
-    app.shell().command("cmd").args(["/c", "start", "", &open_path]).spawn().map_err(|e| e.to_string())?;
+    // Prefer VS Code → Notepad++ → Notepad (never shell-associate — .ps1 might run)
+    let editor = find_editor();
+    app.shell().command(&editor).args([&open_path]).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -228,6 +260,13 @@ pub async fn open_script_location(app: tauri::AppHandle, state: State<'_, AppSta
     }
     let dir = std::path::Path::new(&path).parent().map(|p| p.to_string_lossy().to_string()).unwrap_or(path);
     app.shell().command("explorer").args([&dir]).spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Open a Windows shortcut (ms-settings:, devmgmt.msc, etc.)
+#[tauri::command]
+pub async fn launch_shortcut(app: tauri::AppHandle, cmd: String) -> Result<(), String> {
+    app.shell().command("cmd").args(["/c", "start", "", &cmd]).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 

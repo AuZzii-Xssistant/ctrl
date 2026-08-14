@@ -41,6 +41,7 @@ pub fn run() {
             commands::scripts::read_text_file,
             commands::scripts::open_script_editor,
             commands::scripts::open_script_location,
+            commands::scripts::launch_shortcut,
             commands::fixes::get_fixes,
             commands::fixes::add_fix,
             commands::fixes::update_fix,

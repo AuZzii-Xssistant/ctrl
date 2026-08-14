@@ -4,6 +4,42 @@
   "icon": "ti-tool",
   "items": [
     {
+      "type": "shortcut",
+      "id": "openSettings",
+      "label": "Windows Settings",
+      "cmd": "ms-settings:"
+    },
+    {
+      "type": "shortcut",
+      "id": "openDeviceManager",
+      "label": "Device Manager",
+      "cmd": "devmgmt.msc"
+    },
+    {
+      "type": "shortcut",
+      "id": "openControlPanel",
+      "label": "Control Panel",
+      "cmd": "control"
+    },
+    {
+      "type": "shortcut",
+      "id": "openPageFile",
+      "label": "Virtual Memory",
+      "cmd": "SystemPropertiesAdvanced"
+    },
+    {
+      "type": "shortcut",
+      "id": "openVisualEffects",
+      "label": "Visual Effects",
+      "cmd": "SystemPropertiesPerformance"
+    },
+    {
+      "type": "shortcut",
+      "id": "openMSConfig",
+      "label": "MSConfig",
+      "cmd": "msconfig"
+    },
+    {
       "type": "group",
       "label": "Clean-up",
       "desc": "Free up disk space by cleaning up temporary files.",
@@ -51,6 +87,14 @@
     },
     {
       "type": "toggle",
+      "id": "restorepoint",
+      "label": "Create Restore Point",
+      "desc": "Creates a restore point before applying the tweaks.",
+      "icon": "tools/restore.png",
+      "ps1": "$desc = \"CTRL Restore Point $(Get-Date -Format 'yyyy-MM-dd HH:mm')\"\nEnable-ComputerRestore -Drive \"C:\\\" -ErrorAction SilentlyContinue\nCheckpoint-Computer -Description $desc -RestorePointType \"MODIFY_SETTINGS\"\nWrite-Host \"Restore point created: $desc\""
+    },
+    {
+      "type": "toggle",
       "id": "browserhistory",
       "label": "Clear Browser History",
       "desc": "Clears Chrome, Edge, Brave and Firefox history.",
@@ -64,6 +108,14 @@
       "desc": "Flushes the DNS and renews the IP address.",
       "icon": "tools/network.png",
       "ps1": "Write-Host '-- Resetting Network' -ForegroundColor Green\nipconfig /flushdns\nipconfig /release | Out-Null\nipconfig /renew | Out-Null"
+    },
+    {
+      "type": "toggle",
+      "id": "installmas",
+      "label": "Run MAS",
+      "desc": "Runs Microsoft Activation Scripts.",
+      "icon": "tools/key.png",
+      "ps1": "# Microsoft Activation Scripts — activates Windows/Office (requires internet)\n# Source: https://massgrave.dev\nirm https://get.activated.win | iex"
     }
   ]
 }
