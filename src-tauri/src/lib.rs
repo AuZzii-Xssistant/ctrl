@@ -23,7 +23,7 @@ pub fn run() {
                 .expect("failed to open ctrl.db");
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
-            app.manage(commands::terminal::TermState(Mutex::new(None)));
+            app.manage(commands::terminal::TermState(std::sync::Mutex::new(None)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

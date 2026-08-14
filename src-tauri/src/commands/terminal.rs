@@ -1,58 +1,54 @@
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
-use std::io::{Read, Write};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_shell::{ShellExt, process::{CommandChild, CommandEvent}};
 
-pub struct PtyState {
-    writer: Mutex<Box<dyn Write + Send>>,
-    // child kept alive so PTY doesn't close
-    _child: Mutex<Box<dyn portable_pty::Child + Send + Sync>>,
-}
-
-pub struct TermState(pub Mutex<Option<PtyState>>);
+pub struct TermState(pub Mutex<Option<CommandChild>>);
 
 #[tauri::command]
-pub fn pty_open(app: AppHandle, shell: String, cols: u16, rows: u16) -> Result<(), String> {
-    let state: State<TermState> = app.state();
-    // Close existing PTY if any
+pub async fn pty_open(app: AppHandle, shell: String, cols: u16, rows: u16) -> Result<(), String> {
+    let _ = (cols, rows); // no PTY resize without ConPTY; fine for pipe-based shell
+
+    // Kill existing shell
     {
+        let state: State<TermState> = app.state();
         let mut lock = state.0.lock().unwrap();
-        *lock = None;
+        if let Some(old) = lock.take() { let _ = old.kill(); }
     }
 
-    let pty_sys = native_pty_system();
-    let pair = pty_sys.openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
-        .map_err(|e| e.to_string())?;
+    // Build args — launch an interactive shell that stays open
+    let (program, args): (&str, Vec<&str>) = if shell.to_lowercase().contains("cmd") {
+        ("cmd", vec!["/Q"])
+    } else {
+        ("powershell", vec!["-NoLogo", "-NoExit", "-Command",
+            // Force UTF-8 + ANSI colors where supported
+            "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; \
+             if ($PSVersionTable.PSVersion.Major -ge 7) { $PSStyle.OutputRendering='ANSI' }"])
+    };
 
-    let mut cmd = CommandBuilder::new(&shell);
-    if shell.to_lowercase().contains("powershell") || shell.to_lowercase().contains("pwsh") {
-        cmd.arg("-NoLogo");
+    let (mut rx, child) = app.shell().command(program).args(&args)
+        .spawn().map_err(|e| e.to_string())?;
+
+    // Store child so pty_write can send stdin
+    {
+        let state: State<TermState> = app.state();
+        *state.0.lock().unwrap() = Some(child);
     }
 
-    let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
-    let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
-    let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
-
-    // Stream PTY output to frontend via events
+    // Stream stdout/stderr to frontend
     let app2 = app.clone();
-    std::thread::spawn(move || {
-        let mut buf = [0u8; 4096];
-        loop {
-            match reader.read(&mut buf) {
-                Ok(0) | Err(_) => break,
-                Ok(n) => {
-                    let data = String::from_utf8_lossy(&buf[..n]).to_string();
-                    let _ = app2.emit("pty-data", data);
+    tauri::async_runtime::spawn(async move {
+        while let Some(event) = rx.recv().await {
+            match event {
+                CommandEvent::Stdout(b) | CommandEvent::Stderr(b) => {
+                    let _ = app2.emit("pty-data", String::from_utf8_lossy(&b).to_string());
                 }
+                CommandEvent::Terminated(_) => {
+                    let _ = app2.emit("pty-exit", ());
+                    break;
+                }
+                _ => {}
             }
         }
-        let _ = app2.emit("pty-exit", ());
-    });
-
-    let mut lock = state.0.lock().unwrap();
-    *lock = Some(PtyState {
-        writer: Mutex::new(writer),
-        _child: Mutex::new(child),
     });
 
     Ok(())
@@ -61,28 +57,23 @@ pub fn pty_open(app: AppHandle, shell: String, cols: u16, rows: u16) -> Result<(
 #[tauri::command]
 pub fn pty_write(app: AppHandle, data: String) -> Result<(), String> {
     let state: State<TermState> = app.state();
-    let lock = state.0.lock().unwrap();
-    if let Some(ref pty) = *lock {
-        let mut w = pty.writer.lock().unwrap();
-        w.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+    let mut lock = state.0.lock().unwrap();
+    if let Some(ref mut child) = *lock {
+        child.write(data.as_bytes()).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn pty_resize(app: AppHandle, cols: u16, rows: u16) -> Result<(), String> {
-    // portable-pty resize goes through the master, but we don't hold it after take_writer.
-    // This is a known limitation; resize support requires keeping the master handle.
-    // ponytail: skip resize for now, add when needed via PtyMaster wrapper
-    let _ = (app, cols, rows);
-    Ok(())
+pub fn pty_resize(_app: AppHandle, _cols: u16, _rows: u16) -> Result<(), String> {
+    Ok(()) // pipe-based; no resize signal needed
 }
 
 #[tauri::command]
 pub fn pty_close(app: AppHandle) -> Result<(), String> {
     let state: State<TermState> = app.state();
     let mut lock = state.0.lock().unwrap();
-    *lock = None; // drops child + writer → PTY closes
+    if let Some(child) = lock.take() { let _ = child.kill(); }
     let _ = app.emit("pty-exit", ());
     Ok(())
 }
