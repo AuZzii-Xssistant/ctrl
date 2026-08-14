@@ -10,13 +10,6 @@ use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
 
-/// Whether admin scripts open a visible external terminal (true) or run hidden (false).
-static ADMIN_VISIBLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
-
-pub fn is_admin_visible() -> bool { ADMIN_VISIBLE.load(std::sync::atomic::Ordering::Relaxed) }
-
-#[tauri::command]
-pub fn set_admin_visible(visible: bool) { ADMIN_VISIBLE.store(visible, std::sync::atomic::Ordering::Relaxed); }
 
 /// Cached elevation check — computed once at first use.
 pub fn running_as_admin() -> bool {
@@ -171,17 +164,19 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
 }
 
 /// Run an inline command string elevated (UAC).
-/// Visible mode (default): opens a real terminal window the user can watch; CTRL shows status.
-/// Background mode: hidden window, output captured and shown in CTRL after completion.
-/// Toggle with set_admin_visible() / ADMIN_VISIBLE flag.
+/// Same PTY-wrapper pattern as run(): UAC prompt fires, elevated script runs hidden,
+/// output captured and displayed in CTRL's embedded terminal — no external window.
 pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: &str) -> Result<RunResult, String> {
     use tauri::Emitter;
 
-    let cmd_file  = tmp(label, "cmd",  shell.ext());
-    let wrap_ps1  = tmp(label, "wrap", "ps1");
-    let out_file  = tmp(label, "out",  "txt");
-    let exit_file = tmp(label, "exit", "txt");
+    let cmd_file  = tmp(label, "cmd",      shell.ext());
+    let elev_wrap = tmp(label, "elevwrap", "ps1");
+    let pty_wrap  = tmp(label, "ptywrap",  "ps1");
+    let out_file  = tmp(label, "out",      "txt");
+    let exit_file = tmp(label, "exit",     "txt");
+    let sentinel  = tmp(label, "sentinel", "txt");
 
+    // The actual script content (run elevated)
     let cmd_content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
         Shell::Python     => command.to_string(),
@@ -196,102 +191,91 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     };
     let out_esc  = esc_ps_path(&out_file);
     let exit_esc = esc_ps_path(&exit_file);
-    let visible  = is_admin_visible();
 
-    let (wrapper, win_style) = if visible {
-        // Visible: Write-Host shows output live in the external terminal window.
-        // Add-Content captures stdout lines for display in CTRL after completion.
-        // Programs that write to CONOUT$ directly (e.g. sfc.exe) appear live in the
-        // window but aren't captured — CTRL will show whatever stdout produced.
-        // No Read-Host — window closes automatically when done.
-        let w = format!(
-            "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
-             $ec=0\n\
-             try {{\n\
-               $prev=''\n\
-               ({run_line}) | ForEach-Object {{\n\
-                 $line=\"$_\"\n\
-                 if ($line -ne $prev) {{\n\
-                   Write-Host $line\n\
-                   Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
-                   $prev=$line\n\
-                 }}\n\
-               }}\n\
-               $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
-             }} catch {{\n\
-               $msg=\"ERROR: $_\"\n\
-               Write-Host $msg -ForegroundColor Red\n\
-               Add-Content -Path '{out_esc}' -Value $msg -Encoding UTF8\n\
-               $ec=1\n\
-             }}\n\
-             $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
-        );
-        (w, "Normal")
-    } else {
-        // Background: capture output line-by-line; shown in CTRL after completion.
-        let w = format!(
-            "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
-             $ec=0\n\
-             try {{\n\
-               $prev=''\n\
-               ({run_line}) | ForEach-Object {{\n\
-                 $line=\"$_\"\n\
-                 if ($line -ne $prev) {{\n\
-                   Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
-                   $prev=$line\n\
-                 }}\n\
-               }}\n\
-               $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
-             }} catch {{\n\
-               Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8\n\
-               $ec=1\n\
-             }}\n\
-             $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
-        );
-        (w, "Hidden")
-    };
-    fs::write(&wrap_ps1, &wrapper).map_err(|e| e.to_string())?;
-
-    let invoke = format!(
-        "Start-Process -Verb RunAs -Wait -WindowStyle {win_style} -FilePath '{}' \
-         -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
-        ps_bin(), esc_ps_path(&wrap_ps1)
+    // Elevated wrapper: runs hidden via UAC, captures output and exit code to files.
+    let elev_content = format!(
+        "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+         $ec=0\n\
+         try {{\n\
+           ({run_line}) | ForEach-Object {{\n\
+             Add-Content -Path '{out_esc}' -Value \"$_\" -Encoding UTF8\n\
+           }}\n\
+           $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}}\n\
+         }} catch {{\n\
+           Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8; $ec=1\n\
+         }}\n\
+         $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
+    fs::write(&elev_wrap, &elev_content).map_err(|e| e.to_string())?;
 
-    app.emit("run-start", ()).ok();
-    app.emit("run-output", if visible {
-        "\x1b[33mRunning in admin terminal \u{2014} see external window\x1b[0m\r\n"
-    } else {
-        "\x1b[33mRunning as administrator...\x1b[0m\r\n"
-    }).ok();
+    let elev_esc = esc_ps_path(&elev_wrap);
+    let cmd_esc  = esc_ps_path(&cmd_file);
+    let out_esc2 = esc_ps_path(&out_file);
+    let exit_esc2= esc_ps_path(&exit_file);
+    let s_esc    = esc_ps_path(&sentinel);
+    let pw_esc   = esc_ps_path(&pty_wrap);
+    let ps       = ps_bin();
 
-    // Blocks this async task until elevated process exits (UI thread stays responsive)
-    app.shell().command(ps_bin())
-        .args(["-ExecutionPolicy", "Bypass", "-NoProfile", "-Command", &invoke])
-        .output().await
-        .map_err(|e| e.to_string())?;
+    // PTY wrapper: runs non-elevated in the embedded terminal.
+    // Shows run divider + UAC notice, triggers elevation, displays captured output,
+    // shows done/failed divider, writes sentinel for Rust completion detection.
+    let pty_content = format!(
+        "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+         $e=[char]27\n\
+         Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} run \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         Write-Host \"$($e)[33mRequires administrator \u{2014} approve UAC prompt to continue$($e)[0m\"\n\
+         $uac_ok=$true\n\
+         try {{\n\
+           Start-Process -Verb RunAs -Wait -WindowStyle Hidden \
+             -FilePath '{ps}' \
+             -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{elev_esc}')\n\
+         }} catch {{\n\
+           Write-Host \"$($e)[33mUAC cancelled or access denied$($e)[0m\"\n\
+           $uac_ok=$false\n\
+         }}\n\
+         $ec=1\n\
+         if ($uac_ok) {{\n\
+           $ec_str=(Get-Content '{exit_esc2}' -ErrorAction SilentlyContinue)\n\
+           if ($null -ne $ec_str) {{ $ec=[int]$ec_str.Trim() }}\n\
+           $captured=(Get-Content '{out_esc2}' -Raw -ErrorAction SilentlyContinue)\n\
+           if ($captured) {{ Write-Host $captured.TrimEnd() }}\n\
+         }}\n\
+         if ($ec -eq 0) {{\n\
+           Write-Host \"\"\n\
+           Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[32mdone$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         }} else {{\n\
+           Write-Host \"\"\n\
+           Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
+         }}\n\
+         $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
+         Remove-Item '{cmd_esc}'  -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{elev_esc}' -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{out_esc2}' -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{exit_esc2}'-Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{pw_esc}'   -Force -ErrorAction SilentlyContinue\n"
+    );
+    fs::write(&pty_wrap, &pty_content).map_err(|e| e.to_string())?;
 
-    let success = fs::read_to_string(&exit_file)
-        .ok()
-        .and_then(|s| s.trim().parse::<i64>().ok())
-        .map(|ec| ec == 0)
-        .unwrap_or_else(|| {
-            app.emit("run-output", "(No output \u{2014} UAC may have been cancelled)\r\n").ok();
-            false
-        });
+    app.emit("run-start",   ()).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&pty_wrap))).ok();
 
-    // Show captured stdout in CTRL terminal (both modes).
-    // Visible: programs writing to CONOUT$ (e.g. sfc) won't appear here — that's expected,
-    // the user watched them live in the external window.
-    let captured = fs::read_to_string(&out_file).unwrap_or_default();
-    if !captured.is_empty() {
-        app.emit("run-output", captured.replace('\r', "")).ok();
-    } else if visible {
-        app.emit("run-output", "\x1b[90m(output visible in external terminal)\x1b[0m\r\n").ok();
-    }
+    // Poll for sentinel written by pty_wrap on completion (max 10 min, blocking thread).
+    let success = tauri::async_runtime::spawn_blocking(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            if sentinel.exists() {
+                let ec = fs::read_to_string(&sentinel)
+                    .ok()
+                    .and_then(|s| s.trim().parse::<i64>().ok())
+                    .unwrap_or(1);
+                let _ = fs::remove_file(&sentinel);
+                return ec == 0;
+            }
+            if std::time::Instant::now() > deadline { return false; }
+        }
+    }).await.unwrap_or(false);
+
     app.emit("run-done", success).ok();
-
-    for p in &[&cmd_file, &wrap_ps1, &out_file, &exit_file] { let _ = fs::remove_file(p); }
-
     Ok(RunResult { success, output: String::new() })
 }

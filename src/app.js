@@ -309,9 +309,6 @@ document.getElementById('term-new-shell')?.addEventListener('click', async e => 
 
 // ── Admin elevation state ─────────────────────────────────────────────────────
 
-// Sync visible/background setting to Rust on startup
-invoke('set_admin_visible', { visible: localStorage.getItem('ctrl-admin-visible') !== 'background' });
-
 invoke('is_elevated').then(elevated => {
   if (!elevated) return;
   const btn = document.getElementById('term-admin-shell');
@@ -330,23 +327,6 @@ document.getElementById('term-admin-shell')?.addEventListener('click', e => {
     .catch(err => toast(String(err), 'err'));
 });
 
-// Right-click: toggle visible vs background mode for admin scripts
-document.getElementById('term-admin-shell')?.addEventListener('contextmenu', e => {
-  e.stopPropagation();
-  const isVisible = localStorage.getItem('ctrl-admin-visible') !== 'background';
-  showContextMenu(e, [
-    {
-      label: `${isVisible ? '✓ ' : ''}Visible terminal (show window when running)`,
-      icon: 'ti-terminal-2',
-      fn: () => { localStorage.setItem('ctrl-admin-visible', 'visible'); invoke('set_admin_visible', { visible: true }); toast('Admin scripts: visible terminal', 'info'); },
-    },
-    {
-      label: `${!isVisible ? '✓ ' : ''}Background (silent, output shown when done)`,
-      icon: 'ti-terminal',
-      fn: () => { localStorage.setItem('ctrl-admin-visible', 'background'); invoke('set_admin_visible', { visible: false }); toast('Admin scripts: background', 'info'); },
-    },
-  ]);
-});
 
 _loadShells();
 
