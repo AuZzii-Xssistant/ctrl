@@ -7,7 +7,11 @@
 //   add script   --name NAME --content CONTENT [--file PATH] [--type ps1|py|bat] [--category CAT] [--tags TAGS] [--desc DESC] [--admin]
 //   add fix      --name NAME --cmd CMD [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--confirm]
 //   add tweak    --label LABEL --apply CMD [--revert CMD] [--category CAT] [--desc DESC] [--admin]
-//   list projects|scripts|fixes|tweaks
+//   add tool     --name NAME --path PATH [--category CAT] [--tags TAGS] [--desc DESC]
+//   add snippet  --title TITLE --content CONTENT [--category CAT] [--tags TAGS]
+//   add backup   --name NAME --source PATH --dest PATH
+//   add workflow --name NAME --desc DESC [--steps JSON]
+//   list projects|scripts|fixes|tweaks|tools|snippets|backups|workflows
 //
 // The DB is located next to ctrl.exe by default, or override with --db.
 
@@ -57,10 +61,16 @@ fn main() {
         ("add",    "script")   => add_script(&conn, flags),
         ("add",    "fix")      => add_fix(&conn, flags),
         ("add",    "tweak")    => add_tweak(&conn, flags),
+        ("add",    "tool")     => add_tool(&conn, flags),
+        ("add",    "snippet")  => add_snippet(&conn, flags),
+        ("add",    "backup")   => add_backup(&conn, flags),
+        ("add",    "workflow") => add_workflow(&conn, flags),
         ("update", "project")  => update_project(&conn, flags),
         ("update", "script")   => update_field(&conn, "scripts", "name", &flags),
         ("update", "fix")      => update_field(&conn, "fixes", "name", &flags),
         ("update", "tweak")    => update_field(&conn, "custom_tweaks", "label", &flags),
+        ("update", "tool")     => update_field(&conn, "tools", "name", &flags),
+        ("update", "snippet")  => update_field(&conn, "snippets", "title", &flags),
         ("list",   "projects") => list_table(&conn,
             "SELECT id,name,type,status,path FROM projects ORDER BY name",
             &["id", "name", "type", "status", "path"]),
@@ -73,6 +83,18 @@ fn main() {
         ("list",   "tweaks")   => list_table(&conn,
             "SELECT id,label,category,apply_cmd FROM custom_tweaks ORDER BY category,label",
             &["id", "label", "category", "apply_cmd"]),
+        ("list",   "tools")    => list_table(&conn,
+            "SELECT id,name,category,path FROM tools ORDER BY category,name",
+            &["id", "name", "category", "path"]),
+        ("list",   "snippets") => list_table(&conn,
+            "SELECT id,title,category,tags FROM snippets ORDER BY category,title",
+            &["id", "title", "category", "tags"]),
+        ("list",   "backups")  => list_table(&conn,
+            "SELECT id,name,source,dest FROM backup_jobs ORDER BY name",
+            &["id", "name", "source", "dest"]),
+        ("list",   "workflows")=> list_table(&conn,
+            "SELECT id,name,description FROM workflows ORDER BY name",
+            &["id", "name", "description"]),
         _ => { eprintln!("Unknown command: {} {}", cmd, sub); print_usage(); std::process::exit(1); }
     }
 }
@@ -87,7 +109,12 @@ fn print_usage() {
     println!("  add script   --name NAME [--content CONTENT] [--file PATH] [--type ps1] [--category CAT] [--tags TAGS] [--desc DESC] [--admin]");
     println!("  add fix      --name NAME --cmd CMD [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--confirm]");
     println!("  add tweak    --label LABEL --apply CMD [--revert CMD] [--category CAT] [--desc DESC] [--admin]");
-    println!("  list projects|scripts|fixes|tweaks");
+    println!("  add tool     --name NAME --path PATH [--category CAT] [--tags TAGS] [--desc DESC]");
+    println!("  add snippet  --title TITLE --content CONTENT [--category CAT] [--tags TAGS]");
+    println!("  add backup   --name NAME --source PATH --dest PATH");
+    println!("  add workflow --name NAME [--desc DESC]");
+    println!("  update project|script|fix|tweak|tool|snippet --id N [--field value ...]");
+    println!("  list projects|scripts|fixes|tweaks|tools|snippets|backups|workflows");
     println!();
     println!("The DB defaults to ctrl.db next to this binary. Override with --db PATH.");
 }
@@ -220,6 +247,52 @@ fn add_tweak(conn: &Connection, flags: HashMap<String, String>) {
         params![label, apply, revert, category, desc, admin],
     ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
     println!("✓ Tweak '{}' added (id={})", label, conn.last_insert_rowid());
+}
+
+fn add_tool(conn: &Connection, flags: HashMap<String, String>) {
+    let name     = require(&flags, "name");
+    let path     = require(&flags, "path");
+    let category = get(&flags, "category", "General");
+    let tags     = get(&flags, "tags", "");
+    let notes    = get(&flags, "desc", "");
+    conn.execute(
+        "INSERT INTO tools (name,category,path,tags,notes) VALUES (?1,?2,?3,?4,?5)",
+        params![name, category, path, tags, notes],
+    ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
+    println!("✓ Tool '{}' added (id={})", name, conn.last_insert_rowid());
+}
+
+fn add_snippet(conn: &Connection, flags: HashMap<String, String>) {
+    let title    = require(&flags, "title");
+    let content  = require(&flags, "content");
+    let category = get(&flags, "category", "General");
+    let tags     = get(&flags, "tags", "");
+    conn.execute(
+        "INSERT INTO snippets (title,content,category,tags) VALUES (?1,?2,?3,?4)",
+        params![title, content, category, tags],
+    ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
+    println!("✓ Snippet '{}' added (id={})", title, conn.last_insert_rowid());
+}
+
+fn add_backup(conn: &Connection, flags: HashMap<String, String>) {
+    let name   = require(&flags, "name");
+    let source = require(&flags, "source");
+    let dest   = require(&flags, "dest");
+    conn.execute(
+        "INSERT INTO backup_jobs (name,source,dest) VALUES (?1,?2,?3)",
+        params![name, source, dest],
+    ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
+    println!("✓ Backup job '{}' added (id={})", name, conn.last_insert_rowid());
+}
+
+fn add_workflow(conn: &Connection, flags: HashMap<String, String>) {
+    let name = require(&flags, "name");
+    let desc = get(&flags, "desc", "");
+    conn.execute(
+        "INSERT INTO workflows (name,description,steps) VALUES (?1,?2,'[]')",
+        params![name, desc],
+    ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
+    println!("✓ Workflow '{}' added (id={})", name, conn.last_insert_rowid());
 }
 
 fn list_table(conn: &Connection, sql: &str, headers: &[&str]) {

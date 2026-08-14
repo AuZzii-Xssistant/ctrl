@@ -129,6 +129,7 @@ async function _delete(id) {
   if (!ok) return;
   await inv('delete_tool', { id });
   toast('Tool removed', 'info');
+  window._refreshStats?.();
   load();
 }
 
@@ -174,6 +175,7 @@ window._saveTool = async (id) => {
   if (!data.name || !data.path) { toast('Name and path required', 'err'); return; }
   try {
     if (id) await inv('update_tool', { id, data }); else await inv('add_tool', { data });
-    closeModal(); toast(id ? 'Tool updated' : 'Tool added', 'ok'); load();
+    closeModal(); toast(id ? 'Tool updated' : 'Tool added', 'ok');
+    window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }
 };

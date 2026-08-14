@@ -37,6 +37,7 @@ pub struct SearchResults {
     pub fixes: Vec<SearchResult>,
     pub projects: Vec<SearchResult>,
     pub workflows: Vec<SearchResult>,
+    pub snippets: Vec<SearchResult>,
 }
 
 #[tauri::command]
@@ -55,6 +56,7 @@ pub fn global_search(state: State<AppState>, query: String) -> Result<SearchResu
         fixes:     search("SELECT 'fix',id,name,category FROM fixes WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
         projects:  search("SELECT 'project',id,name,status FROM projects WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
         workflows: search("SELECT 'workflow',id,name,description FROM workflows WHERE lower(name) LIKE ?1 OR lower(description) LIKE ?1"),
+        snippets:  search("SELECT 'snippet',id,title,category FROM snippets WHERE lower(title) LIKE ?1 OR lower(tags) LIKE ?1 OR lower(content) LIKE ?1"),
     })
 }
 

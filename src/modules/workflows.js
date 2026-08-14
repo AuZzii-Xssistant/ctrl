@@ -95,6 +95,7 @@ async function _delete(id) {
   if (!ok) return;
   await inv('delete_workflow', { id });
   toast('Workflow deleted', 'info');
+  window._refreshStats?.();
   load();
 }
 
@@ -187,6 +188,7 @@ window._saveWorkflow = async (id) => {
     else     await inv('add_workflow', { data });
     closeModal();
     toast(id ? 'Workflow saved' : 'Workflow created', 'ok');
+    window._refreshStats?.();
     load();
   } catch (e) { toast(String(e), 'err'); }
 };

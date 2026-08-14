@@ -149,6 +149,7 @@ async function _delete(id) {
   if (!ok) return;
   await inv('delete_fix', { id });
   toast('Fix removed', 'info');
+  window._refreshStats?.();
   load();
 }
 
@@ -193,6 +194,7 @@ window._saveFix = async (id) => {
   if (!data.name || !data.command) { toast('Name and command required', 'err'); return; }
   try {
     if (id) await inv('update_fix', { id, data }); else await inv('add_fix', { data });
-    closeModal(); toast(id ? 'Fix updated' : 'Fix added', 'ok'); load();
+    closeModal(); toast(id ? 'Fix updated' : 'Fix added', 'ok');
+    window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }
 };

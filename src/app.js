@@ -207,6 +207,19 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── Live stat refresh ────────────────────────────────────────────────────────
+window._refreshStats = async () => {
+  try {
+    const stats = await invoke('get_stats');
+    const el = document.getElementById('dash-scroll');
+    if (!el) return;
+    const vals = [stats.tools, stats.scripts, stats.fixes, stats.projects, stats.workflows ?? 0];
+    el.querySelectorAll('.stat-cell').forEach((c, i) => {
+      c.querySelector('.stat-num').textContent = vals[i];
+    });
+  } catch {}
+};
+
 // ── Global search ────────────────────────────────────────────────────────────
 const _searchEl  = document.getElementById('global-search');
 const _searchRes = document.getElementById('search-results');
@@ -250,6 +263,7 @@ const _searchSections = [
   { key: 'fixes',     label: 'Fixes',     icon: 'ti-bolt',          pane: 'fixes' },
   { key: 'projects',  label: 'Projects',  icon: 'ti-archive',       pane: 'projects' },
   { key: 'workflows', label: 'Workflows', icon: 'ti-player-play',   pane: 'workflows' },
+  { key: 'snippets',  label: 'Snippets',  icon: 'ti-blockquote',    pane: 'snippets' },
 ];
 
 function renderSearch(data) {

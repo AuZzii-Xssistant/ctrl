@@ -104,6 +104,7 @@ async function _delete(id) {
   if (!ok) return;
   await inv('delete_project', { id });
   toast('Project removed', 'info');
+  window._refreshStats?.();
   load();
 }
 
@@ -150,6 +151,7 @@ window._saveProject = async (id) => {
   if (!data.name) { toast('Name required', 'err'); return; }
   try {
     if (id) await inv('update_project', { id, data }); else await inv('add_project', { data });
-    closeModal(); toast(id ? 'Project updated' : 'Project added', 'ok'); load();
+    closeModal(); toast(id ? 'Project updated' : 'Project added', 'ok');
+    window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }
 };

@@ -139,6 +139,7 @@ async function _delete(id) {
   if (!ok) return;
   await inv('delete_script', { id });
   toast('Script removed', 'info');
+  window._refreshStats?.();
   load();
 }
 
@@ -212,6 +213,7 @@ window._saveScript = async (id) => {
   if (!data.name || (!data.file_path && !data.content)) { toast('Name and either content or file path required', 'err'); return; }
   try {
     if (id) await inv('update_script', { id, data }); else await inv('add_script', { data });
-    closeModal(); toast(id ? 'Script updated' : 'Script added', 'ok'); load();
+    closeModal(); toast(id ? 'Script updated' : 'Script added', 'ok');
+    window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }
 };

@@ -523,7 +523,11 @@ document.getElementById('builder-run-tab').addEventListener('click', () => _setT
 
 function _clearAll() {
   _sel.clear(); _radio = {}; _save();
-  if (_activeTab && _activeTab !== '__run__') {
+  _appsSel.clear(); localStorage.setItem('ctrl_builder_apps', '[]');
+  if (_activeTab === 'apps') {
+    const el = document.getElementById('builder-toggles');
+    if (el) _renderAppsUI(el);
+  } else if (_activeTab && _activeTab !== '__run__') {
     const cat = _cats.find(c => c.id === _activeTab);
     if (cat) _renderItems(cat.items || []);
   }
