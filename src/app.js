@@ -87,10 +87,9 @@ export function releaseRun() { _runLock = false; }
 // Run-event listeners wired immediately — buffered until xterm mounts
 listen('run-start', () => {
   _openDrawer();
-  // Clear current line + everything below — wipes PSReadLine history suggestions
-  // that may be drawn below the cursor, preventing them corrupting the output.
-  _termWrite('\r\x1b[0J');
-  _termWrite('\r\n\x1b[90m──────────────────── run ────────────────────\x1b[0m\r\n');
+  // \r\x1b[0J: carriage-return + erase-to-end — clears any PSReadLine suggestions
+  // drawn below the cursor so the run divider appears on a clean line.
+  _termWrite('\r\x1b[0J\r\n\x1b[90m──────────────────── run ────────────────────\x1b[0m\r\n');
   _bumpTs();
 });
 listen('run-output', e => _termWrite(e.payload));
@@ -98,7 +97,8 @@ listen('run-done',   e => {
   const ok = e.payload === true;
   _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone' : '\x1b[31mfailed'}\x1b[90m ────────────────\x1b[0m\r\n`);
   _term?.blur();
-  // Ask the shell to redraw its prompt on a fresh line
+  // Input was blocked during the run so PTY buffer is empty — \r is safe:
+  // it submits an empty line, causing the shell to redraw a fresh prompt below.
   if (_ptyStarted) invoke('pty_write', { data: '\r' }).catch(() => {});
 });
 listen('pty-data', e => _termWrite(e.payload));
@@ -171,7 +171,9 @@ function _initTerm() {
   _termFit = new window.FitAddon.FitAddon();
   _term.loadAddon(_termFit);
   _term.open(body);
-  _term.onData(data => invoke('pty_write', { data }).catch(() => {}));
+  // Block input to PTY while a run is active — prevents keystrokes from
+  // landing in the PTY buffer and corrupting the clean post-run prompt redraw.
+  _term.onData(data => { if (!_runLock) invoke('pty_write', { data }).catch(() => {}); });
   // Don't fit/resize yet — drawer is closed; _doOpen will fit on first real open
 }
 _initTerm();
@@ -277,11 +279,9 @@ document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
   // Clear xterm display AND send clear/cls to the shell so prompt redraws
   _term?.clear();
-  if (_ptyStarted) {
-    const isUnix = /wsl|bash/i.test(_curShell?.name ?? '');
-    // \x03 = Ctrl+C cancels partial input; \x15 = Ctrl+U clears line (belt+suspenders)
-    invoke('pty_write', { data: isUnix ? '\x03\x15clear\r' : '\x03\x15cls\r' }).catch(() => {});
-  }
+  // \x0c = Ctrl+L = ClearScreen in PSReadLine and bash — clears the display and
+  // redraws the current prompt without cancelling or submitting partial input.
+  if (_ptyStarted) invoke('pty_write', { data: '\x0c' }).catch(() => {});
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
 
