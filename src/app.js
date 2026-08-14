@@ -327,11 +327,12 @@ export function skeletonRows(n = 3) {
   return `<div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(n)}</div>`;
 }
 
-/** Shared pane header with optional inline search */
-export function paneHeader(icon, title, btnLabel, btnFn, searchId) {
+/** Shared pane header with optional inline search and optional sticky note card */
+export function paneHeader(icon, title, btnLabel, btnFn, searchId, note) {
   const btn = btnLabel ? `<button class="action-btn btn-secondary" onclick="${btnFn}" style="font-size:10px;padding:3px 10px"><i class="ti ti-plus"></i> ${esc(btnLabel)}</button>` : '';
   const srch = searchId ? `<input class="pane-search" id="${searchId}" placeholder="Filter…" autocomplete="off" />` : '';
-  return `<div class="pane-header"><div class="pane-header-title"><i class="ti ${esc(icon)}"></i>${esc(title)}</div>${srch}${btn}</div><div class="pane-divider"></div>`;
+  const noteHtml = note ? `<div class="pane-header-note">${note}</div>` : '';
+  return `<div class="pane-header${note ? ' pane-header-sticky' : ''}"><div class="pane-header-row"><div class="pane-header-title"><i class="ti ${esc(icon)}"></i>${esc(title)}</div>${srch}${btn}</div>${noteHtml}</div><div class="pane-divider"></div>`;
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────

@@ -241,15 +241,9 @@ pub async fn open_script_editor(app: tauri::AppHandle, state: State<'_, AppState
     } else {
         path
     };
-    // Prefer VS Code → Notepad++ → Notepad (never shell-associate — .ps1 might run)
-    // .cmd/.bat files must go through cmd /c — spawning them directly gives os error 193
+    // Always use cmd /c — handles .cmd/.bat executables and paths with spaces
     let editor = find_editor();
-    let lower = editor.to_lowercase();
-    if lower.ends_with(".cmd") || lower.ends_with(".bat") {
-        app.shell().command("cmd").args(["/c", &editor, &open_path]).spawn().map_err(|e| e.to_string())?;
-    } else {
-        app.shell().command(&editor).args([&open_path]).spawn().map_err(|e| e.to_string())?;
-    }
+    app.shell().command("cmd").args(["/c", &editor, &open_path]).spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
 

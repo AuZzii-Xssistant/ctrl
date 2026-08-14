@@ -4,7 +4,7 @@
   "icon": "ti-package",
   "categories": [
     {
-      "label": "Utilities",
+      "label": "Drivers",
       "apps": [
         {
           "id": "Intel",
@@ -23,7 +23,12 @@
           "label": "Ryzen",
           "choco": "amd-ryzen-chipset",
           "winget": null
-        },
+        }
+      ]
+    },
+    {
+      "label": "Browsers",
+      "apps": [
         {
           "id": "Brave",
           "label": "Brave",
@@ -113,7 +118,12 @@
           "label": "ZenBrowser",
           "choco": "zen-browser",
           "winget": "Zen-Team.Zen-Browser"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Compression",
+      "apps": [
         {
           "id": "7Zip",
           "label": "7Zip",
@@ -137,7 +147,12 @@
           "label": "WinRAR",
           "choco": "winrar",
           "winget": "RARLab.WinRAR"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Gaming",
+      "apps": [
         {
           "id": "EAApp",
           "label": "EAApp",
@@ -209,7 +224,12 @@
           "label": "UbisoftConnect",
           "choco": "ubisoft-connect",
           "winget": "Ubisoft.Connect"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Utilities",
+      "apps": [
         {
           "id": "1Password",
           "label": "1Password",
@@ -473,7 +493,12 @@
           "label": "WingetUI",
           "choco": "wingetui",
           "winget": "marticliment.UniGetUI"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Pro Tools",
+      "apps": [
         {
           "id": "AdvancedIpScanner",
           "label": "AdvancedIpScanner",
@@ -527,7 +552,12 @@
           "label": "WireGuard",
           "choco": "wireguard",
           "winget": "WireGuard.WireGuard"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Microsoft Tools",
+      "apps": [
         {
           "id": "Autoruns",
           "label": "Autoruns",
@@ -575,7 +605,12 @@
           "label": "WinTerminal",
           "choco": "microsoft-windows-terminal",
           "winget": "Microsoft.WindowsTerminal"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Media",
+      "apps": [
         {
           "id": "AIMP",
           "label": "AIMP",
@@ -769,6 +804,17 @@
           "winget": "yt-dlp.yt-dlp"
         },
         {
+          "id": "Harmonoid",
+          "label": "Harmonoid",
+          "choco": null,
+          "winget": "Harmonoid.Harmonoid"
+        }
+      ]
+    },
+    {
+      "label": "Comunication",
+      "apps": [
+        {
           "id": "Beeper",
           "label": "Beeper",
           "choco": "beeper-app",
@@ -869,7 +915,12 @@
           "label": "Zulip",
           "choco": "zulip",
           "winget": "Zulip.Zulip"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Imaging",
+      "apps": [
         {
           "id": "Blender",
           "label": "Blender",
@@ -917,7 +968,12 @@
           "label": "ShareX",
           "choco": "sharex",
           "winget": "ShareX.ShareX"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Documents",
+      "apps": [
         {
           "id": "Anki",
           "label": "Anki",
@@ -1025,7 +1081,12 @@
           "label": "Zotero",
           "choco": "zotero",
           "winget": "DigitalScholar.Zotero"
-        },
+        }
+      ]
+    },
+    {
+      "label": "Security",
+      "apps": [
         {
           "id": "Avast",
           "label": "Avast",
@@ -1061,7 +1122,12 @@
           "label": "MalwareBytes",
           "choco": "malwarebytes",
           "winget": "Malwarebytes.Malwarebytes"
-        },
+        }
+      ]
+    },
+    {
+      "label": "For Developers",
+      "apps": [
         {
           "id": "Aegisub",
           "label": "Aegisub",
@@ -1259,12 +1325,6 @@
           "label": "Zed",
           "choco": "zed",
           "winget": "ZedIndustries.Zed"
-        },
-        {
-          "id": "Harmonoid",
-          "label": "Harmonoid",
-          "choco": null,
-          "winget": "Harmonoid.Harmonoid"
         }
       ]
     }

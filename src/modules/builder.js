@@ -459,20 +459,29 @@ async function _rebuildPreview() {
     const allIds = [..._sel, ...Object.values(_radio)];
     const code   = await inv('build_script', { actionIds: allIds, outputType: 'ps1' });
 
-    // Append app install block if any apps selected
+    // Build app install block if any apps selected
     let appsBlock = '';
     if (_appsSel.size > 0 && _appsCat) {
-      const cmd = _pkgMgr === 'winget' ? 'winget install --exact --id' : 'choco install -y';
-      const lines = [];
+      const pkgs = [];
       for (const cat of (_appsCat.categories || [])) {
         for (const a of cat.apps) {
           if (!_appsSel.has(a.id)) continue;
           const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
-          if (pkg) lines.push(`${cmd} "${pkg}"`);
+          if (pkg) pkgs.push(pkg);
         }
       }
-      if (lines.length) {
-        appsBlock = '\n# ── App Installs ──────────────────────────────────────────────────────────────\n' + lines.join('\n');
+      if (pkgs.length) {
+        const pkgList  = pkgs.map(p => `"${p}"`).join(', ');
+        const pkgNames = pkgs.join(', ');
+        let setupBlock, installCmd;
+        if (_pkgMgr === 'winget') {
+          setupBlock = `Write-Host "-- Updating Winget" -ForegroundColor Green\n$v = winget -v; if ([version]($v.TrimStart('v')) -lt [version]'1.7.0') { Write-Output '-- Old Winget version detected, upgrading.'; Set-Location $env:USERPROFILE; Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile 'winget.msixbundle'; Add-AppPackage -ForceApplicationShutdown .\\winget.msixbundle; Remove-Item .\\winget.msixbundle } else { Write-Output 'Winget is already up to date, skipping upgrade.' }\nwinget settings --enable BypassCertificatePinningForMicrosoftStore`;
+          installCmd = `'-NoProfile -NoLogo -NoExit -Command $apps = @(${pkgList}); foreach ($app in $apps) { winget install $app --accept-source-agreements --accept-package-agreements --force }'`;
+        } else {
+          setupBlock = `Write-Host "-- Installing Chocolatey" -ForegroundColor Green\nif (-not (Get-Command choco -ErrorAction SilentlyContinue)) { Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) *> $null }`;
+          installCmd = `'-NoProfile -NoLogo -NoExit -Command $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User"); $apps = @(${pkgList}); foreach ($app in $apps) { choco install $app -y --force --ignorepackageexitcodes }'`;
+        }
+        appsBlock = `\n# ── Package Manager Setup ─────────────────────────────────────────────────────\n${setupBlock}\n\n# ── App Installs ──────────────────────────────────────────────────────────────\nWrite-Host "-- Installing these apps: " -ForegroundColor Green\nWrite-Host "-- ${pkgNames}"\nStart-Process powershell.exe -ArgumentList ${installCmd}\nPause`;
       }
     }
 

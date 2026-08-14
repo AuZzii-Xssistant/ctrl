@@ -349,15 +349,15 @@ function parseApps(appJsPath) {
     const section  = raw.slice(arrStart, arrEnd + 1);
 
     // Find comment lines (// Category) to label groups
-    const lines    = section.split('\n');
+    // Strip \r so $ in regex works on CRLF files
+    const lines    = section.split('\n').map(l => l.replace(/\r$/, ''));
     let curCat     = 'Utilities';
     const catMap   = {};
-    const commentRe = /^\s*\/\/\s*(.+)$/;
+    const commentRe = /^\s*\/\/\s*(.+)/;  // no $ — avoids CRLF issue
 
     for (const line of lines) {
       const cm = commentRe.exec(line);
       if (cm && !line.includes('{') && !line.includes('}')) {
-        // It's a category comment, not inline
         curCat = cm[1].trim();
       }
       const idM = /id:\s*"([^"]+)"/.exec(line);

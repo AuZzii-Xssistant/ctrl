@@ -399,7 +399,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .bnav-item .bnav-label { flex: 1; }
 .bnav-count { font-family: var(--mono); font-size: 10px; background: rgba(245,166,35,.15); color: var(--amber); border-radius: 8px; padding: 0 5px; min-width: 16px; text-align: center; }
 .bnav-spacer { flex: 1; min-height: 10px; }
-.bnav-run { border-top: 1px solid var(--border); font-weight: 600; padding: 10px 12px; min-height: 54px; color: var(--amber); }
+.bnav-run { border-top: 1px solid var(--border); font-weight: 600; padding: 0 12px; height: 52px; color: var(--amber); }
 .bnav-run:hover { color: var(--amber); }
 .bnav-empty { padding: 14px 12px; font-size: 11px; color: var(--text3); line-height: 1.7; }
 .bnav-empty code { font-family: var(--mono); color: var(--amber); font-size: 10px; display: block; margin-top: 4px; }
@@ -535,21 +535,23 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 .ps-kw  { color: #7B9FE8; }
 .ps-str { color: var(--amber); }
 .ps-var { color: #60A5FA; }
-#builder-footer { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
+#builder-footer { display: flex; align-items: center; gap: 6px; padding: 0 14px; height: 52px; border-top: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; }
 #save-name { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; color: var(--text); font-family: var(--sans); font-size: 12px; outline: none; }
 #save-name:focus { border-color: var(--amber); }
 #save-name::placeholder { color: var(--text3); }
 
 /* ── PANE HEADER ── */
 .pane-header {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-direction: column; gap: 0;
   padding: 10px 16px 12px; flex-shrink: 0;
   position: sticky; top: 0; z-index: 10;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
-/* pane-divider: 12px spacer below sticky header — must keep height not display:none
-   so element-specific margin:0 rules on first-child can't collapse this gap */
+.pane-header-row { display: flex; align-items: center; gap: 10px; }
+/* When a note card is inside the header, add spacing below the row */
+.pane-header-note { margin-top: 8px; }
+/* pane-divider: 12px spacer below sticky header */
 .pane-divider { height: 12px; }
 .pane-header-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; display: flex; align-items: center; gap: 7px; }
 .pane-header-title i { font-size: 15px; color: var(--amber); }
@@ -563,14 +565,6 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 /* .pane-divider defined above in sticky block */
 
 /* ── TWEAKS ── */
-/* Sticky note — outer wrapper has opaque black bg so content doesn't bleed through.
-   Inner card keeps the grey card look. top: 44px = pane-header height */
-.tweaks-note {
-  position: sticky; top: 44px; z-index: 8;
-  background: var(--bg); padding: 10px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
-}
 .tweaks-note-inner {
   font-size: 11px; color: var(--text3);
   background: var(--bg3); border: 1px solid var(--border);
