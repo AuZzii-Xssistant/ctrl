@@ -86,6 +86,7 @@
           <div id="builder-cat-header">
             <span id="builder-cat-title">Select a category</span>
             <span class="sel-chip" id="builder-sel-chip">0 selected</span>
+            <button class="clear-tab-btn" id="builder-clear-tab" title="Clear All"><i class="ti ti-x"></i> Clear All</button>
           </div>
           <div id="builder-toggles"></div>
           <div id="builder-script-view">
@@ -95,24 +96,19 @@
                 <i class="ti ti-shield-check"></i>
                 <div><strong>Basic</strong><span>Safe cleanup &amp; light debloat</span></div>
               </button>
-              <button class="preset-btn" data-preset="privacy">
-                <i class="ti ti-eye-off"></i>
-                <div><strong>Privacy</strong><span>All privacy &amp; telemetry tweaks</span></div>
+              <button class="preset-btn" data-preset="strict">
+                <i class="ti ti-shield-lock"></i>
+                <div><strong>Strict</strong><span>Full privacy &amp; deeper debloat</span></div>
               </button>
-              <button class="preset-btn" data-preset="performance">
-                <i class="ti ti-rocket"></i>
-                <div><strong>Performance</strong><span>Gaming &amp; performance optimizations</span></div>
+              <button class="preset-btn" data-preset="extreme">
+                <i class="ti ti-shield-x"></i>
+                <div><strong>Extreme</strong><span>Maximum privacy, removes more</span></div>
               </button>
+              <div style="flex:1"></div>
+              <button class="action-btn btn-ghost" id="builder-clear" style="margin-left:8px"><i class="ti ti-x"></i> Clear All</button>
             </div>
             <div id="builder-toolbar">
-              <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">output type</span>
-              <select class="type-select" id="builder-type">
-                <option value="ps1">PowerShell (.ps1)</option>
-                <option value="bat">Batch (.bat)</option>
-                <option value="cmd">CMD (.cmd)</option>
-              </select>
               <span id="sel-count">0 selected</span>
-              <button class="action-btn btn-ghost" id="builder-clear"><i class="ti ti-x"></i> Clear</button>
             </div>
             <div id="builder-code-wrap">
               <div id="builder-code"><span class="ps-comment"># Select actions from the categories on the left.</span></div>
@@ -149,6 +145,7 @@
 
       <!-- TWEAKS -->
       <div class="pane" id="tweaks-pane">
+        <div id="tweaks-note-area"></div>
         <div class="pane-scroll" id="tweaks-scroll"></div>
       </div>
 
