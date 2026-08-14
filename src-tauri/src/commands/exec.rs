@@ -144,33 +144,48 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let exit_esc = esc_ps_path(&exit_file);
     let visible  = is_admin_visible();
 
-    // Visible: Write-Host shows output in the external window; Add-Content captures for CTRL.
-    // Background: only Add-Content (no console output needed — window is hidden).
-    let write_host = if visible { "Write-Host $line\n               " } else { "" };
-    let close_line = if visible { "\nRead-Host 'Done \u{2014} press Enter to close'" } else { "" };
-    let wrapper = format!(
-        "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
-         $ec=0\n\
-         try {{\n\
-           $prev=''\n\
-           ({run_line}) | ForEach-Object {{\n\
-             $line=\"$_\"\n\
-             if ($line -ne $prev) {{\n\
-               {write_host}Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
-               $prev=$line\n\
+    let (wrapper, win_style) = if visible {
+        // Visible: run DIRECTLY — no pipeline, so programs like sfc.exe write live to console.
+        // Window closes automatically when done (no Read-Host). User watches live in window.
+        // We don't capture output to a file; CTRL shows exit status only.
+        let w = format!(
+            "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+             $ec=0\n\
+             try {{\n\
+               {run_line}\n\
+               $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
+             }} catch {{\n\
+               Write-Host \"ERROR: $_\" -ForegroundColor Red\n\
+               $ec=1\n\
              }}\n\
-           }}\n\
-           $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
-         }} catch {{\n\
-           $msg=\"ERROR: $_\"\n\
-           {write_host}Add-Content -Path '{out_esc}' -Value $msg -Encoding UTF8\n\
-           $ec=1\n\
-         }}\n\
-         $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force{close_line}\n"
-    );
+             $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
+        );
+        (w, "Normal")
+    } else {
+        // Background: capture output line-by-line; shown in CTRL after completion.
+        let w = format!(
+            "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+             $ec=0\n\
+             try {{\n\
+               $prev=''\n\
+               ({run_line}) | ForEach-Object {{\n\
+                 $line=\"$_\"\n\
+                 if ($line -ne $prev) {{\n\
+                   Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
+                   $prev=$line\n\
+                 }}\n\
+               }}\n\
+               $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
+             }} catch {{\n\
+               Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8\n\
+               $ec=1\n\
+             }}\n\
+             $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
+        );
+        (w, "Hidden")
+    };
     fs::write(&wrap_ps1, &wrapper).map_err(|e| e.to_string())?;
 
-    let win_style = if visible { "Normal" } else { "Hidden" };
     let invoke = format!(
         "Start-Process -Verb RunAs -Wait -WindowStyle {win_style} -FilePath '{}' \
          -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{}')",
@@ -178,11 +193,11 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     );
 
     app.emit("run-start", ()).ok();
-    if visible {
-        app.emit("run-output", "\x1b[33m\u{26a1} Running in admin terminal \u{2014} see external window\x1b[0m\r\n").ok();
+    app.emit("run-output", if visible {
+        "\x1b[33m\u{26a1} Running in admin terminal \u{2014} see external window\x1b[0m\r\n"
     } else {
-        app.emit("run-output", "\x1b[33m\u{26a1} Running as administrator\u{2026}\x1b[0m\r\n").ok();
-    }
+        "\x1b[33m\u{26a1} Running as administrator\u{2026}\x1b[0m\r\n"
+    }).ok();
 
     // Blocks this async task until elevated process exits (UI thread stays responsive)
     app.shell().command(ps_bin())
@@ -199,10 +214,10 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
             false
         });
 
-    // Show captured output in CTRL terminal (strip \r to avoid blank-line doubling)
-    if let Ok(out) = fs::read_to_string(&out_file) {
-        if !out.is_empty() {
-            app.emit("run-output", out.replace('\r', "")).ok();
+    if !visible {
+        // Background: show captured output in CTRL terminal
+        if let Ok(out) = fs::read_to_string(&out_file) {
+            if !out.is_empty() { app.emit("run-output", out.replace('\r', "")).ok(); }
         }
     }
     app.emit("run-done", success).ok();

@@ -110,6 +110,10 @@ async function _loadShells() {
   if (!_shells.length) _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
   _curShell = _shells[0];
   _buildShellPicker();
+  // Pre-start PTY in background with default 80x24 so drawer opens instantly.
+  // _needsFit = true means the first real open will resize to actual dimensions.
+  _needsFit = true;
+  _startPtyShell();
 }
 
 function _shellLabel(name) {
@@ -208,7 +212,7 @@ function _openDrawer() {
 function _doOpen(d) {
   d.classList.add('open');
   document.querySelector('#output-toggle i')?.setAttribute('class', 'ti ti-chevron-down');
-  setTimeout(_onDrawerOpened, 220);
+  setTimeout(() => _onDrawerOpened(false), 220);
 }
 
 function _toggleOutputDrawer() {
@@ -217,30 +221,22 @@ function _toggleOutputDrawer() {
   d.classList.toggle('open');
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
   document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
-  if (!wasOpen) setTimeout(_onDrawerOpened, 220);
-  else _term?.blur(); // release xterm focus so typing doesn't go to the PTY
+  if (!wasOpen) setTimeout(() => _onDrawerOpened(true), 220);
+  else _term?.blur();
 }
 
-function _onDrawerOpened() {
+function _onDrawerOpened(userInitiated = false) {
   if (!_ptyStarted) {
-    // First open: fit and start shell (PTY resize is fine here, shell not running yet)
+    // Fallback: pre-load failed or shell was reset — start now with real size
     _fitTerm();
     _startPtyShell();
   } else if (_needsFit) {
-    // Window was resized while drawer was closed — fit and resize PTY now
     _needsFit = false;
-    _fitTerm();
-  } else {
-    // Ordinary re-open: re-layout xterm canvas WITHOUT resizing PTY
-    // Resizing PTY causes PS/Oh-My-Posh to redraw the prompt mid-output
-    try {
-      _termFit?.fit();
-      // Keep tracking vars in sync so _fitTerm's guard stays accurate
-      _lastCols = _term?.cols ?? _lastCols;
-      _lastRows = _term?.rows ?? _lastRows;
-    } catch {}
+    _fitTerm(); // window resized while closed — sync PTY size now
   }
-  _term?.focus();
+  // Only focus xterm when the user clicked to open — never on programmatic opens.
+  // run-start opens the drawer programmatically; auto-focus would route keystrokes to PTY.
+  if (userInitiated) _term?.focus();
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
