@@ -145,17 +145,29 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let visible  = is_admin_visible();
 
     let (wrapper, win_style) = if visible {
-        // Visible: run DIRECTLY — no pipeline, so programs like sfc.exe write live to console.
-        // Window closes automatically when done (no Read-Host). User watches live in window.
-        // We don't capture output to a file; CTRL shows exit status only.
+        // Visible: Write-Host shows output live in the external terminal window.
+        // Add-Content captures stdout lines for display in CTRL after completion.
+        // Programs that write to CONOUT$ directly (e.g. sfc.exe) appear live in the
+        // window but aren't captured — CTRL will show whatever stdout produced.
+        // No Read-Host — window closes automatically when done.
         let w = format!(
             "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
              $ec=0\n\
              try {{\n\
-               {run_line}\n\
+               $prev=''\n\
+               ({run_line}) | ForEach-Object {{\n\
+                 $line=\"$_\"\n\
+                 if ($line -ne $prev) {{\n\
+                   Write-Host $line\n\
+                   Add-Content -Path '{out_esc}' -Value $line -Encoding UTF8\n\
+                   $prev=$line\n\
+                 }}\n\
+               }}\n\
                $ec=if ($LASTEXITCODE -ne $null) {{ $LASTEXITCODE }} else {{ 0 }}\n\
              }} catch {{\n\
-               Write-Host \"ERROR: $_\" -ForegroundColor Red\n\
+               $msg=\"ERROR: $_\"\n\
+               Write-Host $msg -ForegroundColor Red\n\
+               Add-Content -Path '{out_esc}' -Value $msg -Encoding UTF8\n\
                $ec=1\n\
              }}\n\
              $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
@@ -194,9 +206,9 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
 
     app.emit("run-start", ()).ok();
     app.emit("run-output", if visible {
-        "\x1b[33m\u{26a1} Running in admin terminal \u{2014} see external window\x1b[0m\r\n"
+        "\x1b[33mRunning in admin terminal \u{2014} see external window\x1b[0m\r\n"
     } else {
-        "\x1b[33m\u{26a1} Running as administrator\u{2026}\x1b[0m\r\n"
+        "\x1b[33mRunning as administrator...\x1b[0m\r\n"
     }).ok();
 
     // Blocks this async task until elevated process exits (UI thread stays responsive)
@@ -214,11 +226,14 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
             false
         });
 
-    if !visible {
-        // Background: show captured output in CTRL terminal
-        if let Ok(out) = fs::read_to_string(&out_file) {
-            if !out.is_empty() { app.emit("run-output", out.replace('\r', "")).ok(); }
-        }
+    // Show captured stdout in CTRL terminal (both modes).
+    // Visible: programs writing to CONOUT$ (e.g. sfc) won't appear here — that's expected,
+    // the user watched them live in the external window.
+    let captured = fs::read_to_string(&out_file).unwrap_or_default();
+    if !captured.is_empty() {
+        app.emit("run-output", captured.replace('\r', "")).ok();
+    } else if visible {
+        app.emit("run-output", "\x1b[90m(output visible in external terminal)\x1b[0m\r\n").ok();
     }
     app.emit("run-done", success).ok();
 

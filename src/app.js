@@ -87,15 +87,19 @@ export function releaseRun() { _runLock = false; }
 // Run-event listeners wired immediately — buffered until xterm mounts
 listen('run-start', () => {
   _openDrawer();
+  // Clear current line + everything below — wipes PSReadLine history suggestions
+  // that may be drawn below the cursor, preventing them corrupting the output.
+  _termWrite('\r\x1b[0J');
   _termWrite('\r\n\x1b[90m──────────────────── run ────────────────────\x1b[0m\r\n');
   _bumpTs();
 });
 listen('run-output', e => _termWrite(e.payload));
 listen('run-done',   e => {
   const ok = e.payload === true;
-  _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone ✓' : '\x1b[31mfailed ✗'}\x1b[90m ────────────────\x1b[0m\r\n`);
-  // Release focus so keystrokes don't get eaten by xterm after a run finishes
+  _termWrite(`\r\n\x1b[90m──────────────── ${ok ? '\x1b[32mdone' : '\x1b[31mfailed'}\x1b[90m ────────────────\x1b[0m\r\n`);
   _term?.blur();
+  // Ask the shell to redraw its prompt on a fresh line
+  if (_ptyStarted) invoke('pty_write', { data: '\r' }).catch(() => {});
 });
 listen('pty-data', e => _termWrite(e.payload));
 listen('pty-exit', () => {
@@ -274,9 +278,9 @@ document.getElementById('output-clear').addEventListener('click', e => {
   // Clear xterm display AND send clear/cls to the shell so prompt redraws
   _term?.clear();
   if (_ptyStarted) {
-    // WSL / Git Bash use 'clear'; Windows shells use 'cls'
     const isUnix = /wsl|bash/i.test(_curShell?.name ?? '');
-    invoke('pty_write', { data: isUnix ? 'clear\r' : 'cls\r' }).catch(() => {});
+    // \x03 = Ctrl+C cancels partial input; \x15 = Ctrl+U clears line (belt+suspenders)
+    invoke('pty_write', { data: isUnix ? '\x03\x15clear\r' : '\x03\x15cls\r' }).catch(() => {});
   }
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
