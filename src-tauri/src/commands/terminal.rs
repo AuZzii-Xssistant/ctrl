@@ -12,6 +12,49 @@ extern "system" {
     fn GetConsoleWindow() -> *mut std::ffi::c_void;
     fn AllocConsole() -> i32;
     fn ShowWindow(hwnd: *mut std::ffi::c_void, n_cmd_show: i32) -> i32;
+    fn GetCurrentProcess() -> *mut std::ffi::c_void;
+    fn CloseHandle(h: *mut std::ffi::c_void) -> i32;
+}
+
+#[link(name = "advapi32")]
+extern "system" {
+    fn OpenProcessToken(proc: *mut std::ffi::c_void, access: u32, token: *mut *mut std::ffi::c_void) -> i32;
+    fn GetTokenInformation(token: *mut std::ffi::c_void, class: u32, info: *mut std::ffi::c_void, len: u32, returned: *mut u32) -> i32;
+}
+
+/// Returns true when CTRL is running with administrator privileges.
+/// Cached on first call via OnceLock in exec.rs.
+pub fn is_process_elevated() -> bool {
+    unsafe {
+        let mut token: *mut std::ffi::c_void = std::ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), 0x0008 /* TOKEN_QUERY */, &mut token) == 0 {
+            return false;
+        }
+        let mut elevated = 0u32;
+        let mut returned  = 0u32;
+        // TokenElevation = 20 — non-zero means process is elevated
+        GetTokenInformation(token, 20, &mut elevated as *mut u32 as *mut _, 4, &mut returned);
+        CloseHandle(token);
+        elevated != 0
+    }
+}
+
+#[tauri::command]
+pub fn is_elevated() -> bool { is_process_elevated() }
+
+/// Relaunch ctrl.exe with UAC elevation. UAC prompt appears; if approved
+/// a new elevated CTRL window opens. Current window stays open.
+#[tauri::command]
+pub async fn restart_as_admin(app: AppHandle) -> Result<(), String> {
+    use tauri_plugin_shell::ShellExt;
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let path = exe.to_string_lossy().replace('\'', "''");
+    app.shell()
+        .command(crate::commands::exec::ps_bin())
+        .args(["-NoProfile", "-Command", &format!("Start-Process '{}' -Verb RunAs", path)])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 static CONSOLE_ALLOC: std::sync::Once = std::sync::Once::new();

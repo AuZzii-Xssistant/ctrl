@@ -856,6 +856,9 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 #term-new-shell:hover { color:var(--text2); }
 #term-admin-shell { background:none; border:1px solid var(--border); color:var(--text3); font-size:10px; cursor:pointer; padding:1px 6px; border-radius:3px; display:flex; align-items:center; gap:3px; }
 #term-admin-shell:hover { border-color:#f59e0b; color:#f59e0b; }
+#term-admin-shell.elevated { border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,.1); }
+#output-header[data-elevated] { border-top:1px solid rgba(245,158,11,.35); }
+#output-header[data-elevated]::before { content:'⚡ admin'; position:absolute; right:10px; top:4px; font-size:9px; color:#f59e0b; letter-spacing:.5px; pointer-events:none; }
 /* xterm.js inside output-body */
 #output-body .xterm { height:100%; }
 #output-body .xterm-viewport { border-radius:0; }

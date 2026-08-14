@@ -10,6 +10,13 @@ use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
 
+/// Cached elevation check — computed once at first use.
+pub fn running_as_admin() -> bool {
+    use std::sync::OnceLock;
+    static ELEVATED: OnceLock<bool> = OnceLock::new();
+    *ELEVATED.get_or_init(crate::commands::terminal::is_process_elevated)
+}
+
 /// Detect best available PowerShell binary (pwsh = PS7+, else powershell).
 /// Result cached after first call.
 pub fn ps_bin() -> &'static str {

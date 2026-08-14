@@ -33,14 +33,14 @@ pub async fn run_tweak_cmd(app: tauri::AppHandle, cmd: String, admin: Option<boo
     }
     let shell = Shell::PowerShell;
     let is_admin = admin.unwrap_or(false);
-    let result = if is_admin {
+    // When CTRL itself is elevated, skip UAC/polling — run directly (admin inherited)
+    let result = if is_admin && !crate::commands::exec::running_as_admin() {
         exec_elevated(&app, &cmd, &shell, "tweak").await?
     } else {
         exec_run(&app, &cmd, &shell).await?
     };
-    // Non-admin output already streamed via events; admin output returned for display
     use crate::commands::scripts::RunResult;
-    Ok(RunResult { success: result.success, output: if is_admin { result.output } else { String::new() } })
+    Ok(RunResult { success: result.success, output: String::new() })
 }
 
 #[tauri::command]

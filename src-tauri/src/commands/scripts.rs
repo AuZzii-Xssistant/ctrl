@@ -158,8 +158,9 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_else(|| file_path.clone());
 
-    // For admin runs: wrap in temp PS1 that captures output, run elevated with -Wait
-    if run_as_admin {
+    // For admin runs: use UAC elevation only when CTRL itself is NOT already elevated.
+    // When CTRL is admin, fall through to the normal streaming path below.
+    if run_as_admin && !crate::commands::exec::running_as_admin() {
         let tmp_script = std::env::temp_dir().join(format!("ctrl_script_{}.ps1", id));
         let tmp_output = std::env::temp_dir().join(format!("ctrl_script_{}_out.txt", id));
         let out_path = tmp_output.to_string_lossy().replace('\'', "''");

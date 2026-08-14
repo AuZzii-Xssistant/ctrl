@@ -104,6 +104,8 @@ pub fn run() {
             commands::terminal::pty_resize,
             commands::terminal::pty_close,
             commands::terminal::open_elevated_terminal,
+            commands::terminal::is_elevated,
+            commands::terminal::restart_as_admin,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");
