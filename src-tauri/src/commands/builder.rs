@@ -13,7 +13,31 @@ pub struct BuilderDefs {
     pub presets: serde_json::Value,
 }
 
-/// Walk up from exe dir to find data/builder (handles dev: target/debug/ctrl.exe → project root)
+/// Builder JSON files embedded at compile time — ensures they ship inside ctrl.exe.
+/// On first launch next to a clean exe, these are seeded to data/builder/ on disk.
+const EMBEDDED_BUILDER: &[(&str, &str)] = &[
+    ("01-tools.json",        include_str!("../../../data/builder/01-tools.json")),
+    ("02-debloat.json",      include_str!("../../../data/builder/02-debloat.json")),
+    ("03-privacy.json",      include_str!("../../../data/builder/03-privacy.json")),
+    ("04-telemetry.json",    include_str!("../../../data/builder/04-telemetry.json")),
+    ("05-gaming.json",       include_str!("../../../data/builder/05-gaming.json")),
+    ("06-performance.json",  include_str!("../../../data/builder/06-performance.json")),
+    ("07-miscellanous.json", include_str!("../../../data/builder/07-miscellanous.json")),
+    ("08-apps.json",         include_str!("../../../data/builder/08-apps.json")),
+    ("_meta.json",           include_str!("../../../data/builder/_meta.json")),
+];
+
+/// Seed data/builder/ from embedded bytes if the directory doesn't exist yet.
+fn seed_builder_data(dir: &std::path::Path) {
+    if dir.exists() { return; }
+    let _ = std::fs::create_dir_all(dir);
+    for (name, content) in EMBEDDED_BUILDER {
+        let _ = std::fs::write(dir.join(name), content);
+    }
+}
+
+/// Walk up from exe dir to find data/builder (handles dev: target/debug/ctrl.exe → project root).
+/// Falls back to seeding from embedded data next to the exe when not found.
 fn find_builder_dir() -> std::path::PathBuf {
     let exe_dir = std::env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
@@ -24,7 +48,10 @@ fn find_builder_dir() -> std::path::PathBuf {
         if candidate.exists() { return candidate; }
         if !dir.pop() { break; }
     }
-    exe_dir.join("data").join("builder")
+    // Not found on disk — seed from embedded data next to the exe
+    let target = exe_dir.join("data").join("builder");
+    seed_builder_data(&target);
+    target
 }
 
 fn load_categories() -> Vec<serde_json::Value> {
