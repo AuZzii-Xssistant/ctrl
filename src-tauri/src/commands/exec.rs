@@ -122,6 +122,7 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
     let wrapper_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $e=[char]27\n\
+         [Console]::Write(\"$($e)[1A$($e)[2K\")\n\
          Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} run \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          $ec=0\n\
          try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
@@ -190,17 +191,15 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let out_esc  = esc_ps_path(&out_file);
     let exit_esc = esc_ps_path(&exit_file);
 
-    // Elevated wrapper: runs hidden via UAC, captures output and exit code to files.
+    // Elevated wrapper: runs in visible external terminal, shows output live, saves exit code.
     let elev_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $ec=0\n\
          try {{\n\
-           ({run_line}) | ForEach-Object {{\n\
-             Add-Content -Path '{out_esc}' -Value \"$_\" -Encoding UTF8\n\
-           }}\n\
+           ({run_line}) | ForEach-Object {{ Write-Host \"$_\" }}\n\
            $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}}\n\
          }} catch {{\n\
-           Add-Content -Path '{out_esc}' -Value \"ERROR: $_\" -Encoding UTF8; $ec=1\n\
+           Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1\n\
          }}\n\
          $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
@@ -220,6 +219,7 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let pty_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $e=[char]27\n\
+         [Console]::Write(\"$($e)[1A$($e)[2K\")\n\
          Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} run \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          Write-Host \"$($e)[33mRunning as administrator \u{2014} see external terminal$($e)[0m\"\n\
          $ec=1\n\
