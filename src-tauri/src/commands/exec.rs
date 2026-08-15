@@ -171,7 +171,6 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let cmd_file  = tmp(label, "cmd",      shell.ext());
     let elev_wrap = tmp(label, "elevwrap", "ps1");
     let pty_wrap  = tmp(label, "ptywrap",  "ps1");
-    let out_file  = tmp(label, "out",      "txt");
     let exit_file = tmp(label, "exit",     "txt");
     let sentinel  = tmp(label, "sentinel", "txt");
 
@@ -188,30 +187,25 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
         Shell::Python     => format!("python '{}'", esc_ps_path(&cmd_file)),
         Shell::Cmd        => format!("cmd /c '{}'", esc_ps_path(&cmd_file)),
     };
-    let out_esc  = esc_ps_path(&out_file);
-    let exit_esc = esc_ps_path(&exit_file);
+    let exit_esc  = esc_ps_path(&exit_file);
 
-    // Elevated wrapper: runs in visible external terminal, shows output live, saves exit code.
+    // Elevated wrapper: runs script directly (no pipeline) so CONOUT$ tools like
+    // sfc.exe, chkdsk etc. appear live in the external window, not just stdout.
     let elev_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
          $ec=0\n\
-         try {{\n\
-           ({run_line}) | ForEach-Object {{ Write-Host \"$_\" }}\n\
-           $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}}\n\
-         }} catch {{\n\
-           Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1\n\
-         }}\n\
+         try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
+         catch {{ Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1 }}\n\
          $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
     fs::write(&elev_wrap, &elev_content).map_err(|e| e.to_string())?;
 
-    let elev_esc = esc_ps_path(&elev_wrap);
-    let cmd_esc  = esc_ps_path(&cmd_file);
-    let out_esc2 = esc_ps_path(&out_file);
-    let exit_esc2= esc_ps_path(&exit_file);
-    let s_esc    = esc_ps_path(&sentinel);
-    let pw_esc   = esc_ps_path(&pty_wrap);
-    let ps       = ps_bin();
+    let elev_esc  = esc_ps_path(&elev_wrap);
+    let cmd_esc   = esc_ps_path(&cmd_file);
+    let exit_esc2 = esc_ps_path(&exit_file);
+    let s_esc     = esc_ps_path(&sentinel);
+    let pw_esc    = esc_ps_path(&pty_wrap);
+    let ps        = ps_bin();
 
     // PTY wrapper: runs non-elevated in the embedded terminal.
     // Shows run divider, opens visible elevated window, waits, shows done/failed divider.
@@ -238,10 +232,9 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }}\n\
          $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
-         Remove-Item '{cmd_esc}'  -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{cmd_esc}'   -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{elev_esc}' -Force -ErrorAction SilentlyContinue\n\
-         Remove-Item '{out_esc2}' -Force -ErrorAction SilentlyContinue\n\
-         Remove-Item '{exit_esc2}'-Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{exit_esc2}' -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{pw_esc}'   -Force -ErrorAction SilentlyContinue\n"
     );
     fs::write(&pty_wrap, &pty_content).map_err(|e| e.to_string())?;
