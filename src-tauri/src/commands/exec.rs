@@ -132,19 +132,14 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
          }} else {{\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }}\n\
-         Set-PSReadLineOption -AddToHistoryHandler $null\n\
          $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
          Remove-Item '{sc_esc}' -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{w_esc}' -Force -ErrorAction SilentlyContinue\n"
     );
     fs::write(&wrapper, &wrapper_content).map_err(|e| e.to_string())?;
 
-    let pty_cmd = format!(
-        "Set-PSReadLineOption -AddToHistoryHandler {{param($l) $l -notmatch 'ctrl_'}}; & '{}'",
-        esc_ps_path(&wrapper)
-    );
     app.emit("run-start",   ()).ok();
-    app.emit("run-pty-cmd", pty_cmd).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&wrapper))).ok();
 
     // Poll for sentinel written by wrapper on completion (max 10 min, blocking thread).
     let success = tauri::async_runtime::spawn_blocking(move || {
@@ -201,7 +196,6 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
          $ec=0\n\
          try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
          catch {{ Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1 }}\n\
-         Read-Host \"`nPress Enter to close\"\n\
          $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
     fs::write(&elev_wrap, &elev_content).map_err(|e| e.to_string())?;
@@ -237,7 +231,6 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
          }} else {{\n\
            Write-Host \"$($e)[90m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500} $($e)[31mfailed$($e)[90m \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}$($e)[0m\"\n\
          }}\n\
-         Set-PSReadLineOption -AddToHistoryHandler $null\n\
          $ec | Out-File -FilePath '{s_esc}' -Encoding UTF8 -Force\n\
          Remove-Item '{cmd_esc}'   -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{elev_esc}' -Force -ErrorAction SilentlyContinue\n\
@@ -246,12 +239,8 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     );
     fs::write(&pty_wrap, &pty_content).map_err(|e| e.to_string())?;
 
-    let pty_cmd = format!(
-        "Set-PSReadLineOption -AddToHistoryHandler {{param($l) $l -notmatch 'ctrl_'}}; & '{}'",
-        esc_ps_path(&pty_wrap)
-    );
     app.emit("run-start",   ()).ok();
-    app.emit("run-pty-cmd", pty_cmd).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&pty_wrap))).ok();
 
     // Poll for sentinel written by pty_wrap on completion (max 10 min, blocking thread).
     let success = tauri::async_runtime::spawn_blocking(move || {
