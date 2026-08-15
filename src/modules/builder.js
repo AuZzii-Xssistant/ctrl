@@ -470,8 +470,18 @@ async function _rebuildPreview() {
           if (pkg) pkgs.push(pkg);
         }
       }
+
       if (pkgs.length) {
-        const pkgList = pkgs.map(p => `"${p}"`).join(', ');
+        // Build a PowerShell-safe list of single-quoted strings.
+        // Example:
+        // @('wingetui', 'google.chrome', '7zip.7zip')
+        //
+        // Any single quote inside a package name is doubled because that is
+        // PowerShell's escape mechanism inside a single-quoted string.
+        const pkgList = pkgs
+          .map(p => `'${String(p).replace(/'/g, "''")}'`)
+          .join(', ');
+
         const pkgNames = pkgs.join(', ');
         let setupBlock, installCmd;
 
@@ -489,7 +499,15 @@ if ([version]($v.TrimStart('v')) -lt [version]'1.7.0') {
 }
 winget settings --enable BypassCertificatePinningForMicrosoftStore`;
 
-          installCmd = `-NoProfile -NoLogo -NoExit -Command "$apps = @(${pkgList}); foreach ($app in $apps) { winget install $app --accept-source-agreements --accept-package-agreements --force }"`;
+          // Run Winget directly in the generated script.
+          // The generated script is already running elevated, so there is
+          // no need to spawn a second PowerShell process.
+          installCmd = `$apps = @(${pkgList})
+foreach ($app in $apps) {
+    Write-Host "Installing $app..." -ForegroundColor Cyan
+    & winget install $app --accept-source-agreements --accept-package-agreements --force
+}`;
+
         } else {
           setupBlock = `Write-Host "-- Installing Chocolatey" -ForegroundColor Green
 if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
@@ -501,10 +519,25 @@ if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
 # Refresh PATH after Chocolatey installation
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")`;
 
-          installCmd = `-NoProfile -NoLogo -NoExit -Command "$apps = @(${pkgList}); foreach ($app in $apps) { choco install $app -y --force --ignorepackageexitcodes }"`;
+          // Run Chocolatey directly in the generated script.
+          // This avoids the nested PowerShell quoting problem completely.
+          installCmd = `$apps = @(${pkgList})
+foreach ($app in $apps) {
+    Write-Host "Installing $app..." -ForegroundColor Cyan
+    & choco install $app -y --force --ignorepackageexitcodes
+}`;
         }
 
-        appsBlock = `\n# ── Package Manager Setup ─────────────────────────────────────────────────────\n${setupBlock}\n\n# ── App Installs ──────────────────────────────────────────────────────────────\nWrite-Host "-- Installing these apps: " -ForegroundColor Green\nWrite-Host "-- ${pkgNames}"\nStart-Process powershell.exe -ArgumentList '${installCmd.replace(/'/g, "''")}'\nPause`;
+        appsBlock = `\n# ── Package Manager Setup ─────────────────────────────────────────────────────
+${setupBlock}
+
+# ── App Installs ──────────────────────────────────────────────────────────────
+Write-Host "-- Installing these apps: " -ForegroundColor Green
+Write-Host "-- ${pkgNames}"
+
+${installCmd}
+
+Pause`;
       }
     }
 
@@ -516,7 +549,9 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";
       : code + appsBlock;
 
     codeEl.innerHTML = _highlight(finalCode);
-  } catch (e) { toast(String(e), 'err'); }
+  } catch (e) {
+    toast(String(e), 'err');
+  }
 }
 
 function _highlight(code) {
