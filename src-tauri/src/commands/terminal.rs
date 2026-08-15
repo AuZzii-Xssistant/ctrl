@@ -11,7 +11,7 @@ use serde::Serialize;
 extern "system" {
     fn GetConsoleWindow() -> *mut std::ffi::c_void;
     fn AllocConsole() -> i32;
-    fn ShowWindow(hwnd: *mut std::ffi::c_void, n_cmd_show: i32) -> i32;
+    fn FreeConsole() -> i32;
     fn GetCurrentProcess() -> *mut std::ffi::c_void;
     fn CloseHandle(h: *mut std::ffi::c_void) -> i32;
 }
@@ -49,12 +49,7 @@ fn ensure_console() {
     CONSOLE_ALLOC.call_once(|| {
         unsafe {
             if GetConsoleWindow().is_null() {
-                if AllocConsole() != 0 {
-                    let hwnd = GetConsoleWindow();
-                    if !hwnd.is_null() {
-                        ShowWindow(hwnd, 0); // SW_HIDE
-                    }
-                }
+                AllocConsole();
             }
         }
     });
@@ -169,6 +164,10 @@ pub fn pty_open(app: AppHandle, shell: String, args: Vec<String>, cols: u16, row
         .commandline(cmd)
         .spawn()
         .map_err(|e| format!("Failed to start '{}': {}", shell, e))?;
+
+    // Detach real console — child only needs the pseudoconsole.
+    // Prevents ctrl.exe from holding a real console that can conflict.
+    unsafe { FreeConsole(); }
 
     let _ = proc.resize(cols as i16, rows as i16);
 
