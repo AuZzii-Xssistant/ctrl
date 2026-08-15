@@ -4,20 +4,20 @@ import { esc, toast, showOutput, goPane } from '../app.js';
 const inv = window.__TAURI__.core.invoke;
 
 // ── State ────────────────────────────────────────────────────────────────────
-let _cats      = [];
-let _presets   = {};   // loaded from _meta.json via get_builder_actions
+let _cats = [];
+let _presets = {};   // loaded from _meta.json via get_builder_actions
 let _activeTab = null;
-let _appsCat   = null; // 08-apps.json data
-let _appsSel   = new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]'));
-let _pkgMgr    = localStorage.getItem('ctrl_builder_pkgmgr') || 'winget';
+let _appsCat = null; // 08-apps.json data
+let _appsSel = new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]'));
+let _pkgMgr = localStorage.getItem('ctrl_builder_pkgmgr') || 'winget';
 
 const LS_KEY = 'ctrl_builder_sel';
-let _sel   = new Set(JSON.parse(localStorage.getItem(LS_KEY)           || '[]'));
+let _sel = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'));
 let _radio = JSON.parse(localStorage.getItem(LS_KEY + '_radio') || '{}');
 
 function _save() {
-  localStorage.setItem(LS_KEY,             JSON.stringify([..._sel]));
-  localStorage.setItem(LS_KEY + '_radio',  JSON.stringify(_radio));
+  localStorage.setItem(LS_KEY, JSON.stringify([..._sel]));
+  localStorage.setItem(LS_KEY + '_radio', JSON.stringify(_radio));
 }
 
 // ── Icon helper — reads icon from JSON item, only used for group headers ──────
@@ -33,9 +33,9 @@ export async function load() {
     _presets = r.presets || {};
     // Split out apps tab (08-apps.json id='apps') from script categories
     const all = r.categories || [];
-    _appsCat  = all.find(c => c.id === 'apps') || null;
-    _cats     = all.filter(c => c.id !== 'apps');
-  } catch(e) {
+    _appsCat = all.find(c => c.id === 'apps') || null;
+    _cats = all.filter(c => c.id !== 'apps');
+  } catch (e) {
     _cats = [];
     console.error('builder load', e);
   }
@@ -87,17 +87,17 @@ function _countSelected(items) {
 function _setTab(tabId) {
   _activeTab = tabId;
   const togglesEl = document.getElementById('builder-toggles');
-  const scriptEl  = document.getElementById('builder-script-view');
-  const catHdr    = document.getElementById('builder-cat-header');
+  const scriptEl = document.getElementById('builder-script-view');
+  const catHdr = document.getElementById('builder-cat-header');
 
   if (tabId === '__run__') {
     togglesEl.style.display = 'none';
-    catHdr.style.display    = 'none';
+    catHdr.style.display = 'none';
     scriptEl.classList.add('active');
     _rebuildPreview();
   } else {
     togglesEl.style.display = '';
-    catHdr.style.display    = '';
+    catHdr.style.display = '';
     scriptEl.classList.remove('active');
 
     if (tabId === 'apps' && _appsCat) {
@@ -127,9 +127,9 @@ function _renderItems(items) {
   }
 
   el.innerHTML = items.map(item => {
-    if (item.type === 'group')    return _renderGroup(item);
-    if (item.type === 'radio')    return _renderRadioGroup(item);
-    if (item.type === 'toggle')   return _renderToggle(item);
+    if (item.type === 'group') return _renderGroup(item);
+    if (item.type === 'radio') return _renderRadioGroup(item);
+    if (item.type === 'toggle') return _renderToggle(item);
     if (item.type === 'shortcut') return _renderShortcut(item);
     return '';
   }).join('');
@@ -143,7 +143,7 @@ function _renderItems(items) {
   el.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
     cb.addEventListener('change', () => {
       if (cb.checked) _sel.add(cb.dataset.id);
-      else            _sel.delete(cb.dataset.id);
+      else _sel.delete(cb.dataset.id);
       _save();
       _syncGroupBadge(cb);
       _updateNavBadge(_activeTab);
@@ -182,7 +182,7 @@ function _renderAppsUI(el) {
 
   const mgrs = [
     { id: 'winget', label: 'winget', icon: 'ti-brand-windows' },
-    { id: 'choco',  label: 'Chocolatey', icon: 'ti-brand-chocolatey' },
+    { id: 'choco', label: 'Chocolatey', icon: 'ti-brand-chocolatey' },
   ];
   let html = `<div class="apps-toolbar">
     <span class="apps-mgr-label">Package manager:</span>
@@ -210,9 +210,9 @@ function _renderAppsUI(el) {
         </div>
       </summary>
       ${apps.map(a => {
-        const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
-        const checked = _appsSel.has(a.id);
-        return `<div class="ws-entry ws-sub app-row${checked ? ' ws-sub-active' : ''}" data-cat="${esc(cat.label)}">
+      const pkg = _pkgMgr === 'winget' ? a.winget : a.choco;
+      const checked = _appsSel.has(a.id);
+      return `<div class="ws-entry ws-sub app-row${checked ? ' ws-sub-active' : ''}" data-cat="${esc(cat.label)}">
           <div class="ws-entry-info">
             <div class="ws-entry-text">
               <h1>${esc(a.label)}</h1>
@@ -227,7 +227,7 @@ function _renderAppsUI(el) {
             </label>
           </div>
         </div>`;
-      }).join('')}
+    }).join('')}
     </details>`;
   }
 
@@ -254,7 +254,7 @@ function _renderAppsUI(el) {
 
   el.querySelectorAll('.app-cb').forEach(cb => cb.addEventListener('change', () => {
     if (cb.checked) _appsSel.add(cb.dataset.id);
-    else            _appsSel.delete(cb.dataset.id);
+    else _appsSel.delete(cb.dataset.id);
     localStorage.setItem('ctrl_builder_apps', JSON.stringify([..._appsSel]));
     const row = cb.closest('.app-row');
     if (row) {
@@ -263,8 +263,8 @@ function _renderAppsUI(el) {
       // Update category badge
       const grp = cb.closest('.apps-group');
       if (grp) {
-        const cbs  = [...grp.querySelectorAll('.app-cb')];
-        const sel  = cbs.filter(c => c.checked).length;
+        const cbs = [...grp.querySelectorAll('.app-cb')];
+        const sel = cbs.filter(c => c.checked).length;
         const badge = grp.querySelector('summary .ws-sel-count');
         if (badge) badge.textContent = sel > 0 ? `${sel}/${cbs.length}` : '';
       }
@@ -277,7 +277,7 @@ function _renderAppsUI(el) {
 function _applyAppsFilter(el, q) {
   el.querySelectorAll('.app-row').forEach(row => {
     const name = (row.querySelector('.ws-entry-text h1')?.textContent || '').toLowerCase();
-    const pkg  = (row.querySelector('.apps-pkg-id')?.textContent || '').toLowerCase();
+    const pkg = (row.querySelector('.apps-pkg-id')?.textContent || '').toLowerCase();
     row.style.display = (!q || name.includes(q) || pkg.includes(q)) ? '' : 'none';
   });
   el.querySelectorAll('.apps-group').forEach(grp => {
@@ -375,7 +375,7 @@ function _renderSubItem(item) {
 }
 
 function _renderGroup(item) {
-  const subIds   = (item.items || []).map(s => s.id);
+  const subIds = (item.items || []).map(s => s.id);
   const selCount = subIds.filter(id => _sel.has(id)).length;
   return `<details class="ws-group">
     <summary class="ws-entry ws-group-hdr">
@@ -442,12 +442,12 @@ function _renderRadioGroup(item) {
 
 // ── Badge / count ─────────────────────────────────────────────────────────────
 function _updateBadge() {
-  const n     = _sel.size + Object.keys(_radio).length + _appsSel.size;
+  const n = _sel.size + Object.keys(_radio).length + _appsSel.size;
   const badge = document.getElementById('builder-sel-badge');
-  const chip  = document.getElementById('builder-sel-chip');
+  const chip = document.getElementById('builder-sel-chip');
   const count = document.getElementById('sel-count');
   if (badge) { badge.textContent = n || ''; badge.style.display = n > 0 ? '' : 'none'; }
-  if (chip)  { chip.textContent = n + ' selected'; chip.classList.toggle('has-sel', n > 0); }
+  if (chip) { chip.textContent = n + ' selected'; chip.classList.toggle('has-sel', n > 0); }
   if (count) count.textContent = n + ' selected';
 }
 
@@ -457,7 +457,7 @@ async function _rebuildPreview() {
   const codeEl = document.getElementById('builder-code');
   try {
     const allIds = [..._sel, ...Object.values(_radio)];
-    const code   = await inv('build_script', { actionIds: allIds, outputType: 'ps1' });
+    const code = await inv('build_script', { actionIds: allIds, outputType: 'ps1' });
 
     // Build app install block if any apps selected
     let appsBlock = '';
@@ -471,17 +471,40 @@ async function _rebuildPreview() {
         }
       }
       if (pkgs.length) {
-        const pkgList  = pkgs.map(p => `"${p}"`).join(', ');
+        const pkgList = pkgs.map(p => `"${p}"`).join(', ');
         const pkgNames = pkgs.join(', ');
         let setupBlock, installCmd;
+
         if (_pkgMgr === 'winget') {
-          setupBlock = `Write-Host "-- Updating Winget" -ForegroundColor Green\n$v = winget -v; if ([version]($v.TrimStart('v')) -lt [version]'1.7.0') { Write-Output '-- Old Winget version detected, upgrading.'; Set-Location $env:USERPROFILE; Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile 'winget.msixbundle'; Add-AppPackage -ForceApplicationShutdown .\\winget.msixbundle; Remove-Item .\\winget.msixbundle } else { Write-Output 'Winget is already up to date, skipping upgrade.' }\nwinget settings --enable BypassCertificatePinningForMicrosoftStore`;
-          installCmd = `'-NoProfile -NoLogo -NoExit -Command $apps = @(${pkgList}); foreach ($app in $apps) { winget install $app --accept-source-agreements --accept-package-agreements --force }'`;
+          setupBlock = `Write-Host "-- Updating Winget" -ForegroundColor Green
+$v = winget -v
+if ([version]($v.TrimStart('v')) -lt [version]'1.7.0') {
+    Write-Output '-- Old Winget version detected, upgrading.'
+    Set-Location $env:USERPROFILE
+    Invoke-WebRequest -Uri 'https://aka.ms/getwinget' -OutFile 'winget.msixbundle'
+    Add-AppPackage -ForceApplicationShutdown .\\winget.msixbundle
+    Remove-Item .\\winget.msixbundle
+} else {
+    Write-Output 'Winget is already up to date, skipping upgrade.'
+}
+winget settings --enable BypassCertificatePinningForMicrosoftStore`;
+
+          installCmd = `-NoProfile -NoLogo -NoExit -Command "$apps = @(${pkgList}); foreach ($app in $apps) { winget install $app --accept-source-agreements --accept-package-agreements --force }"`;
         } else {
-          setupBlock = `Write-Host "-- Installing Chocolatey" -ForegroundColor Green\nif (-not (Get-Command choco -ErrorAction SilentlyContinue)) { Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) *> $null }`;
-          installCmd = `'-NoProfile -NoLogo -NoExit -Command $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User"); $apps = @(${pkgList}); foreach ($app in $apps) { choco install $app -y --force --ignorepackageexitcodes }'`;
+          setupBlock = `Write-Host "-- Installing Chocolatey" -ForegroundColor Green
+if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) *> $null
+}
+
+# Refresh PATH after Chocolatey installation
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")`;
+
+          installCmd = `-NoProfile -NoLogo -NoExit -Command "$apps = @(${pkgList}); foreach ($app in $apps) { choco install $app -y --force --ignorepackageexitcodes }"`;
         }
-        appsBlock = `\n# ── Package Manager Setup ─────────────────────────────────────────────────────\n${setupBlock}\n\n# ── App Installs ──────────────────────────────────────────────────────────────\nWrite-Host "-- Installing these apps: " -ForegroundColor Green\nWrite-Host "-- ${pkgNames}"\nStart-Process powershell.exe -ArgumentList ${installCmd}\nPause`;
+
+        appsBlock = `\n# ── Package Manager Setup ─────────────────────────────────────────────────────\n${setupBlock}\n\n# ── App Installs ──────────────────────────────────────────────────────────────\nWrite-Host "-- Installing these apps: " -ForegroundColor Green\nWrite-Host "-- ${pkgNames}"\nStart-Process powershell.exe -ArgumentList '${installCmd.replace(/'/g, "''")}'\nPause`;
       }
     }
 
@@ -493,14 +516,14 @@ async function _rebuildPreview() {
       : code + appsBlock;
 
     codeEl.innerHTML = _highlight(finalCode);
-  } catch(e) { toast(String(e), 'err'); }
+  } catch (e) { toast(String(e), 'err'); }
 }
 
 function _highlight(code) {
   return esc(code)
-    .replace(/(#[^\n]*)/g,  '<span class="ps-comment">$1</span>')
-    .replace(/(\$\w+)/g,    '<span class="ps-var">$1</span>')
-    .replace(/'([^']*)'/g,  "<span class=\"ps-str\">'$1'</span>");
+    .replace(/(#[^\n]*)/g, '<span class="ps-comment">$1</span>')
+    .replace(/(\$\w+)/g, '<span class="ps-var">$1</span>')
+    .replace(/'([^']*)'/g, "<span class=\"ps-str\">'$1'</span>");
 }
 
 // ── Presets ───────────────────────────────────────────────────────────────────
@@ -546,7 +569,7 @@ document.getElementById('builder-copy').addEventListener('click', async () => {
 });
 
 document.getElementById('builder-save').addEventListener('click', async () => {
-  const raw  = document.getElementById('builder-code').textContent;
+  const raw = document.getElementById('builder-code').textContent;
   const name = document.getElementById('save-name').value.trim();
   if (!raw.trim()) { toast('Nothing to save', 'err'); return; }
   if (!name) { toast('Enter a script name', 'err'); document.getElementById('save-name').focus(); return; }
@@ -555,7 +578,7 @@ document.getElementById('builder-save').addEventListener('click', async () => {
     toast('Saved to Scripts', 'ok');
     document.getElementById('save-name').value = '';
     goPane('scripts');
-  } catch(e) { toast(String(e), 'err'); }
+  } catch (e) { toast(String(e), 'err'); }
 });
 
 document.getElementById('builder-run').addEventListener('click', async () => {
@@ -566,7 +589,7 @@ document.getElementById('builder-run').addEventListener('click', async () => {
     const r = await inv('run_built_script', { code: raw, scriptType: 'ps1' });
     showOutput(r.output, r.success);
     toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
-  } catch(e) { toast(String(e), 'err'); }
+  } catch (e) { toast(String(e), 'err'); }
 });
 
 document.querySelectorAll('[data-preset]').forEach(btn =>

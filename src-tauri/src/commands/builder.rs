@@ -136,7 +136,7 @@ Write-Host "Restarting Explorer..." -ForegroundColor Cyan
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 Start-Process explorer
-Write-Host "Done." -ForegroundColor Green
+Write-Host ""
 Read-Host "Press Enter to exit"
 "#;
 

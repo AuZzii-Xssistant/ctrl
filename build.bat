@@ -8,3 +8,5 @@ echo   App:     src-tauri\target\release\ctrl.exe
 echo   CLI:     src-tauri\target\release\ctrl-cli.exe
 echo.
 echo Copy both to your portable CTRL folder.
+echo.
+pause
