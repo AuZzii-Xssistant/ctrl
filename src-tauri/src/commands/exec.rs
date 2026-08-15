@@ -24,8 +24,10 @@ pub fn ps_bin() -> &'static str {
     use std::sync::OnceLock;
     static BIN: OnceLock<&'static str> = OnceLock::new();
     *BIN.get_or_init(|| {
+        use std::os::windows::process::CommandExt;
         std::process::Command::new("pwsh")
             .args(["-NonInteractive", "-Command", "exit 0"])
+            .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)

@@ -100,8 +100,10 @@ pub fn list_shells() -> Vec<ShellInfo> {
 }
 
 fn which(name: &str) -> Option<String> {
+    use std::os::windows::process::CommandExt;
     std::process::Command::new("where")
         .arg(name)
+        .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
         .output()
         .ok()
         .filter(|o| o.status.success())
@@ -208,8 +210,10 @@ pub fn open_elevated_terminal() -> Result<(), String> {
         "Start-Process {} -Verb RunAs -ArgumentList '-NoLogo','-NoExit'",
         shell
     );
+    use std::os::windows::process::CommandExt;
     std::process::Command::new("powershell")
         .args(["-WindowStyle", "Hidden", "-NonInteractive", "-Command", &cmd])
+        .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
