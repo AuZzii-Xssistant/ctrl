@@ -288,7 +288,6 @@ pub async fn watch_script_edit(app: tauri::AppHandle, state: tauri::State<'_, Ap
         if ids.contains(&id) { return Ok(()); }
         ids.insert(id);
     }
-    let file = std::env::temp_dir().join(format!("ctrl_edit_{}.ps1", id)); // rough — real ext comes from DB
     // Re-query to get actual extension
     let script_type: String = {
         let db = state.0.lock().map_err(|e| e.to_string())?;
