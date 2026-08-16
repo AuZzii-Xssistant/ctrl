@@ -15,7 +15,7 @@ fn watch_ids() -> &'static Mutex<std::collections::HashSet<i64>> {
 
 /// Resolve the best available text editor: VS Code → Notepad++ → Notepad.
 /// Never uses shell file-association (which can execute .ps1 files).
-fn find_editor() -> String {
+pub fn find_editor() -> String {
     // VS Code: check PATH first, then common install locations
     if let Ok(out) = std::process::Command::new("where").arg("code").output() {
         if out.status.success() {

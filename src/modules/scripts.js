@@ -11,7 +11,7 @@ const S = {
   running: false,
   filter: '',
   typeFilter: '',
-  showDisabled: false,
+  showDisabled: localStorage.getItem('ss-showDisabled') === '1',
   sortCol: 'order',
   sortDir: 1,
   sel: new Set(),
@@ -167,7 +167,8 @@ async function _deleteProfile() {
   if (S.profileId === null) return;
   const cur = S.profiles.find(p => p.id === S.profileId);
   if (!await confirmDialog(`Delete profile "${cur?.name}"? Scripts only in this profile will also be deleted.`, true)) return;
-  await inv('ss_remove_profile', { id: S.profileId });
+  const ok = await inv('ss_remove_profile', { id: S.profileId }).catch(() => false);
+  if (!ok) return toast('Cannot delete the last profile', 'err');
   S.profileId = null;
   _reload();
 }
@@ -224,7 +225,7 @@ function _renderFilterBar() {
 
   document.getElementById('sc-search').oninput   = e => { S.filter = e.target.value; _renderTable(); };
   document.getElementById('sc-type').onchange    = e => { S.typeFilter = e.target.value; _renderTable(); };
-  document.getElementById('sc-show-dis').onchange = e => { S.showDisabled = e.target.checked; _renderTable(); };
+  document.getElementById('sc-show-dis').onchange = e => { S.showDisabled = e.target.checked; localStorage.setItem('ss-showDisabled', e.target.checked ? '1' : '0'); _renderTable(); };
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
@@ -371,7 +372,7 @@ function _ctxMenu(e, id) {
   if (!s) return;
   showContextMenu(e, [
     { label: 'Edit',            icon: 'ti-pencil',       fn: () => _openScriptModal(s) },
-    { label: 'Open in Editor',  icon: 'ti-external-link', fn: () => inv('open_script_editor', { id }).catch(err => toast(String(err), 'err')) },
+    { label: 'Open in Editor',  icon: 'ti-external-link', fn: () => inv('ss_open_in_editor', { scriptId: id }).catch(err => toast(String(err), 'err')) },
     { label: 'Duplicate',       icon: 'ti-copy',          fn: () => _duplicateScript(id) },
     { label: 'Manage Profiles', icon: 'ti-folders',       fn: () => _profilePicker(id) },
     '---',
@@ -440,9 +441,9 @@ function _openScriptModal(s) {
     <input class="form-input" id="sm-cat" value="${esc(s?.category||'General')}" placeholder="General">
   </div>
 </div>
-<div class="form-row">
+<div class="form-row" style="margin-top:10px">
   <label class="form-label">Description</label>
-  <input class="form-input" id="sm-desc" value="${esc(s?.description||'')}" placeholder="Optional description">
+  <textarea class="form-textarea" id="sm-desc" rows="2" style="min-height:54px;resize:vertical;">${esc(s?.description||'')}</textarea>
 </div>
 <div class="form-row">
   <label class="form-label">Tags</label>
@@ -474,7 +475,7 @@ function _openScriptModal(s) {
     const data = {
       name,
       type:        document.getElementById('sm-type').value,
-      description: document.getElementById('sm-desc').value.trim(),
+      description: document.getElementById('sm-desc').value,
       content:     document.getElementById('sm-content').value,
       runAsAdmin:  document.getElementById('sm-admin').checked,
       interactive: document.getElementById('sm-interactive').checked,
@@ -513,15 +514,13 @@ async function _duplicateScript(id) {
 // ── Run ───────────────────────────────────────────────────────────────────────
 async function _runOne(id, admin) {
   if (admin) {
-    // Admin: open external console (same as Quick Fixes elevated)
     await inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: true });
     return;
   }
-  // Non-admin: run in embedded terminal via existing run_script command
   await acquireRun();
   toast('Running…', 'info');
   try {
-    const r = await inv('run_script', { id });
+    const r = await inv('ss_run_embedded', { scriptId: id });
     showOutput(r.output, r.success);
     toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
     _reload();

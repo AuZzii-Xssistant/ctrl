@@ -749,6 +749,57 @@ pub fn ss_stop_run() -> Result<bool, String> {
     Ok(true)
 }
 
+// ── Embedded-terminal run ─────────────────────────────────────────────────────
+
+/// Run one SS script in the embedded terminal (same as Quick Fixes).
+/// Only supported for ps1/bat/cmd/py; others fall back to external console.
+#[tauri::command]
+pub async fn ss_run_embedded(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    script_id: i64,
+) -> Result<crate::commands::scripts::RunResult, String> {
+    use crate::commands::exec::{Shell, run as exec_run, run_elevated as exec_elevated, running_as_admin};
+    let (content, stype, run_as_admin) = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.query_row(
+            "SELECT COALESCE(content,''), COALESCE(script_type,'ps1'), COALESCE(run_as_admin,0) FROM scripts WHERE id=?1",
+            params![script_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,i64>(2)? != 0))
+        ).map_err(|e| e.to_string())?
+    };
+    let shell = Shell::from_str(&stype);
+    let label = format!("ss_{script_id}");
+    if run_as_admin && !running_as_admin() {
+        exec_elevated(&app, &content, &shell, &label).await
+    } else {
+        exec_run(&app, &content, &shell).await
+    }
+}
+
+/// Open SS script content in the user's text editor (writes temp file).
+#[tauri::command]
+pub fn ss_open_in_editor(state: State<AppState>, script_id: i64) -> Result<bool, String> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let (content, stype) = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.query_row(
+            "SELECT COALESCE(content,''), COALESCE(script_type,'ps1') FROM scripts WHERE id=?1",
+            params![script_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?))
+        ).map_err(|e| e.to_string())?
+    };
+    let n = tmp_counter();
+    let tmp_path = std::env::temp_dir().join(format!("ctrl_ss_edit_{n}.{stype}"));
+    fs::write(&tmp_path, &content).map_err(|e| e.to_string())?;
+    let editor = crate::commands::scripts::find_editor();
+    std::process::Command::new(&editor)
+        .arg(&tmp_path)
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
 // ── File-pick helpers for import/export ──────────────────────────────────────
 
 #[tauri::command]

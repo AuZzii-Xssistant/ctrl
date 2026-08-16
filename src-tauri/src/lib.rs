@@ -156,6 +156,8 @@ pub fn run() {
             commands::scriptstash::ss_stop_run,
             commands::scriptstash::ss_import_pick_file,
             commands::scriptstash::ss_export_pick_file,
+            commands::scriptstash::ss_run_embedded,
+            commands::scriptstash::ss_open_in_editor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");
