@@ -512,22 +512,16 @@ async function _duplicateScript(id) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
-// Uses CTRL's existing run_script command — same path as Quick Fixes.
-// Non-interactive scripts stream output to the embedded terminal.
-// Interactive scripts (checkbox) open a visible console by design.
-// Explicit "Run as Admin" override uses external console (ss_run_now).
+// All runs go through run_script — CTRL's existing runner.
+// forceAdmin=true overrides the script's own run_as_admin setting.
+// Interactive scripts (checkbox) open a visible console; others use embedded terminal.
 
 let _stopQueue = false;
 
-async function _runOne(id, admin) {
-  if (admin) {
-    // Explicit admin override — always external console (UAC dialog)
-    await inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: true });
-    return;
-  }
+async function _runOne(id, forceAdmin) {
   await acquireRun();
   try {
-    const r = await inv('run_script', { id });
+    const r = await inv('run_script', { id, forceAdmin: forceAdmin || false });
     showOutput(r.output, r.success);
     toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
     _reload();
@@ -540,20 +534,16 @@ async function _runQueue(scriptIds, forceAdmin) {
   _stopQueue = false;
   S.running = true; S.progressTotal = scripts.length; S.progress = 0;
   _renderToolbar(); _patchStatusBar();
-  if (!forceAdmin) await acquireRun();
+  await acquireRun();
   for (const s of scripts) {
     if (_stopQueue) break;
     S.progress++; _patchStatusBar();
     try {
-      if (forceAdmin) {
-        await inv('ss_run_now', { profileId: S.profileId, scriptId: s.id, runAsAdmin: true });
-      } else {
-        const r = await inv('run_script', { id: s.id });
-        showOutput(r.output, r.success);
-      }
+      const r = await inv('run_script', { id: s.id, forceAdmin: forceAdmin || false });
+      showOutput(r.output, r.success);
     } catch (e) { toast(`${s.name}: ${String(e)}`, 'err'); }
   }
-  if (!forceAdmin) releaseRun();
+  releaseRun();
   S.running = false; S.progress = 0; S.progressTotal = 0;
   _renderToolbar(); _patchStatusBar(); _reload();
 }

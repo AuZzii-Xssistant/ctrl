@@ -342,8 +342,8 @@ pub fn read_text_file(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<RunResult, String> {
-    let (file_path, content, script_type, name, run_as_admin, interactive) = {
+pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i64, force_admin: Option<bool>) -> Result<RunResult, String> {
+    let (file_path, content, script_type, name, db_admin, interactive) = {
         let db = state.0.lock().map_err(|e| e.to_string())?;
         db.query_row(
             "SELECT file_path,content,script_type,name,COALESCE(run_as_admin,0),COALESCE(interactive,0) FROM scripts WHERE id=?1",
@@ -351,8 +351,10 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
             Ok((row.get::<_,String>(0)?, row.get::<_,Option<String>>(1)?, row.get::<_,String>(2)?, row.get::<_,String>(3)?, row.get::<_,i64>(4)? != 0, row.get::<_,i64>(5)? != 0))
         }).map_err(|e| e.to_string())?
     };
+    let run_as_admin = force_admin.unwrap_or(false) || db_admin;
 
-    // Interactive mode: open a visible cmd window with pause (like ScriptStash)
+    // Interactive mode: open a visible cmd window with pause.
+    // If admin, launch via Start-Process -Verb RunAs so UAC fires.
     if interactive && std::env::var("CTRL_SANDBOX").as_deref() != Ok("1") {
         let tmp_path = content.as_ref().map(|c| {
             let p = std::env::temp_dir().join(format!("ctrl_script_{}.{}", id, script_type));
@@ -370,17 +372,26 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         };
         let bat = std::env::temp_dir().join(format!("ctrl_irun_{}.bat", id));
         let _ = fs::write(&bat, format!("@echo off\ntitle {}\n{}\necho.\npause\n", name, call_line));
-        app.shell().command("cmd").args(["/c", "start", "", &bat.to_string_lossy()]).spawn().map_err(|e| e.to_string())?;
+        let bat_str = bat.to_string_lossy();
+        if run_as_admin && !crate::commands::exec::running_as_admin() {
+            let ps = crate::commands::exec::ps_bin();
+            let _ = std::process::Command::new(ps)
+                .args(["-WindowStyle", "Hidden", "-Command",
+                    &format!("Start-Process -FilePath cmd.exe -ArgumentList '/C \"{bat_str}\"' -Verb RunAs")])
+                .spawn();
+        } else {
+            app.shell().command("cmd").args(["/c", "start", "", &*bat_str]).spawn().map_err(|e| e.to_string())?;
+        }
         return Ok(RunResult { success: true, output: String::new() });
     }
 
-    // Sandbox dry-run: CTRL_SANDBOX=1 skips real execution
+    // Sandbox dry-run
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
         let preview = content.as_deref().unwrap_or(&file_path);
         return Ok(RunResult { success: true, output: format!("SANDBOX: would run script \"{name}\" ({script_type}):\n{preview}") });
     }
 
-    // If content is stored in DB, write to a temp file and use that as the exec path
+    // Write DB content to temp file if needed
     let tmp_content_file = content.as_ref().map(|c| {
         let p = std::env::temp_dir().join(format!("ctrl_script_content_{}.{}", id, script_type));
         let _ = fs::write(&p, c);
@@ -390,8 +401,7 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_else(|| file_path.clone());
 
-    // For admin runs: use UAC elevation only when CTRL itself is NOT already elevated.
-    // When CTRL is admin, fall through to the normal streaming path below.
+    // Admin: UAC elevation via embedded terminal (only when CTRL itself is not already elevated)
     if run_as_admin && !crate::commands::exec::running_as_admin() {
         use crate::commands::exec::{Shell, run_elevated};
         // Build a one-liner that runs the script file in the appropriate shell
