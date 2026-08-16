@@ -11,18 +11,18 @@ let _appsCat = null; // 08-apps.json data
 let _appsSel = new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]'));
 let _pkgMgr = localStorage.getItem('ctrl_builder_pkgmgr') || 'winget';
 
-const LS_KEY = 'ctrl_builder_sel';
-let _sel = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'));
-let _radio = JSON.parse(localStorage.getItem(LS_KEY + '_radio') || '{}');
+let _sel = new Set();
+let _radio = {};
 
 // Per-tab scroll position and open group state
 const _tabScroll = {};
 const _tabOpenGroups = {};
 
-function _save() {
-  localStorage.setItem(LS_KEY, JSON.stringify([..._sel]));
-  localStorage.setItem(LS_KEY + '_radio', JSON.stringify(_radio));
-}
+// Clear any stale selections from previous sessions
+localStorage.removeItem('ctrl_builder_sel');
+localStorage.removeItem('ctrl_builder_sel_radio');
+
+function _save() { /* selections are session-only */ }
 
 function _saveTabState() {
   if (!_activeTab) return;

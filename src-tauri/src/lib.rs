@@ -24,6 +24,16 @@ pub fn run() {
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
             app.manage(commands::terminal::TermState(std::sync::Mutex::new(std::collections::HashMap::new())));
+            // Clean up stale temp files from previous sessions
+            if let Ok(tmp) = std::fs::read_dir(std::env::temp_dir()) {
+                for entry in tmp.flatten() {
+                    let name = entry.file_name();
+                    let name = name.to_string_lossy();
+                    if name.starts_with("ctrl_") || name == "ctrl_built.ps1" || name == "ctrl_built.bat" {
+                        let _ = std::fs::remove_file(entry.path());
+                    }
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
