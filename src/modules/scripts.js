@@ -202,7 +202,7 @@ function _renderToolbar() {
   document.getElementById('tb-toggle').onclick    = _toggleSelected;
   document.getElementById('tb-run-sel').onclick   = () => _runSelected(false);
   document.getElementById('tb-run-all').onclick   = () => _runAll(false);
-  document.getElementById('tb-stop').onclick      = () => inv('ss_stop_run');
+  document.getElementById('tb-stop').onclick      = () => { _stopQueue = true; };
   document.getElementById('tb-rsa').onclick       = () => _runSelected(true);
   document.getElementById('tb-raa').onclick       = () => _runAll(true);
   document.getElementById('tb-import').onclick    = _importProfile;
@@ -512,27 +512,58 @@ async function _duplicateScript(id) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
+// Uses CTRL's existing run_script command — same path as Quick Fixes.
+// Non-interactive scripts stream output to the embedded terminal.
+// Interactive scripts (checkbox) open a visible console by design.
+// Explicit "Run as Admin" override uses external console (ss_run_now).
+
+let _stopQueue = false;
+
 async function _runOne(id, admin) {
   if (admin) {
+    // Explicit admin override — always external console (UAC dialog)
     await inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: true });
     return;
   }
   await acquireRun();
-  toast('Running…', 'info');
   try {
-    const r = await inv('ss_run_embedded', { scriptId: id });
+    const r = await inv('run_script', { id });
     showOutput(r.output, r.success);
     toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
     _reload();
   } catch (err) { toast(String(err), 'err'); } finally { releaseRun(); }
 }
 
+async function _runQueue(scriptIds, forceAdmin) {
+  const scripts = scriptIds.map(id => S.scripts.find(s => s.id === id)).filter(s => s && s.enabled);
+  if (!scripts.length) return;
+  _stopQueue = false;
+  S.running = true; S.progressTotal = scripts.length; S.progress = 0;
+  _renderToolbar(); _patchStatusBar();
+  if (!forceAdmin) await acquireRun();
+  for (const s of scripts) {
+    if (_stopQueue) break;
+    S.progress++; _patchStatusBar();
+    try {
+      if (forceAdmin) {
+        await inv('ss_run_now', { profileId: S.profileId, scriptId: s.id, runAsAdmin: true });
+      } else {
+        const r = await inv('run_script', { id: s.id });
+        showOutput(r.output, r.success);
+      }
+    } catch (e) { toast(`${s.name}: ${String(e)}`, 'err'); }
+  }
+  if (!forceAdmin) releaseRun();
+  S.running = false; S.progress = 0; S.progressTotal = 0;
+  _renderToolbar(); _patchStatusBar(); _reload();
+}
+
 async function _runSelected(admin) {
   if (!S.sel.size) return;
-  await inv('ss_start_run', { profileId: S.profileId, ids: [...S.sel], runAsAdmin: admin });
+  await _runQueue([...S.sel], admin);
 }
 async function _runAll(admin) {
-  await inv('ss_start_run', { profileId: S.profileId, ids: null, runAsAdmin: admin });
+  await _runQueue(_filtered().filter(s => s.enabled).map(s => s.id), admin);
 }
 
 // ── Import / Export ───────────────────────────────────────────────────────────
@@ -613,7 +644,7 @@ function _bindShortcuts() {
       case ' ':      if (!inInput) { e.preventDefault(); _toggleSelected(); } break;
       case 'Enter':  e.preventDefault(); _runSelected(false); break;
       case 'F5':     e.preventDefault(); _runAll(false); break;
-      case 'Escape': if (S.running) inv('ss_stop_run'); break;
+      case 'Escape': if (S.running) _stopQueue = true; break;
       case '?':      if (!inInput) _showShortcuts(); break;
       case 'a': case 'A': if (e.ctrlKey||e.metaKey) { e.preventDefault(); _filtered().forEach(s => S.sel.add(s.id)); _refreshSel(); } break;
     }
