@@ -128,6 +128,11 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .section-count { font-family: var(--mono); font-size: 10px; color: var(--text3); }
 
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+/* Quick-launch pill grid */
+.ql-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; margin-bottom: 16px; }
+.ql-pill { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 11px; color: var(--text2); font-family: var(--font); transition: border-color 0.12s, color 0.12s, background 0.12s; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ql-pill:hover { border-color: var(--amber); color: var(--text); background: var(--bg2); }
+.ql-pill i { font-size: 13px; color: var(--amber); flex-shrink: 0; }
 .card {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: var(--r); padding: 10px 12px;
@@ -266,7 +271,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ── OUTPUT DRAWER ── */
 /* Output drawer — always visible, collapses to header bar */
 /* ── Terminal tab sidebar (right panel, VSCode-style) ───────────────────── */
-#term-tab-sidebar { width: 165px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px; gap: 1px; }
+#term-tab-sidebar { width: 190px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px; gap: 1px; }
 #term-tab-sidebar::-webkit-scrollbar { width: 4px; }
 #term-tab-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .term-tab { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 9px; height: 28px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 11px; color: var(--text3); font-family: var(--mono); transition: background 0.1s, color 0.1s; user-select: none; }

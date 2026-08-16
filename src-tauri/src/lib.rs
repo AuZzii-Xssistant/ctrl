@@ -51,6 +51,7 @@ pub fn run() {
             commands::scripts::browse_for_script,
             commands::scripts::read_text_file,
             commands::scripts::open_script_editor,
+            commands::scripts::watch_script_edit,
             commands::scripts::open_script_location,
             commands::scripts::launch_shortcut,
             commands::fixes::get_fixes,

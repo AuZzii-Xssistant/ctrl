@@ -75,12 +75,22 @@ let _runTargetTabId = 0; // tab receiving the current script run
 function _activeTab() { return _tabs.find(t => t.id === _activeTabId) || null; }
 
 function _shellLabel(name) {
+  // Full names for tab sidebar
   if (/PowerShell 7|pwsh/i.test(name))  return 'PowerShell 7';
   if (/Windows PowerShell/i.test(name)) return 'PowerShell 5';
   if (/Command/i.test(name))            return 'Command Prompt';
   if (/WSL/i.test(name))                return 'WSL';
   if (/Git/i.test(name))                return 'Git Bash';
   return name;
+}
+function _shellShort(name) {
+  // Short names for header picker buttons
+  if (/PowerShell 7|pwsh/i.test(name))  return 'PS7';
+  if (/Windows PowerShell/i.test(name)) return 'PS5';
+  if (/Command/i.test(name))            return 'CMD';
+  if (/WSL/i.test(name))                return 'WSL';
+  if (/Git/i.test(name))                return 'Bash';
+  return name.slice(0, 5);
 }
 
 const _XTERM_THEME = {
@@ -207,7 +217,7 @@ function _buildShellPicker() {
   const wrap = document.getElementById('term-shell-toggle');
   if (!wrap) return;
   wrap.innerHTML = _shells.map((s, i) =>
-    `<button class="term-sh-btn" data-idx="${i}" title="New ${s.name} tab">${_shellLabel(s.name)}</button>`
+    `<button class="term-sh-btn" data-idx="${i}" title="New ${s.name} tab">${_shellShort(s.name)}</button>`
   ).join('');
   wrap.querySelectorAll('.term-sh-btn').forEach(btn => {
     btn.addEventListener('click', async e => {

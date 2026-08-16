@@ -9,12 +9,36 @@ function _toolIcon(path) {
 }
 
 const QUICK_LAUNCH = [
-  { id: 'ql-settings',  label: 'Windows Settings',  icon: 'ti-settings',          cmd: 'ms-settings:' },
-  { id: 'ql-devmgmt',   label: 'Device Manager',     icon: 'ti-cpu',               cmd: 'devmgmt.msc' },
-  { id: 'ql-control',   label: 'Control Panel',      icon: 'ti-layout-grid',       cmd: 'control' },
-  { id: 'ql-msconfig',  label: 'MSConfig',           icon: 'ti-adjustments',       cmd: 'msconfig' },
-  { id: 'ql-pagefile',  label: 'Virtual Memory',     icon: 'ti-layers-subtract',   cmd: 'SystemPropertiesAdvanced' },
-  { id: 'ql-effects',   label: 'Visual Effects',     icon: 'ti-eye',               cmd: 'SystemPropertiesPerformance' },
+  // System
+  { label: 'Windows Settings',    icon: 'ti-settings',        cmd: 'ms-settings:' },
+  { label: 'Control Panel',       icon: 'ti-layout-grid',     cmd: 'control' },
+  { label: 'System Properties',   icon: 'ti-server',          cmd: 'sysdm.cpl' },
+  { label: 'MSConfig',            icon: 'ti-adjustments',     cmd: 'msconfig' },
+  { label: 'Task Manager',        icon: 'ti-activity',        cmd: 'taskmgr' },
+  { label: 'Registry Editor',     icon: 'ti-database',        cmd: 'regedit' },
+  // Hardware
+  { label: 'Device Manager',      icon: 'ti-cpu',             cmd: 'devmgmt.msc' },
+  { label: 'Disk Management',     icon: 'ti-device-floppy',   cmd: 'diskmgmt.msc' },
+  { label: 'Computer Management', icon: 'ti-building',        cmd: 'compmgmt.msc' },
+  // Display / Input
+  { label: 'Mouse Properties',    icon: 'ti-mouse',           cmd: 'main.cpl' },
+  { label: 'Sound Settings',      icon: 'ti-volume',          cmd: 'mmsys.cpl' },
+  { label: 'Region',              icon: 'ti-world',           cmd: 'intl.cpl' },
+  { label: 'Time and Date',       icon: 'ti-clock',           cmd: 'timedate.cpl' },
+  // Network / Security
+  { label: 'Network Connections', icon: 'ti-network',         cmd: 'ncpa.cpl' },
+  { label: 'Firewall',            icon: 'ti-shield',          cmd: 'firewall.cpl' },
+  { label: 'Security & Maint.',   icon: 'ti-shield-check',    cmd: 'wscui.cpl' },
+  // Apps / Printers
+  { label: 'Programs & Features', icon: 'ti-package',         cmd: 'appwiz.cpl' },
+  { label: 'Printers',            icon: 'ti-printer',         cmd: 'shell:PrintersFolder' },
+  { label: 'Power Options',       icon: 'ti-bolt',            cmd: 'powercfg.cpl' },
+  // Performance
+  { label: 'Virtual Memory',      icon: 'ti-layers-subtract', cmd: 'SystemPropertiesAdvanced' },
+  { label: 'Visual Effects',      icon: 'ti-eye',             cmd: 'SystemPropertiesPerformance' },
+  // Recovery
+  { label: 'System Restore',      icon: 'ti-history',         cmd: 'rstrui.exe' },
+  { label: 'Windows Update',      icon: 'ti-refresh',         cmd: 'ms-settings:windowsupdate' },
 ];
 
 export async function load(search = '') {
@@ -35,14 +59,12 @@ function _render(el, tools) {
   const groups = groupBy(tools, 'category');
   let html = '';
 
-  // Static Quick Launch section — Windows system shortcuts
+  // Static Quick Launch section — compact pill grid
   html += `<div class="section-hdr"><span class="section-label">Quick Launch</span><span class="section-count">${QUICK_LAUNCH.length}</span></div>`;
-  html += '<div class="row-list">' + QUICK_LAUNCH.map(q => `
-    <div class="data-row">
-      <i class="ti ${q.icon} row-icon" style="color:var(--amber)"></i>
-      <div style="flex:1;min-width:0"><div class="row-name">${esc(q.label)}</div></div>
-      <button class="run-chip ql-open-btn" data-cmd="${esc(q.cmd)}"><i class="ti ti-external-link" style="font-size:10px"></i> Open</button>
-    </div>`).join('') + '</div>';
+  html += '<div class="ql-grid">' + QUICK_LAUNCH.map(q => `
+    <button class="ql-pill" data-cmd="${esc(q.cmd)}" title="${esc(q.label)}">
+      <i class="ti ${q.icon}"></i>${esc(q.label)}
+    </button>`).join('') + '</div>';
 
   if (!tools.length) {
     html += emptyState('ti-app-window', 'No tools registered yet.', '+ Add Tool', 'window._showToolModal(null)');
@@ -74,7 +96,7 @@ function _render(el, tools) {
   }
   body.innerHTML = html;
 
-  body.querySelectorAll('.ql-open-btn').forEach(btn =>
+  body.querySelectorAll('.ql-pill').forEach(btn =>
     btn.addEventListener('click', () => inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err')))
   );
 

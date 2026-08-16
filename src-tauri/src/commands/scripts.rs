@@ -2,9 +2,16 @@ use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use tauri::State;
+use std::sync::Mutex;
+use tauri::{Emitter, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
+
+// Track active editor watchers so we don't double-spawn them
+static WATCH_IDS: std::sync::OnceLock<Mutex<std::collections::HashSet<i64>>> = std::sync::OnceLock::new();
+fn watch_ids() -> &'static Mutex<std::collections::HashSet<i64>> {
+    WATCH_IDS.get_or_init(|| Mutex::new(std::collections::HashSet::new()))
+}
 
 /// Resolve the best available text editor: VS Code → Notepad++ → Notepad.
 /// Never uses shell file-association (which can execute .ps1 files).
@@ -270,4 +277,44 @@ pub async fn browse_for_script(app: tauri::AppHandle) -> Result<Option<String>, 
         .add_filter("Scripts", &["ps1", "bat", "cmd", "py", "ahk", "vbs", "rb", "sh"])
         .blocking_pick_file();
     Ok(path.map(|p| p.to_string()))
+}
+
+/// Start watching the temp edit file for a DB-backed script.
+/// Polls every 1.5s; when the file changes, updates DB content and emits `script-synced` { id }.
+#[tauri::command]
+pub async fn watch_script_edit(app: tauri::AppHandle, state: tauri::State<'_, AppState>, id: i64) -> Result<(), String> {
+    {
+        let mut ids = watch_ids().lock().unwrap();
+        if ids.contains(&id) { return Ok(()); }
+        ids.insert(id);
+    }
+    let file = std::env::temp_dir().join(format!("ctrl_edit_{}.ps1", id)); // rough — real ext comes from DB
+    // Re-query to get actual extension
+    let script_type: String = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.query_row("SELECT script_type FROM scripts WHERE id=?1", params![id], |r| r.get(0))
+            .unwrap_or_else(|_| "ps1".to_string())
+    };
+    let file = std::env::temp_dir().join(format!("ctrl_edit_{}.{}", id, script_type));
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        let mut last_mtime = fs::metadata(&file).ok().and_then(|m| m.modified().ok());
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+            if !file.exists() { break; }
+            let mtime = fs::metadata(&file).ok().and_then(|m| m.modified().ok());
+            if mtime != last_mtime {
+                last_mtime = mtime;
+                if let Ok(content) = fs::read_to_string(&file) {
+                    let db_res = app2.state::<AppState>();
+                    if let Ok(db) = db_res.0.lock() {
+                        let _ = db.execute("UPDATE scripts SET content=?1 WHERE id=?2", params![content, id]);
+                    }
+                    let _ = app2.emit("script-synced", id);
+                }
+            }
+        }
+        watch_ids().lock().unwrap().remove(&id);
+    });
+    Ok(())
 }

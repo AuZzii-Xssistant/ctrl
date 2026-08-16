@@ -1,6 +1,13 @@
 import { esc, groupBy, sectionHdr, emptyState, skeletonCards, paneHeader, toast, openModal, closeModal, confirmDialog, scriptIcon, showContextMenu, showOutput, timeAgo, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
+const { listen } = window.__TAURI__.event;
+
+// Listen for external editor saves — update script list without full reload
+listen('script-synced', (e) => {
+  toast('Script synced from editor', 'ok');
+  load(); // refresh the list so any UI showing content stays current
+});
 
 export async function load(search = '') {
   const el = document.getElementById('scripts-scroll');
@@ -68,7 +75,7 @@ function _render(el, scripts, lastRuns = []) {
       showContextMenu(e, [
         { label: 'Run',         icon: 'ti-player-play', fn: () => _run(id) },
         { label: 'History',     icon: 'ti-history',     fn: () => _showHistory(id, s?.name) },
-        { label: 'Open editor', icon: 'ti-edit',        fn: () => inv('open_script_editor',   { id }).catch(err => toast(String(err), 'err')) },
+        { label: 'Open editor', icon: 'ti-edit',        fn: () => _openEditor(id) },
         { label: 'Show folder', icon: 'ti-folder',      fn: () => inv('open_script_location', { id }).catch(err => toast(String(err), 'err')) },
         '---',
         { label: 'Edit entry',  icon: 'ti-pencil',      fn: () => s && window._showScriptModal(s) },
@@ -78,7 +85,7 @@ function _render(el, scripts, lastRuns = []) {
   });
   body.querySelectorAll('[data-run]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _run(+btn.dataset.run); }));
   body.querySelectorAll('[data-hist]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _showHistory(+btn.dataset.hist, btn.dataset.name); }));
-  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_editor',   { id: +btn.dataset.edit }).catch(err => toast(String(err), 'err')); }));
+  body.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _openEditor(+btn.dataset.edit); }));
   body.querySelectorAll('[data-loc]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); inv('open_script_location', { id: +btn.dataset.loc  }).catch(err => toast(String(err), 'err')); }));
   body.querySelectorAll('[data-del]').forEach(btn  => btn.addEventListener('click', e => { e.stopPropagation(); _delete(+btn.dataset.del); }));
 }
@@ -107,6 +114,13 @@ function _wireSearch(el, initial) {
       }, 180);
     });
   }, 0);
+}
+
+async function _openEditor(id) {
+  try {
+    await inv('open_script_editor', { id });
+    await inv('watch_script_edit', { id });
+  } catch (err) { toast(String(err), 'err'); }
 }
 
 async function _run(id) {
