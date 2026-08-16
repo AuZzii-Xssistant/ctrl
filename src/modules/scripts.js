@@ -1,4 +1,4 @@
-import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu } from '../app.js';
+import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -50,7 +50,7 @@ export async function load(search = '') {
   el.innerHTML = `
 <div class="sc-wrap">
   <div class="sc-header" id="sc-header">
-    <span class="sc-title">Scripts</span>
+    <span class="sc-title"><i class="ti ti-code"></i> Scripts</span>
     <div class="sc-profile-area" id="sc-profile-area"></div>
   </div>
   <div class="sc-toolbar" id="sc-toolbar"></div>
@@ -95,10 +95,10 @@ function _renderHeader() {
   <i class="ti ti-chevron-down sc-prof-chevron"></i>
 </div>
 <div class="sc-prof-btns">
-  <button class="btn btn-ghost sc-hbtn" id="ph-add"    title="New profile"><i class="ti ti-plus"></i></button>
-  <button class="btn btn-ghost sc-hbtn" id="ph-rename" title="Rename" ${isMaster?'disabled':''}><i class="ti ti-pencil"></i></button>
-  <button class="btn btn-ghost sc-hbtn" id="ph-dup"    title="Duplicate" ${isMaster?'disabled':''}><i class="ti ti-copy"></i></button>
-  <button class="btn btn-ghost sc-hbtn" id="ph-del"    title="Delete" ${isMaster?'disabled':''}><i class="ti ti-trash"></i></button>
+  <button class="sc-btn sc-btn-icon" id="ph-add"    title="New profile"><i class="ti ti-plus"></i></button>
+  <button class="sc-btn sc-btn-icon" id="ph-rename" title="Rename" ${isMaster?'disabled':''}><i class="ti ti-pencil"></i></button>
+  <button class="sc-btn sc-btn-icon" id="ph-dup"    title="Duplicate" ${isMaster?'disabled':''}><i class="ti ti-copy"></i></button>
+  <button class="sc-btn sc-btn-icon sc-btn-danger" id="ph-del" title="Delete" ${isMaster?'disabled':''}><i class="ti ti-trash"></i></button>
 </div>`;
 
   const sel = document.getElementById('sc-prof-sel');
@@ -119,7 +119,7 @@ function _toggleProfileDropdown(anchor) {
   ];
   const menu = document.createElement('div');
   menu.className = 'sc-dropdown';
-  menu.style.cssText = `position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth - rect.right}px;min-width:${Math.max(rect.width, 180)}px;z-index:9999;`;
+  menu.style.cssText = `position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth - rect.right}px;width:${rect.width}px;z-index:9999;`;
   menu.innerHTML = items.map(it => `
     <div class="sc-dd-item ${it.active?'active':''}" data-val="${it.value}">
       <span class="sc-dd-name">${esc(it.label)}</span>
@@ -179,21 +179,21 @@ function _renderToolbar() {
   const hasSel = S.sel.size > 0;
   const r = S.running;
   tb.innerHTML = `
-<button class="btn btn-ghost sc-tbtn" id="tb-add" title="Add [Insert]"><i class="ti ti-plus"></i> Add</button>
-<button class="btn btn-ghost sc-tbtn" id="tb-edit" title="Edit [F2]" ${!hasSel?'disabled':''}><i class="ti ti-pencil"></i> Edit</button>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-danger" id="tb-remove" title="Remove [Del]" ${!hasSel?'disabled':''}><i class="ti ti-trash"></i> Remove</button>
-<button class="btn btn-ghost sc-tbtn" id="tb-toggle" title="Toggle [Space]" ${!hasSel?'disabled':''}><i class="ti ti-player-pause"></i> Toggle</button>
+<button class="sc-btn" id="tb-add" title="Add [Insert]"><i class="ti ti-plus"></i> Add</button>
+<button class="sc-btn" id="tb-edit" title="Edit [F2]" ${!hasSel?'disabled':''}><i class="ti ti-pencil"></i> Edit</button>
+<button class="sc-btn sc-btn-danger" id="tb-remove" title="Remove [Del]" ${!hasSel?'disabled':''}><i class="ti ti-trash"></i> Remove</button>
+<button class="sc-btn" id="tb-toggle" title="Toggle [Space]" ${!hasSel?'disabled':''}><i class="ti ti-player-pause"></i> Toggle</button>
 <div class="sc-sep"></div>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-run" id="tb-run-sel" title="Run selected [Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
+<button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
+<button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
+<button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-admin" id="tb-rsa" title="Run selected (Admin)" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Sel. Admin</button>
-<button class="btn btn-ghost sc-tbtn sc-tbtn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
+<button class="sc-btn sc-btn-admin" id="tb-rsa" title="Run selected (Admin)" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Sel. Admin</button>
+<button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
 <div class="sc-sep"></div>
-<button class="btn btn-ghost sc-tbtn" id="tb-import" title="Import"><i class="ti ti-file-import"></i> Import</button>
-<button class="btn btn-ghost sc-tbtn" id="tb-export" title="Export"><i class="ti ti-file-export"></i> Export</button>
-<button class="btn btn-ghost sc-tbtn" id="tb-shortcuts" title="Shortcuts [?]"><i class="ti ti-keyboard"></i></button>`;
+<button class="sc-btn" id="tb-import" title="Import"><i class="ti ti-file-import"></i> Import</button>
+<button class="sc-btn" id="tb-export" title="Export"><i class="ti ti-file-export"></i> Export</button>
+<button class="sc-btn" id="tb-shortcuts" title="Shortcuts [?]"><i class="ti ti-keyboard"></i></button>`;
 
   document.getElementById('tb-add').onclick       = _addScript;
   document.getElementById('tb-edit').onclick      = _editSelected;
@@ -351,7 +351,7 @@ function _bindRowEvents(tbody, rows) {
 
   tbody.querySelectorAll('.sc-run-btn').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
-    inv('ss_run_now', { profileId: S.profileId, scriptId: parseInt(btn.dataset.id), runAsAdmin: false });
+    _runOne(parseInt(btn.dataset.id), false);
   }));
 }
 
@@ -370,17 +370,18 @@ function _ctxMenu(e, id) {
   const s = S.scripts.find(x => x.id === id);
   if (!s) return;
   showContextMenu(e, [
-    { label: 'Edit', icon: 'ti-pencil', action: () => _openScriptModal(s) },
-    { label: 'Duplicate', icon: 'ti-copy', action: () => _duplicateScript(id) },
-    { label: 'Manage Profiles', icon: 'ti-folders', action: () => _profilePicker(id) },
-    { type: 'sep' },
-    { label: s.enabled ? 'Disable' : 'Enable', icon: s.enabled ? 'ti-player-pause' : 'ti-player-play', action: () => _toggleScripts([id]) },
-    { label: 'Copy Content', icon: 'ti-clipboard', action: () => { navigator.clipboard.writeText(s.content || ''); toast('Copied', 'ok'); } },
-    { type: 'sep' },
-    { label: 'Run', icon: 'ti-player-play', action: () => inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: false }) },
-    { label: 'Run as Admin', icon: 'ti-shield', action: () => inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: true }) },
-    { type: 'sep' },
-    { label: 'Delete', icon: 'ti-trash', danger: true, action: () => _removeScripts([id]) },
+    { label: 'Edit',            icon: 'ti-pencil',       fn: () => _openScriptModal(s) },
+    { label: 'Open in Editor',  icon: 'ti-external-link', fn: () => inv('open_script_editor', { id }).catch(err => toast(String(err), 'err')) },
+    { label: 'Duplicate',       icon: 'ti-copy',          fn: () => _duplicateScript(id) },
+    { label: 'Manage Profiles', icon: 'ti-folders',       fn: () => _profilePicker(id) },
+    '---',
+    { label: s.enabled ? 'Disable' : 'Enable', icon: s.enabled ? 'ti-player-pause' : 'ti-player-play', fn: () => _toggleScripts([id]) },
+    { label: 'Copy Content', icon: 'ti-clipboard', fn: () => { navigator.clipboard.writeText(s.content || ''); toast('Copied', 'ok'); } },
+    '---',
+    { label: 'Run',         icon: 'ti-player-play', fn: () => _runOne(id, false) },
+    { label: 'Run as Admin', icon: 'ti-shield',     fn: () => _runOne(id, true) },
+    '---',
+    { label: 'Delete', icon: 'ti-trash', danger: true, fn: () => _removeScripts([id]) },
   ]);
 }
 
@@ -510,6 +511,23 @@ async function _duplicateScript(id) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
+async function _runOne(id, admin) {
+  if (admin) {
+    // Admin: open external console (same as Quick Fixes elevated)
+    await inv('ss_run_now', { profileId: S.profileId, scriptId: id, runAsAdmin: true });
+    return;
+  }
+  // Non-admin: run in embedded terminal via existing run_script command
+  await acquireRun();
+  toast('Running…', 'info');
+  try {
+    const r = await inv('run_script', { id });
+    showOutput(r.output, r.success);
+    toast(r.success ? 'Done' : 'Script failed', r.success ? 'ok' : 'err');
+    _reload();
+  } catch (err) { toast(String(err), 'err'); } finally { releaseRun(); }
+}
+
 async function _runSelected(admin) {
   if (!S.sel.size) return;
   await inv('ss_start_run', { profileId: S.profileId, ids: [...S.sel], runAsAdmin: admin });
