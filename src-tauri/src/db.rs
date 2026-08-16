@@ -94,6 +94,21 @@ fn migrate(conn: &Connection) -> Result<()> {
             ('Windows Update','ti-refresh','ms-settings:windowsupdate');
         ");
     }
+    // Scripts: interactive flag (opens visible terminal window, ScriptStash port)
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN interactive INTEGER NOT NULL DEFAULT 0", []);
+    // ScriptStash profiles
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ss_profiles (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+    )", []);
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ss_script_profile (
+        script_id  INTEGER NOT NULL,
+        profile_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        disabled   INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (script_id, profile_id)
+    )", []);
     // Custom tweaks table (added Loop 11)
     let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
