@@ -34,13 +34,7 @@ export async function load() {
       <span class="sys-chip" id="si-ram"><i class="ti ti-server"></i> — GB RAM</span>
       <span class="sys-chip" id="si-up"><i class="ti ti-clock"></i> up —</span>
     </div>
-    <div id="pin-area"></div>
-    <div class="dash-quick-access">
-      <div class="section-hdr">Quick Access</div>
-      <div class="ql-grid">
-        <button class="ql-pill" id="dash-taskmgr-pill"><i class="ti ti-list-details"></i><span>Task Manager</span></button>
-      </div>
-    </div>`;
+    <div id="pin-area"></div>`;
 
   // Restore perf panel state
   _applyPerfCollapse(localStorage.getItem(PERF_OPEN_KEY) !== 'false');
@@ -65,10 +59,6 @@ export async function load() {
   }
 
   _renderPins(pins, el.querySelector('#pin-area'));
-
-  document.getElementById('dash-taskmgr-pill')?.addEventListener('click', () => {
-    invoke('launch_shortcut', { cmd: 'taskmgr' }).catch(() => {});
-  });
 
   // Background sys info refresh — never blocks anything
   invoke('get_sys_info').then(info => {
@@ -222,7 +212,12 @@ function _buildPerfBody() {
     <div class="perf-card" style="gap:5px">
       <div class="perf-card-hdr"><i class="ti ti-device-hdd"></i> Drives</div>
       <div id="pm-drives"></div>
-    </div>`;
+    </div>
+    <button class="perf-taskmgr-btn" id="perf-taskmgr"><i class="ti ti-list-details"></i> Task Manager</button>`;
+  document.getElementById('perf-taskmgr')?.addEventListener('click', e => {
+    e.stopPropagation();
+    invoke('launch_shortcut', { cmd: 'taskmgr' }).catch(() => {});
+  });
 }
 
 function _setBar(id, pct) {

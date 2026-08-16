@@ -684,12 +684,15 @@ input[type="checkbox"]:focus { outline: none; }
 .cmp-identical { color:var(--green); font-size:11px; }
 .cmp-view { flex:1; overflow-y:auto; font-family:var(--mono); font-size:12px; line-height:1.6; background:var(--bg1); }
 .cmp-line { display:flex; white-space:pre; }
-.cmp-line.cmp-add     { background:rgba(16,185,129,.12); }
-.cmp-line.cmp-rem     { background:rgba(239,68,68,.12); }
-.cmp-line.cmp-spacer  { background:var(--bg2); opacity:.4; }
-.cmp-line.cmp-eq      {}
+.cmp-line.cmp-add     { background:rgba(16,185,129,.10); color:var(--text); }
+.cmp-line.cmp-rem     { background:rgba(239,68,68,.10);  color:var(--text); }
+.cmp-line.cmp-spacer  { background:var(--bg2); opacity:.35; }
+.cmp-line.cmp-eq      { color:var(--text2); }
 .cmp-ln  { padding:0 8px 0 10px; color:var(--text3); user-select:none; min-width:38px; text-align:right; border-right:1px solid var(--border); flex-shrink:0; }
 .cmp-text { padding:0 10px; overflow-x:auto; flex:1; }
+.cmp-mark { border-radius:2px; }
+.cmp-line.cmp-rem .cmp-mark { background:rgba(239,68,68,.45); color:var(--text); }
+.cmp-line.cmp-add .cmp-mark { background:rgba(16,185,129,.40); color:var(--text); }
 
 /* ── CHANGELOG ── */
 .cl-body { display: flex; flex-direction: column; gap: 18px; padding: 4px 0; }
@@ -847,6 +850,15 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 .pm-bar-blue { background:var(--blue); }
 .pm-bar-warn { background:var(--red); }
 .pm-card-val { font-family:var(--mono); font-size:10px; color:var(--text2); }
+
+.perf-taskmgr-btn {
+  display:flex; align-items:center; gap:6px; width:100%; padding:7px 9px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:var(--r);
+  color:var(--text2); font-size:11px; cursor:pointer; font-family:var(--font);
+  transition:border-color .12s, color .12s, background .12s;
+}
+.perf-taskmgr-btn:hover { border-color:var(--amber); color:var(--text); background:var(--bg2); }
+.perf-taskmgr-btn .ti { color:var(--amber); font-size:13px; }
 
 /* Network rows */
 .pn-row { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
