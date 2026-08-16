@@ -535,9 +535,8 @@ ${setupBlock}
 Write-Host "-- Installing these apps: " -ForegroundColor Green
 Write-Host "-- ${pkgNames}"
 
-${installCmd}
+${installCmd};
 
-Pause`;
       }
     }
 
@@ -571,7 +570,7 @@ function _applyPreset(key) {
   _save();
   _renderNav();
   _updateBadge();
-  toast(`${key.charAt(0).toUpperCase() + key.slice(1)} preset — ${_sel.size} actions selected`, 'ok');
+  toast(`${ key.charAt(0).toUpperCase() + key.slice(1) } preset — ${ _sel.size } actions selected`, 'ok');
   // Navigate to run tab to show the generated script immediately
   _setTab('__run__');
 }

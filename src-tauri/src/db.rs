@@ -42,6 +42,8 @@ fn migrate(conn: &Connection) -> Result<()> {
             "Delete icon cache DBs and restart Explorer (Win10/11)"
         ],
     );
+    // Scripts: icon stored as data URI (added for WinScript import)
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT ''", []);
     // Custom tweaks table (added Loop 11)
     let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,

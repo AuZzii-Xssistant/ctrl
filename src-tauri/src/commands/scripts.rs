@@ -47,7 +47,8 @@ pub struct Script {
     pub tags: String,
     pub status: String,
     pub run_as_admin: bool,
-    pub content: Option<String>,  // Some = stored in DB; None = use file_path
+    pub content: Option<String>,
+    pub icon: String,
 }
 
 #[derive(Deserialize)]
@@ -55,12 +56,13 @@ pub struct ScriptData {
     pub name: String,
     pub description: Option<String>,
     pub category: Option<String>,
-    pub file_path: Option<String>,  // optional when content is provided
+    pub file_path: Option<String>,
     pub script_type: Option<String>,
     pub tags: Option<String>,
     pub status: Option<String>,
     pub run_as_admin: Option<bool>,
     pub content: Option<String>,
+    pub icon: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -71,7 +73,7 @@ pub struct RunResult {
 
 fn query_scripts(db: &rusqlite::Connection, q: &str) -> Result<Vec<Script>, String> {
     let mut stmt = db.prepare(
-        "SELECT id,name,description,category,file_path,script_type,tags,status,COALESCE(run_as_admin,0),content FROM scripts ORDER BY category,name"
+        "SELECT id,name,description,category,file_path,script_type,tags,status,COALESCE(run_as_admin,0),content,COALESCE(icon,'') FROM scripts ORDER BY category,name"
     ).map_err(|e| e.to_string())?;
     let rows = stmt.query_map([], |row| {
         Ok(Script {
@@ -80,6 +82,7 @@ fn query_scripts(db: &rusqlite::Connection, q: &str) -> Result<Vec<Script>, Stri
             tags: row.get(6)?, status: row.get(7)?,
             run_as_admin: row.get::<_,i64>(8)? != 0,
             content: row.get(9)?,
+            icon: row.get(10)?,
         })
     }).map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok())
@@ -97,11 +100,11 @@ pub fn get_scripts(state: State<AppState>, search: Option<String>) -> Result<Vec
 pub fn add_script(state: State<AppState>, data: ScriptData) -> Result<i64, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content,icon) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
         params![data.name, data.description.unwrap_or_default(), data.category.unwrap_or_else(|| "General".into()),
                 data.file_path.unwrap_or_default(), data.script_type.unwrap_or_else(|| "ps1".into()), data.tags.unwrap_or_default(),
                 data.status.unwrap_or_else(|| "active".into()), data.run_as_admin.unwrap_or(false) as i64,
-                data.content],
+                data.content, data.icon.unwrap_or_default()],
     ).map_err(|e| e.to_string())?;
     Ok(db.last_insert_rowid())
 }
@@ -110,11 +113,11 @@ pub fn add_script(state: State<AppState>, data: ScriptData) -> Result<i64, Strin
 pub fn update_script(state: State<AppState>, id: i64, data: ScriptData) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "UPDATE scripts SET name=?1,description=?2,category=?3,file_path=?4,script_type=?5,tags=?6,status=?7,run_as_admin=?8,content=?9 WHERE id=?10",
+        "UPDATE scripts SET name=?1,description=?2,category=?3,file_path=?4,script_type=?5,tags=?6,status=?7,run_as_admin=?8,content=?9,icon=?10 WHERE id=?11",
         params![data.name, data.description.unwrap_or_default(), data.category.unwrap_or_else(|| "General".into()),
                 data.file_path.unwrap_or_default(), data.script_type.unwrap_or_else(|| "ps1".into()), data.tags.unwrap_or_default(),
                 data.status.unwrap_or_else(|| "active".into()), data.run_as_admin.unwrap_or(false) as i64,
-                data.content, id],
+                data.content, data.icon.unwrap_or_default(), id],
     ).map_err(|e| e.to_string())?;
     Ok(())
 }

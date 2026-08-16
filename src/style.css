@@ -176,6 +176,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 }
 .data-row:hover { border-color: var(--border2); background: var(--bg4); }
 .row-icon { font-size: 15px; color: var(--text3); flex-shrink: 0; }
+.row-icon-img { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
 .row-name { font-size: 13px; color: var(--text); flex: 1; }
 .row-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; }
 

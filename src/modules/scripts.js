@@ -36,8 +36,11 @@ function _render(el, scripts, lastRuns = []) {
         const dbBadge = s.content ? '<span class="badge-db" title="Content stored in database"><i class="ti ti-database"></i></span>' : '';
         const desc = s.description ? esc(s.description) : esc(s.file_path || '');
         const hasLoc = !s.content && s.file_path;
+        const iconEl = s.icon
+          ? `<img src="${s.icon}" class="row-icon-img" alt="" />`
+          : `<i class="ti ${scriptIcon(ext)} row-icon"></i>`;
         html += `<div class="data-row" data-id="${s.id}">
-          <i class="ti ${scriptIcon(ext)} row-icon"></i>
+          ${iconEl}
           <div style="flex:1;min-width:0">
             <div class="row-name" style="display:flex;align-items:center;gap:5px">${esc(s.name)}${adminBadge}${dbBadge}</div>
             ${desc ? `<div class="fix-cmd-preview">${desc}</div>` : ''}
