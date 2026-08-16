@@ -471,6 +471,7 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 }
 .ws-sub:last-child { border-bottom: none; border-radius: 0 0 5px 5px; }
 .ws-sub:hover { background: rgba(255,255,255,.03); }
+.ws-sub, .ws-standalone { cursor: pointer; }
 /* Radio "None" row */
 .ws-radio-none { opacity: .6; }
 .ws-radio-none:hover { opacity: 1; }

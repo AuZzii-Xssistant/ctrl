@@ -15,9 +15,35 @@ const LS_KEY = 'ctrl_builder_sel';
 let _sel = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'));
 let _radio = JSON.parse(localStorage.getItem(LS_KEY + '_radio') || '{}');
 
+// Per-tab scroll position and open group state
+const _tabScroll = {};
+const _tabOpenGroups = {};
+
 function _save() {
   localStorage.setItem(LS_KEY, JSON.stringify([..._sel]));
   localStorage.setItem(LS_KEY + '_radio', JSON.stringify(_radio));
+}
+
+function _saveTabState() {
+  if (!_activeTab) return;
+  const el = document.getElementById('builder-toggles');
+  if (!el) return;
+  _tabScroll[_activeTab] = el.scrollTop;
+  _tabOpenGroups[_activeTab] = new Set(
+    [...el.querySelectorAll('details[open][data-key]')].map(d => d.dataset.key)
+  );
+}
+
+function _restoreTabState(tabId) {
+  const el = document.getElementById('builder-toggles');
+  if (!el) return;
+  const open = _tabOpenGroups[tabId];
+  if (open) {
+    el.querySelectorAll('details[data-key]').forEach(d => {
+      d.open = open.has(d.dataset.key);
+    });
+  }
+  if (_tabScroll[tabId] != null) el.scrollTop = _tabScroll[tabId];
 }
 
 // ── Icon helper — reads icon from JSON item, only used for group headers ──────
@@ -85,6 +111,7 @@ function _countSelected(items) {
 
 // ── Tab switch ───────────────────────────────────────────────────────────────
 function _setTab(tabId) {
+  _saveTabState();
   _activeTab = tabId;
   const togglesEl = document.getElementById('builder-toggles');
   const scriptEl = document.getElementById('builder-script-view');
@@ -110,6 +137,7 @@ function _setTab(tabId) {
         _renderItems(cat.items || []);
       }
     }
+    _restoreTabState(tabId);
   }
   _renderNav();
   _updateBadge();
@@ -137,6 +165,14 @@ function _renderItems(items) {
   el.querySelectorAll('.shortcut-open-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err'));
+    });
+  });
+
+  // Click anywhere on the row to toggle — skip if the actual input/button/label was clicked
+  el.querySelectorAll('.ws-entry:not(.ws-group-hdr):not(.ws-radio-none)').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('input, button, label, a')) return;
+      row.querySelector('input')?.click();
     });
   });
 
@@ -199,7 +235,7 @@ function _renderAppsUI(el) {
     const apps = cat.apps.filter(a => _pkgMgr === 'winget' ? a.winget : a.choco);
     if (!apps.length) continue;
     const selCount = apps.filter(a => _appsSel.has(a.id)).length;
-    html += `<details class="ws-group apps-group" data-cat="${esc(cat.label)}">
+    html += `<details class="ws-group apps-group" data-cat="${esc(cat.label)}" data-key="${esc(cat.label)}">
       <summary class="ws-entry ws-group-hdr">
         <div class="ws-entry-info">
           <div class="ws-entry-text"><h1>${esc(cat.label)}</h1><p>${apps.length} apps</p></div>
@@ -232,6 +268,13 @@ function _renderAppsUI(el) {
   }
 
   el.innerHTML = html;
+
+  el.querySelectorAll('.app-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('input, button, label')) return;
+      row.querySelector('input')?.click();
+    });
+  });
 
   el.querySelectorAll('.apps-mgr-btn').forEach(btn => btn.addEventListener('click', () => {
     _pkgMgr = btn.dataset.mgr;
@@ -377,7 +420,7 @@ function _renderSubItem(item) {
 function _renderGroup(item) {
   const subIds = (item.items || []).map(s => s.id);
   const selCount = subIds.filter(id => _sel.has(id)).length;
-  return `<details class="ws-group">
+  return `<details class="ws-group" data-key="${esc(item.label)}">
     <summary class="ws-entry ws-group-hdr">
       <div class="ws-entry-info">
         ${_wsIcon(item.icon)}
@@ -416,7 +459,7 @@ function _renderRadioSub(sub, groupName, chosen) {
 
 function _renderRadioGroup(item) {
   const chosen = _radio[item.group] || null;
-  return `<details class="ws-group">
+  return `<details class="ws-group" data-key="${esc(item.label)}">
     <summary class="ws-entry ws-group-hdr">
       <div class="ws-entry-info">
         ${_wsIcon(item.icon)}
