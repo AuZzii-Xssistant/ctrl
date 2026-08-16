@@ -46,7 +46,7 @@ export async function load(search = '') {
   S.filter = search;
   _attachListeners();
   const el = document.getElementById('scripts-scroll');
-  el.style.cssText = 'overflow:hidden;padding:0;display:flex;flex-direction:column;height:100%;';
+  el.style.cssText = 'overflow:hidden;display:flex;flex-direction:column;';
   el.innerHTML = `
 <div class="sc-wrap">
   <div class="sc-header" id="sc-header">
@@ -187,10 +187,10 @@ function _renderToolbar() {
 <div class="sc-sep"></div>
 <button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
 <button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
-<button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
 <button class="sc-btn sc-btn-admin" id="tb-rsa" title="Run selected (Admin)" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Sel. Admin</button>
 <button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
+<button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
 <button class="sc-btn" id="tb-import" title="Import"><i class="ti ti-file-import"></i> Import</button>
 <button class="sc-btn" id="tb-export" title="Export"><i class="ti ti-file-export"></i> Export</button>
@@ -402,8 +402,8 @@ async function _profilePicker(scriptId) {
     </label>`).join('')}
 </div>
 <div class="form-actions">
-  <button class="btn btn-ghost" id="pp-cancel">Cancel</button>
-  <button class="btn btn-primary" id="pp-save">Save</button>
+  <button class="action-btn btn-ghost" id="pp-cancel">Cancel</button>
+  <button class="action-btn btn-primary" id="pp-save">Save</button>
 </div>`);
 
   document.getElementById('pp-cancel').onclick = () => closeModal();
@@ -465,8 +465,8 @@ function _openScriptModal(s) {
   <textarea class="form-textarea" id="sm-content" rows="10" style="min-height:180px;font-size:12px;" placeholder="Paste or type script content here…">${esc(s?.content||'')}</textarea>
 </div>
 <div class="form-actions">
-  <button class="btn btn-ghost" id="sm-cancel">Cancel</button>
-  <button class="btn btn-primary" id="sm-save">${isNew ? 'Add Script' : 'Save Changes'}</button>
+  <button class="action-btn btn-ghost" id="sm-cancel">Cancel</button>
+  <button class="action-btn btn-primary" id="sm-save">${isNew ? 'Add Script' : 'Save Changes'}</button>
 </div>`);
 
   const save = async () => {
@@ -577,7 +577,7 @@ function _showShortcuts() {
   </tbody>
 </table>
 <div class="form-actions">
-  <button class="btn btn-primary" id="sh-close">Close</button>
+  <button class="action-btn btn-primary" id="sh-close">Close</button>
 </div>`);
   document.getElementById('sh-close').onclick = () => closeModal();
 }
@@ -623,8 +623,19 @@ function _bindShortcuts() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function _fmtTs(ts) {
   const n = parseInt(ts);
-  if (!n || isNaN(n)) return ts;
-  return new Date(n * 1000).toLocaleString();
+  if (!n || isNaN(n)) return '—';
+  const d = new Date(n * 1000);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 1)  return 'just now';
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const h = Math.floor(diffMin / 60);
+  if (h < 24) return `${h} h ago`;
+  if (h < 24 * 7) return `${Math.floor(h / 24)} d ago`;
+  const day = String(d.getDate()).padStart(2, '0');
+  const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${day} ${mon} ${hh}:${mm}`;
 }
 
 async function _prompt(title, label, defaultVal) {
@@ -635,8 +646,8 @@ async function _prompt(title, label, defaultVal) {
   <input class="form-input" id="sc-prompt-inp" value="${esc(defaultVal)}">
 </div>
 <div class="form-actions">
-  <button class="btn btn-ghost" id="sc-prompt-cancel">Cancel</button>
-  <button class="btn btn-primary" id="sc-prompt-ok">OK</button>
+  <button class="action-btn btn-ghost" id="sc-prompt-cancel">Cancel</button>
+  <button class="action-btn btn-primary" id="sc-prompt-ok">OK</button>
 </div>`);
     const inp = document.getElementById('sc-prompt-inp');
     inp.select();

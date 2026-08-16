@@ -222,8 +222,6 @@ pub fn ss_rename_profile(state: State<AppState>, id: i64, name: String) -> Resul
 #[tauri::command]
 pub fn ss_remove_profile(state: State<AppState>, id: i64) -> Result<bool, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    let count: i64 = db.query_row("SELECT COUNT(*) FROM ss_profiles", [], |r| r.get(0)).unwrap_or(0);
-    if count <= 1 { return Ok(false); }
     db.execute("DELETE FROM ss_script_profile WHERE profile_id=?1", params![id]).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM ss_profiles WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
     gc_orphaned_scripts(&db);
