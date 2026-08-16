@@ -489,10 +489,10 @@
           "winget": "RamenSoftware.Windhawk"
         },
         {
-          "id": "WingetUI",
-          "label": "WingetUI",
-          "choco": "wingetui",
-          "winget": "marticliment.UniGetUI"
+          "id": "UniGetUI",
+          "label": "UniGetUI",
+          "choco": "unigetui",
+          "winget": "Devolutions.UniGetUI"
         }
       ]
     },
