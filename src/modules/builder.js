@@ -536,6 +536,7 @@ Write-Host "-- Installing these apps: " -ForegroundColor Green
 Write-Host "-- ${pkgNames}"
 
 ${installCmd};
+`;
 
       }
     }
