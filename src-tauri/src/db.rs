@@ -7,6 +7,7 @@ pub fn init(conn: &Connection) -> Result<()> {
     ")?;
     create_tables(conn)?;
     migrate(conn)?;
+    migrate_scriptstash(conn)?;
     seed_defaults(conn)
 }
 
@@ -235,4 +236,14 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         ('Set High Performance Power','Switch to High Performance power plan','Performance','powershell','powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c','power,performance',0,1),
         ('Set Balanced Power','Switch back to Balanced power plan','Performance','powershell','powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e','power,balanced',0,1);
     ")
+}
+
+// ScriptStash state columns on scripts (added ScriptStash port v2)
+fn migrate_scriptstash(conn: &Connection) -> Result<()> {
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN master_order INTEGER NOT NULL DEFAULT 9999", []);
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN master_disabled INTEGER NOT NULL DEFAULT 0", []);
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_run TEXT", []);
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_status TEXT NOT NULL DEFAULT 'never'", []);
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_error TEXT", []);
+    Ok(())
 }
