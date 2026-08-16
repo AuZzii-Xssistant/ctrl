@@ -110,7 +110,7 @@ function _wireSearch(el, initial) {
 }
 
 async function _run(id) {
-  if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
+  await acquireRun();
   toast('Running…', 'info');
   try {
     const r = await inv('run_script', { id });

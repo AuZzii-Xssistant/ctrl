@@ -263,6 +263,19 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* ── OUTPUT DRAWER ── */
 /* Output drawer — always visible, collapses to header bar */
+/* ── Terminal tab bar ──────────────────────────────────────────────────────── */
+#term-tabs { display: flex; gap: 1px; flex: 1; overflow-x: auto; min-width: 0; }
+#term-tabs::-webkit-scrollbar { display: none; }
+.term-tab { display: flex; align-items: center; gap: 5px; padding: 0 6px 0 10px; height: 28px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 11px; color: var(--text3); font-family: var(--mono); transition: background 0.1s, color 0.1s; user-select: none; }
+.term-tab.active { background: var(--bg3); color: var(--text); }
+.term-tab.running { color: var(--amber); }
+.term-tab.active.running { background: rgba(245,166,35,.1); color: var(--amber); }
+.term-tab:hover:not(.active) { background: rgba(255,255,255,.04); color: var(--text2); }
+.term-tab-x { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; line-height: 1; padding: 1px 2px; border-radius: 2px; opacity: 0; transition: opacity 0.1s, color 0.1s; }
+.term-tab:hover .term-tab-x, .term-tab.active .term-tab-x { opacity: 1; }
+.term-tab-x:hover { color: var(--red); }
+.term-tab-body { width: 100%; height: 100%; }
+
 #output-drawer { background: var(--bg2); border-top: 1px solid var(--border); flex-shrink: 0; }
 #output-header {
   display: flex; align-items: center; gap: 8px; padding: 5px 14px;

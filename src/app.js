@@ -57,64 +57,19 @@ export function toast(msg, type = 'info') {
   _toastTimer = setTimeout(() => { el.className = el.className.replace('show', '').trim(); }, 2800);
 }
 
-// ── Terminal / Output drawer ─────────────────────────────────────────────────
-let _term       = null;
-let _termFit    = null;
-let _termInited = false;
-let _ptyStarted = false;
-let _needsFit   = false;  // window resized while drawer was closed — fit+resize PTY on next open
-let _lastCols   = 0;
-let _lastRows   = 0;
-let _shells     = [];
-let _curShell   = null;
+// ── Terminal / Output drawer — multi-tab PTY ─────────────────────────────────
 const { listen } = window.__TAURI__.event;
 
-// Always write directly — xterm is init'd eagerly so _term is always set
-function _termWrite(s) { _term?.write(s); }
+let _shells    = [];
+let _needsFit  = false; // window resized while drawer closed
 
-function _bumpTs() {
-  const dot = document.getElementById('output-new-dot');
-  const ts  = document.getElementById('output-ts');
-  if (dot) dot.style.display = '';
-  if (ts)  ts.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
+// Tab state: each entry owns one xterm + one PTY session
+const _tabs = [];      // [{id, name, shell, term, fit, div, started, runLock, unlisten, lastCols, lastRows}]
+let _activeTabId   = 0;
+let _nextTabId     = 1;
+let _runTargetTabId = 0; // tab receiving the current script run
 
-// ── Run queue — prevent concurrent admin/streaming runs ───────────────────────
-let _runLock = false;
-export function acquireRun() { if (_runLock) return false; _runLock = true; return true; }
-export function releaseRun() { _runLock = false; }
-
-// Run-event listeners wired immediately — buffered until xterm mounts.
-// Non-admin scripts run through the PTY via run-pty-cmd: output flows via pty-data
-// so ConPTY cursor stays in sync and Starship redraws land in the right place.
-// Admin scripts still use an external window and emit run-output for status messages.
-listen('run-start',   ()  => { _openDrawer(); _bumpTs(); });
-listen('run-output',  e   => _termWrite(e.payload));  // admin mode status messages only
-listen('run-done',    ()  => _term?.blur());
-listen('run-pty-cmd', async e => {
-  // Wait for PTY if it hasn't started yet (e.g. very fast click on first load)
-  for (let i = 0; i < 30 && !_ptyStarted; i++)
-    await new Promise(r => setTimeout(r, 100));
-  if (_ptyStarted) invoke('pty_write', { data: e.payload + '\r' }).catch(() => {});
-});
-listen('pty-data', e => _termWrite(e.payload));
-listen('pty-exit', () => {
-  _ptyStarted = false;
-  _termWrite('\r\n\x1b[33m[shell exited — click New Shell to restart]\x1b[0m\r\n');
-});
-
-// ── Shell picker ──────────────────────────────────────────────────────────────
-
-async function _loadShells() {
-  try { _shells = await invoke('list_shells'); } catch { _shells = []; }
-  if (!_shells.length) _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
-  _curShell = _shells[0];
-  _buildShellPicker();
-  // Pre-start PTY in background with default 80x24 so drawer opens instantly.
-  // _needsFit = true means the first real open will resize to actual dimensions.
-  _needsFit = true;
-  _startPtyShell();
-}
+function _activeTab() { return _tabs.find(t => t.id === _activeTabId) || null; }
 
 function _shellLabel(name) {
   if (/PowerShell 7|pwsh/i.test(name))  return 'PS7';
@@ -125,83 +80,177 @@ function _shellLabel(name) {
   return name.slice(0, 4);
 }
 
-function _buildShellPicker() {
-  const wrap = document.getElementById('term-shell-toggle');
-  if (!wrap) return;
-  wrap.innerHTML = _shells.map((s, i) =>
-    `<button class="term-sh-btn${i === 0 ? ' active' : ''}" data-idx="${i}" title="${s.name}">${_shellLabel(s.name)}</button>`
-  ).join('');
-  wrap.querySelectorAll('.term-sh-btn').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      wrap.querySelectorAll('.term-sh-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      _curShell = _shells[+btn.dataset.idx];
-      await invoke('pty_close').catch(() => {});
-      _ptyStarted = false;
-      _term?.clear();
-      _startPtyShell();
-    });
-  });
-}
+const _XTERM_THEME = {
+  background: '#0d0d0d', foreground: '#d4d4d4', cursor: '#f0a500',
+  black: '#1a1a1a', red: '#ef4444', green: '#10b981', yellow: '#f5a623',
+  blue: '#60a5fa', magenta: '#a78bfa', cyan: '#34d399', white: '#e5e7eb',
+  brightBlack: '#4b5563', brightWhite: '#f9fafb',
+};
 
-// ── xterm lifecycle ───────────────────────────────────────────────────────────
-
-// xterm.js and FitAddon are loaded synchronously before this module (index.html lines 214-215)
-// so we can init immediately — no lazy init, no event buffering needed.
-function _initTerm() {
-  if (_termInited || !window.Terminal) return;
-  _termInited = true;
+async function _spawnTab(shell) {
+  const id  = _nextTabId++;
   const body = document.getElementById('output-body');
-  _term = new window.Terminal({
-    theme: {
-      background: '#0d0d0d', foreground: '#d4d4d4', cursor: '#f0a500',
-      black: '#1a1a1a', red: '#ef4444', green: '#10b981', yellow: '#f5a623',
-      blue: '#60a5fa', magenta: '#a78bfa', cyan: '#34d399', white: '#e5e7eb',
-      brightBlack: '#4b5563', brightWhite: '#f9fafb',
-    },
+
+  const div = document.createElement('div');
+  div.className = 'term-tab-body';
+  div.style.display = 'none';
+  body.appendChild(div);
+
+  const term = new window.Terminal({
+    theme: _XTERM_THEME,
     fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
     fontSize: 12, cursorBlink: true, scrollback: 10000, convertEol: true,
     allowProposedApi: true,
   });
-  _termFit = new window.FitAddon.FitAddon();
-  _term.loadAddon(_termFit);
-  _term.open(body);
-  // Block input to PTY while a run is active — prevents keystrokes from
-  // landing in the PTY buffer and corrupting the clean post-run prompt redraw.
-  _term.onData(data => { if (!_runLock) invoke('pty_write', { data }).catch(() => {}); });
-  // Don't fit/resize yet — drawer is closed; _doOpen will fit on first real open
-}
-_initTerm();
+  const fit = new window.FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open(div);
 
-function _fitTerm() {
-  if (!_termFit || !_termInited) return;
-  try {
-    _termFit.fit();
-    // Only send resize to PTY when dimensions actually changed — prevents
-    // PowerShell from redrawing its prompt on every drawer open/close
-    const c = _term?.cols ?? 80, r = _term?.rows ?? 24;
-    if (_ptyStarted && (c !== _lastCols || r !== _lastRows)) {
-      _lastCols = c; _lastRows = r;
-      invoke('pty_resize', { cols: c, rows: r }).catch(() => {});
-    }
-  } catch {}
+  const tab = { id, name: _shellLabel(shell.name), shell, term, fit, div,
+                started: false, runLock: false, unlisten: [], lastCols: 0, lastRows: 0 };
+
+  term.onData(data => {
+    if (!tab.runLock) invoke('pty_write', { tabId: id, data }).catch(() => {});
+  });
+
+  const u1 = await listen(`pty-data-${id}`, e => term.write(e.payload));
+  const u2 = await listen(`pty-exit-${id}`, () => {
+    tab.started  = false;
+    tab.runLock  = false;
+    term.write('\r\n\x1b[33m[Process exited — press any key to restart]\x1b[0m\r\n');
+    // One-shot restart on next keypress
+    const disp = term.onData(() => { disp.dispose(); _startTabPty(tab); });
+    _renderTabBar();
+  });
+  tab.unlisten = [u1, u2];
+  _tabs.push(tab);
+
+  _switchToTab(id);
+  await _startTabPty(tab);
+  return tab;
 }
 
-async function _startPtyShell() {
-  if (!_curShell || _ptyStarted) return;
+async function _startTabPty(tab) {
+  if (tab.started) return;
   try {
     await invoke('pty_open', {
-      shell: _curShell.path,
-      args:  _curShell.args,
-      cols:  _term?.cols ?? 80,
-      rows:  _term?.rows ?? 24,
+      tabId: tab.id,
+      shell: tab.shell.path,
+      args:  tab.shell.args,
+      cols:  tab.term.cols || 80,
+      rows:  tab.term.rows || 24,
     });
-    _ptyStarted = true;
-  } catch (err) {
-    _termWrite(`\r\n\x1b[31m[PTY error: ${err}]\x1b[0m\r\n`);
+    tab.started = true;
+  } catch(err) {
+    tab.term.write(`\r\n\x1b[31m[PTY error: ${err}]\x1b[0m\r\n`);
   }
 }
+
+function _switchToTab(id) {
+  _activeTabId = id;
+  _tabs.forEach(t => { t.div.style.display = t.id === id ? '' : 'none'; });
+  const tab = _activeTab();
+  if (tab) {
+    try { tab.fit.fit(); } catch {}
+    const c = tab.term.cols || 80, r = tab.term.rows || 24;
+    if (tab.started && (c !== tab.lastCols || r !== tab.lastRows)) {
+      tab.lastCols = c; tab.lastRows = r;
+      invoke('pty_resize', { tabId: id, cols: c, rows: r }).catch(() => {});
+    }
+    if (document.getElementById('output-drawer')?.classList.contains('open')) tab.term.focus();
+  }
+  _renderTabBar();
+}
+
+async function _closeTab(id) {
+  const idx = _tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  const tab = _tabs[idx];
+  for (const u of tab.unlisten) u();
+  await invoke('pty_close', { tabId: id }).catch(() => {});
+  tab.div.remove();
+  _tabs.splice(idx, 1);
+  if (_activeTabId === id) {
+    const next = _tabs[Math.min(idx, _tabs.length - 1)];
+    if (next) _switchToTab(next.id);
+    else { _activeTabId = 0; _renderTabBar(); }
+  } else {
+    _renderTabBar();
+  }
+}
+
+function _renderTabBar() {
+  const wrap = document.getElementById('term-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = _tabs.map(t =>
+    `<div class="term-tab${t.id === _activeTabId ? ' active' : ''}${t.runLock ? ' running' : ''}" data-tab="${t.id}">
+      <span>${t.name}</span>
+      <button class="term-tab-x" data-close="${t.id}" title="Close tab">×</button>
+    </div>`
+  ).join('');
+  wrap.querySelectorAll('.term-tab').forEach(el => {
+    el.addEventListener('click', e => { if (!e.target.closest('.term-tab-x')) _switchToTab(+el.dataset.tab); });
+  });
+  wrap.querySelectorAll('.term-tab-x').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); _closeTab(+btn.dataset.close); });
+  });
+}
+
+function _buildShellPicker() {
+  const wrap = document.getElementById('term-shell-toggle');
+  if (!wrap) return;
+  wrap.innerHTML = _shells.map((s, i) =>
+    `<button class="term-sh-btn" data-idx="${i}" title="New ${s.name} tab">${_shellLabel(s.name)}</button>`
+  ).join('');
+  wrap.querySelectorAll('.term-sh-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      await _spawnTab(_shells[+btn.dataset.idx]);
+      _openDrawer();
+    });
+  });
+}
+
+async function _loadShells() {
+  try { _shells = await invoke('list_shells'); } catch { _shells = []; }
+  if (!_shells.length) _shells = [{ name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] }];
+  _buildShellPicker();
+  // Pre-spawn first tab so the drawer opens instantly
+  _needsFit = true;
+  await _spawnTab(_shells[0]);
+}
+
+// ── Run queue — per-tab locking, spawns new tab if active is busy ─────────────
+export async function acquireRun() {
+  let tab = _activeTab();
+  if (!tab || tab.runLock) {
+    const shell = tab?.shell || _shells[0] || { name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] };
+    tab = await _spawnTab(shell);
+    _openDrawer();
+  }
+  tab.runLock = true;
+  _runTargetTabId = tab.id;
+  _renderTabBar();
+  return true;
+}
+
+export function releaseRun() {
+  const tab = _tabs.find(t => t.id === _runTargetTabId);
+  if (tab) { tab.runLock = false; _renderTabBar(); }
+  _runTargetTabId = 0;
+}
+
+// Run-event listeners
+listen('run-start', () => { _openDrawer(); document.getElementById('output-new-dot')?.style.setProperty('display', ''); });
+listen('run-output', e => _activeTab()?.term.write(e.payload));  // admin mode status
+listen('run-done',   () => _activeTab()?.term.blur());
+listen('run-pty-cmd', async e => {
+  const tab = _tabs.find(t => t.id === _runTargetTabId) || _activeTab();
+  if (!tab) return;
+  for (let i = 0; i < 30 && !tab.started; i++)
+    await new Promise(r => setTimeout(r, 100));
+  if (tab.started) invoke('pty_write', { tabId: tab.id, data: e.payload + '\r' }).catch(() => {});
+});
 
 // ── Drawer open/close ─────────────────────────────────────────────────────────
 
@@ -224,68 +273,64 @@ function _toggleOutputDrawer() {
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
   document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
   if (!wasOpen) setTimeout(() => _onDrawerOpened(true), 220);
-  else _term?.blur();
+  else _activeTab()?.term.blur();
 }
 
 function _onDrawerOpened(userInitiated = false) {
-  if (!_ptyStarted) {
-    // Fallback: pre-load failed or shell was reset — start now with real size
-    _fitTerm();
-    _startPtyShell();
-  } else if (_needsFit) {
+  const tab = _activeTab();
+  if (!tab) return;
+  if (_needsFit) {
     _needsFit = false;
-    _fitTerm(); // window resized while closed — sync PTY size now
+    try { tab.fit.fit(); } catch {}
+    const c = tab.term.cols || 80, r = tab.term.rows || 24;
+    if (tab.started) invoke('pty_resize', { tabId: tab.id, cols: c, rows: r }).catch(() => {});
   }
-  // Only focus xterm when the user clicked to open — never on programmatic opens.
-  // run-start opens the drawer programmatically; auto-focus would route keystrokes to PTY.
-  if (userInitiated) _term?.focus();
+  if (userInitiated) tab.term.focus();
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/** Show admin/static output in the terminal (not streamed). No-op on empty. */
 export function showOutput(text, ok = true) {
-  if (!text) return; // non-admin output already streamed via events; ignore empty
+  if (!text) return;
   const col   = ok ? '\x1b[32m' : '\x1b[31m';
   const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
-  _termWrite(`\r\n${col}${clean}\x1b[0m\r\n`);
-  _bumpTs();
+  _activeTab()?.term.write(`\r\n${col}${clean}\x1b[0m\r\n`);
+  document.getElementById('output-new-dot')?.style.setProperty('display', '');
   _openDrawer();
 }
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
-// Track window resize — if drawer is open, fit immediately; if closed, defer to next open
 window.addEventListener('resize', () => {
-  if (!_termFit || !_termInited) return;
+  const tab = _activeTab();
+  if (!tab) return;
   if (document.getElementById('output-drawer')?.classList.contains('open')) {
-    _fitTerm(); // drawer visible — resize xterm and PTY now
+    try { tab.fit.fit(); } catch {}
+    const c = tab.term.cols || 80, r = tab.term.rows || 24;
+    if (tab.started) invoke('pty_resize', { tabId: tab.id, cols: c, rows: r }).catch(() => {});
   } else {
-    _needsFit = true; // drawer hidden — remember to resize PTY when it opens next
+    _needsFit = true;
   }
 });
 
 document.getElementById('output-header').addEventListener('click', e => {
-  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-new-shell,#term-admin-shell')) return;
+  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-tabs,#term-admin-shell')) return;
   _toggleOutputDrawer();
 });
 document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
 
 document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
-  // Clear xterm display AND send clear/cls to the shell so prompt redraws
-  _term?.clear();
-  // \x0c = Ctrl+L = ClearScreen in PSReadLine and bash — clears the display and
-  // redraws the current prompt without cancelling or submitting partial input.
-  if (_ptyStarted) invoke('pty_write', { data: '\x0c' }).catch(() => {});
+  const tab = _activeTab();
+  tab?.term.clear();
+  if (tab?.started) invoke('pty_write', { tabId: tab.id, data: '\x0c' }).catch(() => {});
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
 });
 
 document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
-  const sel = _term?.getSelection();
+  const sel = _activeTab()?.term.getSelection();
   if (!sel) { toast('Select text first', 'info'); return; }
-  // navigator.clipboard needs secure context; execCommand works reliably in WebView2
   try {
     const ta = document.createElement('textarea');
     ta.value = sel;
@@ -296,15 +341,6 @@ document.getElementById('output-copy').addEventListener('click', e => {
     document.body.removeChild(ta);
     toast('Copied', 'ok');
   } catch { toast('Copy failed', 'err'); }
-});
-
-document.getElementById('term-new-shell')?.addEventListener('click', async e => {
-  e.stopPropagation();
-  await invoke('pty_close').catch(() => {});
-  _ptyStarted = false;
-  _term?.clear();
-  _openDrawer();
-  await _startPtyShell();
 });
 
 // ── Admin elevation state ─────────────────────────────────────────────────────
@@ -319,14 +355,12 @@ invoke('is_elevated').then(elevated => {
   }
 });
 
-// Click: open external admin terminal
 document.getElementById('term-admin-shell')?.addEventListener('click', e => {
   e.stopPropagation();
   invoke('open_elevated_terminal')
     .then(() => toast('Admin terminal opened', 'ok'))
     .catch(err => toast(String(err), 'err'));
 });
-
 
 _loadShells();
 

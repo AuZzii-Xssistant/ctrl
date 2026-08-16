@@ -118,7 +118,7 @@ async function _run(id, el, confirmRequired) {
     const ok = await confirmDialog('This fix is marked as potentially dangerous. Run it?', true);
     if (!ok) return;
   }
-  if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
+  await acquireRun();
   toast('Running…', 'info');
   try {
     const r = await inv('run_fix', { id });

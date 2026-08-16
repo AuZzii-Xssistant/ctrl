@@ -190,7 +190,7 @@ function _render(q) {
       const action = btn.getAttribute('data-action');
       const admin = btn.getAttribute('data-admin') === '1';
       const orig = btn.textContent;
-      if (!acquireRun()) { toast('A script is already running — wait for it to finish', 'info'); return; }
+      await acquireRun();
       btn.disabled = true; btn.textContent = '…';
       try {
         const r = await inv('run_tweak_cmd', { cmd, admin });
