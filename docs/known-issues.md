@@ -32,6 +32,20 @@ If `data/builder/` JSON files are modified and action IDs change, the saved sele
 ### Workflows — step item deleted after workflow created
 If a script or fix that is a workflow step is deleted, `run_workflow` will error on that step. No validation at delete time. Planned: cascade-check before delete.
 
+## Planned Features
+
+### System Profiles (Context Switching)
+A named machine-state system. Each Profile is a collection of settings that activates together: power plan, background apps to kill/start, DNS server, audio endpoint, display refresh rate, and an optional custom PowerShell block. Activating a profile snapshots the current values first so "restore previous" is always safe.
+
+**Why:** One click switches the machine between Work / Gaming / Streaming / Presentation modes. No scripting needed — the profile editor is a checklist. Each setting is stored in SQLite and travels with the portable folder.
+
+**Implementation notes:**
+- Profiles stored in `profiles` and `profile_items` tables (SQLite)
+- Activation runs Rust commands: `powercfg /setactive`, `sc stop/start`, `netsh`, registry writes
+- Pre-activation snapshot saved to `profile_snapshots` for safe revert
+- Tray icon or header chip shows active profile name
+- Builds on top of existing Tweaks/Fixes infrastructure
+
 ## Resolved
 
 - **Builder state lost on close** — fixed 2026-08-13, localStorage persistence

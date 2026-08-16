@@ -217,7 +217,7 @@ $xml.GetElementsByTagName('text').Item(1).InnerText='{body}';
         title = title.replace('\'', "''"),
         body  = body.replace('\'', "''"),
     );
-    let out = app.shell().command("powershell")
+    let _out = app.shell().command("powershell")
         .args(["-WindowStyle", "Hidden", "-NonInteractive", "-Command", &ps])
         .output().await.map_err(|e| e.to_string())?;
     Ok((true, format!("Notification sent: {}", title)))

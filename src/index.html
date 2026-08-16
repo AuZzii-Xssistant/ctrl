@@ -43,6 +43,7 @@
       <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
       <button class="nav-btn"        data-pane="env">    <i class="ti ti-list-details"></i>     <span class="tip">Environment</span></button>
       <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
+      <button class="nav-btn"        data-pane="compare"> <i class="ti ti-diff"></i>               <span class="tip">Compare</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-btn"        data-pane="activity">  <i class="ti ti-history"></i>         <span class="tip">Recent Activity</span></button>
       <button class="nav-btn"        data-pane="changelog"><i class="ti ti-notes"></i>            <span class="tip">Changelog</span></button>
@@ -59,6 +60,7 @@
           <div id="perf-header">
             <i class="ti ti-activity perf-icon"></i>
             <span id="perf-title-text">Live</span>
+            <button class="perf-collapse-btn" id="perf-taskmgr" title="Open Task Manager" style="margin-right:2px"><i class="ti ti-list-details"></i></button>
             <button class="perf-collapse-btn" id="perf-toggle" title="Collapse"><i class="ti ti-chevron-right" id="perf-chevron"></i></button>
           </div>
           <div id="perf-body"></div>
@@ -162,6 +164,31 @@
         <div class="pane-scroll" id="snippets-scroll"></div>
       </div>
 
+      <!-- COMPARE -->
+      <div class="pane" id="compare-pane">
+        <div id="compare-wrap">
+          <div id="compare-toolbar">
+            <span class="compare-title"><i class="ti ti-diff" style="font-size:13px"></i> Text Compare</span>
+            <button class="action-btn btn-primary" id="compare-run"><i class="ti ti-git-diff"></i> Compare</button>
+            <button class="action-btn btn-ghost"   id="compare-clear">Clear</button>
+          </div>
+          <div id="compare-editors">
+            <div class="compare-panel">
+              <div class="compare-panel-hdr">Left</div>
+              <textarea class="compare-ta" id="compare-left"  placeholder="Paste left text here…" spellcheck="false"></textarea>
+            </div>
+            <div class="compare-panel">
+              <div class="compare-panel-hdr">Right</div>
+              <textarea class="compare-ta" id="compare-right" placeholder="Paste right text here…" spellcheck="false"></textarea>
+            </div>
+          </div>
+          <div id="compare-output" style="display:none">
+            <div id="compare-summary"></div>
+            <div id="compare-diff"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- RECENT ACTIVITY -->
       <div class="pane" id="activity-pane">
         <div class="pane-scroll" id="activity-scroll"></div>
@@ -188,7 +215,6 @@
           <button id="output-clear"     title="Clear">clear</button>
           <button id="output-copy"      title="Copy selection">copy</button>
           <button id="term-admin-shell" title="Open elevated terminal (UAC)"><i class="ti ti-shield" style="font-size:11px"></i> admin</button>
-          <button class="icon-btn" id="output-toggle" title="Toggle terminal"><i class="ti ti-chevron-up"></i></button>
         </div>
         <div id="output-main">
           <div id="output-body"></div>

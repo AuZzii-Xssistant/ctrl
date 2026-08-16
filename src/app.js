@@ -27,6 +27,7 @@ const _paneLoaders = {
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
+  compare:   ()  => import('./modules/compare.js').then(m => m.load()),
   activity:  ()  => import('./modules/activity.js').then(m => m.load()),
   changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
   settings:  ()  => import('./modules/settings.js').then(m => m.load()),
@@ -279,7 +280,6 @@ function _openDrawer() {
 
 function _doOpen(d) {
   d.classList.add('open');
-  document.querySelector('#output-toggle i')?.setAttribute('class', 'ti ti-chevron-down');
   setTimeout(() => _onDrawerOpened(false), 220);
 }
 
@@ -288,7 +288,6 @@ function _toggleOutputDrawer() {
   const wasOpen = d.classList.contains('open');
   d.classList.toggle('open');
   document.getElementById('output-new-dot')?.style.setProperty('display', 'none');
-  document.querySelector('#output-toggle i')?.setAttribute('class', wasOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down');
   if (!wasOpen) setTimeout(() => _onDrawerOpened(true), 220);
   else _activeTab()?.term.blur();
 }
@@ -331,10 +330,10 @@ window.addEventListener('resize', () => {
 });
 
 document.getElementById('output-header').addEventListener('click', e => {
-  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-admin-shell')) return;
+  if (e.target.closest('#output-clear,#output-copy,#term-shell-toggle,#term-admin-shell')) return;
   _toggleOutputDrawer();
 });
-document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
+document.getElementById('perf-taskmgr')?.addEventListener('click', e => { e.stopPropagation(); invoke('launch_shortcut', { cmd: 'taskmgr' }).catch(() => {}); });
 
 document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
