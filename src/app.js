@@ -529,12 +529,14 @@ async function doSearch(q) {
 }
 
 const _searchSections = [
-  { key: 'tools',     label: 'Tools',     icon: 'ti-tool',          pane: 'tools' },
-  { key: 'scripts',   label: 'Scripts',   icon: 'ti-code',          pane: 'scripts' },
-  { key: 'fixes',     label: 'Fixes',     icon: 'ti-bolt',          pane: 'fixes' },
-  { key: 'projects',  label: 'Projects',  icon: 'ti-archive',       pane: 'projects' },
-  { key: 'workflows', label: 'Workflows', icon: 'ti-player-play',   pane: 'workflows' },
-  { key: 'snippets',  label: 'Snippets',  icon: 'ti-blockquote',    pane: 'snippets' },
+  { key: 'quick_launch', label: 'Quick Launch', icon: 'ti-rocket',       pane: 'tools', launch: 'ql' },
+  { key: 'apps',         label: 'Apps',          icon: 'ti-device-desktop', pane: 'tools', launch: 'app' },
+  { key: 'tools',        label: 'Tools',         icon: 'ti-tool',          pane: 'tools' },
+  { key: 'scripts',      label: 'Scripts',       icon: 'ti-code',          pane: 'scripts' },
+  { key: 'fixes',        label: 'Fixes',         icon: 'ti-bolt',          pane: 'fixes' },
+  { key: 'projects',     label: 'Projects',      icon: 'ti-archive',       pane: 'projects' },
+  { key: 'workflows',    label: 'Workflows',     icon: 'ti-player-play',   pane: 'workflows' },
+  { key: 'snippets',     label: 'Snippets',      icon: 'ti-blockquote',    pane: 'snippets' },
 ];
 
 function renderSearch(data) {
@@ -546,7 +548,8 @@ function renderSearch(data) {
     total += items.length;
     html += `<div class="sr-section">${s.label}</div>`;
     for (const item of items) {
-      html += `<div class="sr-item" data-pane="${s.pane}">
+      const launchAttr = s.launch ? ` data-launch="${s.launch}" data-launch-meta="${esc(item.meta)}"` : '';
+      html += `<div class="sr-item" data-pane="${s.pane}"${launchAttr}>
         <i class="ti ${s.icon}" style="color:var(--text3);font-size:14px;flex-shrink:0"></i>
         <span class="sr-item-name">${esc(item.name)}</span>
         <span class="sr-item-meta">${esc(item.meta)}</span>
@@ -556,11 +559,20 @@ function renderSearch(data) {
   if (!total) html = `<div class="sr-empty">No results</div>`;
   _searchRes.innerHTML = html;
   _searchRes.classList.add('open');
-  _searchRes.querySelectorAll('.sr-item[data-pane]').forEach(el => {
-    el.addEventListener('click', () => {
+  _searchRes.querySelectorAll('.sr-item').forEach(el => {
+    el.addEventListener('click', async () => {
       const q = _searchEl.value.trim();
       _searchRes.classList.remove('open');
       _searchEl.value = '';
+      // For QL/app items, launch directly instead of navigating
+      if (el.dataset.launch === 'ql') {
+        invoke('launch_shortcut', { cmd: el.dataset.launchMeta }).catch(() => {});
+        return;
+      }
+      if (el.dataset.launch === 'app') {
+        invoke('launch_external', { path: el.dataset.launchMeta }).catch(() => {});
+        return;
+      }
       goPane(el.dataset.pane, q);
     });
   });

@@ -50,6 +50,50 @@ fn migrate(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE workflows ADD COLUMN trigger_config TEXT NOT NULL DEFAULT '{}'", []);
     let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_at TEXT", []);
     let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_ok INTEGER", []);
+    // External apps table (added Loop 12)
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS external_apps (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL,
+        path       TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )", []);
+    // Quick Launch items table — seeded once, used for search + pinning
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ql_items (
+        id    INTEGER PRIMARY KEY AUTOINCREMENT,
+        label TEXT NOT NULL,
+        icon  TEXT NOT NULL DEFAULT 'ti-rocket',
+        cmd   TEXT NOT NULL
+    )", []);
+    // Seed QL items if empty
+    let ql_count: i64 = conn.query_row("SELECT COUNT(*) FROM ql_items", [], |r| r.get(0)).unwrap_or(0);
+    if ql_count == 0 {
+        let _ = conn.execute_batch("
+            INSERT INTO ql_items (label,icon,cmd) VALUES
+            ('Windows Settings','ti-settings','ms-settings:'),
+            ('Control Panel','ti-layout-grid','control'),
+            ('System Properties','ti-server','sysdm.cpl'),
+            ('MSConfig','ti-adjustments','msconfig'),
+            ('Task Manager','ti-activity','taskmgr'),
+            ('Registry Editor','ti-database','regedit'),
+            ('Device Manager','ti-cpu','devmgmt.msc'),
+            ('Disk Management','ti-device-floppy','diskmgmt.msc'),
+            ('Computer Management','ti-building','compmgmt.msc'),
+            ('Mouse Properties','ti-mouse','main.cpl'),
+            ('Sound Settings','ti-volume','mmsys.cpl'),
+            ('Region','ti-world','intl.cpl'),
+            ('Time and Date','ti-clock','timedate.cpl'),
+            ('Network Connections','ti-network','ncpa.cpl'),
+            ('Firewall','ti-shield','firewall.cpl'),
+            ('Security & Maint.','ti-shield-check','wscui.cpl'),
+            ('Programs & Features','ti-package','appwiz.cpl'),
+            ('Printers','ti-printer','shell:PrintersFolder'),
+            ('Power Options','ti-bolt','powercfg.cpl'),
+            ('Virtual Memory','ti-layers-subtract','SystemPropertiesAdvanced'),
+            ('Visual Effects','ti-eye','SystemPropertiesPerformance'),
+            ('System Restore','ti-history','rstrui.exe'),
+            ('Windows Update','ti-refresh','ms-settings:windowsupdate');
+        ");
+    }
     // Custom tweaks table (added Loop 11)
     let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,

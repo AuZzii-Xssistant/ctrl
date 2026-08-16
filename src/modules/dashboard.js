@@ -295,7 +295,7 @@ function _renderPins(pins, el) {
       <div class="dash-group-header"><span class="dash-group-name">${esc(group)}</span></div>
       <div class="dash-tile-grid">`;
     for (const p of items) {
-      html += `<div class="dash-tile" data-pin-id="${p.id}" data-type="${p.item_type}" data-item-id="${p.item_id}" data-name="${esc(p.item_name)}" title="${esc(p.item_name)}">
+      html += `<div class="dash-tile" data-pin-id="${p.id}" data-type="${p.item_type}" data-item-id="${p.item_id}" data-name="${esc(p.item_name)}" data-meta="${esc(p.item_meta || '')}" title="${esc(p.item_name)}">
         <i class="ti ${esc(p.item_icon)}"></i>
         <div class="dash-tile-name">${esc(p.item_name)}</div>
         <span class="tag tag-${esc(p.item_type)}">${esc(p.item_type)}</span>
@@ -325,6 +325,8 @@ async function _runPin(tile) {
     if (type === 'script')   { toast('Running…', 'info'); const r = await invoke('run_script', { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
     if (type === 'fix')      { toast('Running…', 'info'); const r = await invoke('run_fix',    { id }); showOutput(r.output, r.success); toast(r.success ? 'Done' : 'Failed', r.success ? 'ok' : 'err'); }
     if (type === 'project')  { await invoke('open_project_path', { id }); toast('Opened', 'ok'); }
+    if (type === 'ql')       { await invoke('launch_shortcut', { cmd: tile.dataset.meta || '' }); toast('Launched', 'ok'); }
+    if (type === 'app')      { await invoke('launch_external',  { path: tile.dataset.meta || '' }); toast('Launched', 'ok'); }
     if (type === 'workflow') {
       toast('Running workflow…', 'info');
       const results = await invoke('run_workflow', { id });
@@ -345,21 +347,25 @@ async function _unpin(id) {
 }
 
 window._openPinPicker = async () => {
-  const [tools, scripts, fixes, projects, wfs, currentPins] = await Promise.all([
-    invoke('get_tools',    { search: '' }),
-    invoke('get_scripts',  { search: '' }),
-    invoke('get_fixes',    { search: '' }),
-    invoke('get_projects', { search: '' }).catch(() => []),
+  const [tools, scripts, fixes, projects, wfs, qls, apps, currentPins] = await Promise.all([
+    invoke('get_tools',          { search: '' }),
+    invoke('get_scripts',        { search: '' }),
+    invoke('get_fixes',          { search: '' }),
+    invoke('get_projects',       { search: '' }).catch(() => []),
     invoke('get_workflows').catch(() => []),
+    invoke('get_ql_items').catch(() => []),
+    invoke('list_external_apps').catch(() => []),
     invoke('get_pinned').catch(() => []),
   ]);
   const pinned = new Set(currentPins.map(p => `${p.item_type}:${p.item_id}`));
   const sections = [
-    { label: 'Tools',     icon: 'ti-app-window',  type: 'tool',     items: tools },
-    { label: 'Scripts',   icon: 'ti-code',         type: 'script',   items: scripts },
-    { label: 'Fixes',     icon: 'ti-bolt',         type: 'fix',      items: fixes },
-    { label: 'Projects',  icon: 'ti-archive',      type: 'project',  items: projects },
-    { label: 'Workflows', icon: 'ti-player-play',  type: 'workflow', items: wfs },
+    { label: 'Quick Launch', icon: 'ti-rocket',      type: 'ql',       items: qls.map(q => ({ ...q, name: q.label })) },
+    { label: 'Apps',         icon: 'ti-device-desktop', type: 'app',   items: apps },
+    { label: 'Tools',        icon: 'ti-app-window',  type: 'tool',     items: tools },
+    { label: 'Scripts',      icon: 'ti-code',         type: 'script',   items: scripts },
+    { label: 'Fixes',        icon: 'ti-bolt',         type: 'fix',      items: fixes },
+    { label: 'Projects',     icon: 'ti-archive',      type: 'project',  items: projects },
+    { label: 'Workflows',    icon: 'ti-player-play',  type: 'workflow', items: wfs },
   ];
   const totalItems = sections.reduce((s, x) => s + x.items.length, 0);
   let html = `<input class="form-input" id="pin-search" placeholder="Filter…" style="margin-bottom:12px" autocomplete="off" />

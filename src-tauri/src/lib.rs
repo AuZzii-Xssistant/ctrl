@@ -119,6 +119,12 @@ pub fn run() {
             commands::terminal::pty_close,
             commands::terminal::open_elevated_terminal,
             commands::terminal::is_elevated,
+            commands::external_apps::get_ql_items,
+            commands::external_apps::list_external_apps,
+            commands::external_apps::add_external_app,
+            commands::external_apps::remove_external_app,
+            commands::external_apps::launch_external,
+            commands::external_apps::pick_exe_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");

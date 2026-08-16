@@ -38,6 +38,8 @@ pub struct SearchResults {
     pub projects: Vec<SearchResult>,
     pub workflows: Vec<SearchResult>,
     pub snippets: Vec<SearchResult>,
+    pub quick_launch: Vec<SearchResult>,
+    pub apps: Vec<SearchResult>,
 }
 
 #[tauri::command]
@@ -45,18 +47,21 @@ pub fn global_search(state: State<AppState>, query: String) -> Result<SearchResu
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let q = format!("%{}%", query.to_lowercase());
     let search = |sql: &str| -> Vec<SearchResult> {
-        let mut stmt = db.prepare(sql).unwrap();
-        stmt.query_map([&q], |row| {
+        let mut stmt = match db.prepare(sql) { Ok(s) => s, Err(_) => return vec![] };
+        let rows = match stmt.query_map([&q], |row| {
             Ok(SearchResult { item_type: row.get(0)?, id: row.get(1)?, name: row.get(2)?, meta: row.get(3)? })
-        }).unwrap().filter_map(|r| r.ok()).take(5).collect()
+        }) { Ok(r) => r, Err(_) => return vec![] };
+        rows.filter_map(|r| r.ok()).take(5).collect()
     };
     Ok(SearchResults {
-        tools:     search("SELECT 'tool',id,name,category FROM tools WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
-        scripts:   search("SELECT 'script',id,name,category FROM scripts WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
-        fixes:     search("SELECT 'fix',id,name,category FROM fixes WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
-        projects:  search("SELECT 'project',id,name,status FROM projects WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
-        workflows: search("SELECT 'workflow',id,name,description FROM workflows WHERE lower(name) LIKE ?1 OR lower(description) LIKE ?1"),
-        snippets:  search("SELECT 'snippet',id,title,category FROM snippets WHERE lower(title) LIKE ?1 OR lower(tags) LIKE ?1 OR lower(content) LIKE ?1"),
+        tools:        search("SELECT 'tool',id,name,category FROM tools WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
+        scripts:      search("SELECT 'script',id,name,category FROM scripts WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
+        fixes:        search("SELECT 'fix',id,name,category FROM fixes WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
+        projects:     search("SELECT 'project',id,name,status FROM projects WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
+        workflows:    search("SELECT 'workflow',id,name,description FROM workflows WHERE lower(name) LIKE ?1 OR lower(description) LIKE ?1"),
+        snippets:     search("SELECT 'snippet',id,title,category FROM snippets WHERE lower(title) LIKE ?1 OR lower(tags) LIKE ?1 OR lower(content) LIKE ?1"),
+        quick_launch: search("SELECT 'ql',id,label,'Quick Launch' FROM ql_items WHERE lower(label) LIKE ?1 OR lower(cmd) LIKE ?1"),
+        apps:         search("SELECT 'app',id,name,path FROM external_apps WHERE lower(name) LIKE ?1 OR lower(path) LIKE ?1"),
     })
 }
 

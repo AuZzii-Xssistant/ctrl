@@ -13,3 +13,4 @@ pub mod backup;
 pub mod env_vars;
 pub mod snippets;
 pub mod terminal;
+pub mod external_apps;

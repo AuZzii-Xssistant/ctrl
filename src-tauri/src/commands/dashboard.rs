@@ -10,6 +10,7 @@ pub struct PinnedItem {
     pub item_id: i64,
     pub item_name: String,
     pub item_icon: String,
+    pub item_meta: String,   // cmd for ql, path for app, empty otherwise
     pub group_name: String,
     pub sort_order: i64,
 }
@@ -27,16 +28,17 @@ pub fn get_pinned(state: State<AppState>) -> Result<Vec<PinnedItem>, String> {
     let mut items = Vec::new();
     for row in rows.filter_map(|r| r.ok()) {
         let (id, item_type, item_id, group_name, sort_order) = row;
-        let (name, icon) = resolve_item(&db, &item_type, item_id);
-        items.push(PinnedItem { id, item_type, item_id, item_name: name, item_icon: icon, group_name, sort_order });
+        let (name, icon, meta) = resolve_item(&db, &item_type, item_id);
+        items.push(PinnedItem { id, item_type, item_id, item_name: name, item_icon: icon, item_meta: meta, group_name, sort_order });
     }
     Ok(items)
 }
 
-fn resolve_item(db: &rusqlite::Connection, item_type: &str, item_id: i64) -> (String, String) {
-    let name_icon = |table: &str, icon: &str| -> (String, String) {
+// Returns (name, icon, meta) where meta = cmd for ql, path for app
+fn resolve_item(db: &rusqlite::Connection, item_type: &str, item_id: i64) -> (String, String, String) {
+    let name_icon = |table: &str, icon: &str| -> (String, String, String) {
         db.query_row(&format!("SELECT name FROM {} WHERE id=?1", table), params![item_id], |r| r.get(0))
-          .map(|n: String| (n, icon.into())).unwrap_or_default()
+          .map(|n: String| (n, icon.into(), String::new())).unwrap_or_default()
     };
     match item_type {
         "tool"     => name_icon("tools",     "ti-tool"),
@@ -44,8 +46,12 @@ fn resolve_item(db: &rusqlite::Connection, item_type: &str, item_id: i64) -> (St
         "workflow" => name_icon("workflows", "ti-player-play"),
         "project"  => name_icon("projects",  "ti-archive"),
         "script"   => db.query_row("SELECT name,script_type FROM scripts WHERE id=?1", params![item_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?)))
-                        .map(|(n, t)| (n, script_icon(&t))).unwrap_or_default(),
-        _          => (String::new(), "ti-circle".into()),
+                        .map(|(n, t)| (n, script_icon(&t), String::new())).unwrap_or_default(),
+        "ql"       => db.query_row("SELECT label,icon,cmd FROM ql_items WHERE id=?1", params![item_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,String>(2)?)))
+                        .unwrap_or_else(|_| (format!("Quick Launch #{}", item_id), "ti-rocket".into(), String::new())),
+        "app"      => db.query_row("SELECT name,path FROM external_apps WHERE id=?1", params![item_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?)))
+                        .map(|(n, p)| (n, "ti-device-desktop".into(), p)).unwrap_or_default(),
+        _          => (String::new(), "ti-circle".into(), String::new()),
     }
 }
 

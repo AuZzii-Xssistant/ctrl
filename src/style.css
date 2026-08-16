@@ -133,6 +133,15 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .ql-pill { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 11px; color: var(--text2); font-family: var(--font); transition: border-color 0.12s, color 0.12s, background 0.12s; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ql-pill:hover { border-color: var(--amber); color: var(--text); background: var(--bg2); }
 .ql-pill i { font-size: 13px; color: var(--amber); flex-shrink: 0; }
+.ql-pill-wrap { position: relative; display: flex; }
+.ql-pill-wrap .ql-pill { flex: 1; }
+.ql-pin-btn, .ql-del-btn { display: none; position: absolute; top: 2px; padding: 2px 4px; background: var(--bg4); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-size: 10px; color: var(--text3); line-height: 1; }
+.ql-pin-btn { right: 2px; }
+.ql-del-btn { right: 22px; }
+.ql-del-btn:hover { color: var(--red); border-color: var(--red); }
+.ql-pin-btn:hover { color: var(--amber); border-color: var(--amber); }
+.ql-pill-wrap:hover .ql-pin-btn,
+.ql-pill-wrap:hover .ql-del-btn { display: block; }
 .card {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: var(--r); padding: 10px 12px;
