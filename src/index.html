@@ -173,7 +173,6 @@
       <div id="output-drawer">
         <div id="output-header">
           <i class="ti ti-terminal" style="font-size:13px;color:var(--text3);flex-shrink:0"></i>
-          <div id="term-tabs"><!-- tab chips filled by JS --></div>
           <span id="output-new-dot" style="display:none"></span>
           <div id="term-shell-toggle"><!-- new-tab shell buttons filled by JS --></div>
           <button id="output-clear"     title="Clear">clear</button>
@@ -181,7 +180,10 @@
           <button id="term-admin-shell" title="Open elevated terminal (UAC)"><i class="ti ti-shield" style="font-size:11px"></i> admin</button>
           <button class="icon-btn" id="output-toggle" title="Toggle terminal"><i class="ti ti-chevron-up"></i></button>
         </div>
-        <div id="output-body"></div>
+        <div id="output-main">
+          <div id="output-body"></div>
+          <div id="term-tab-sidebar"><!-- tab chips filled by JS --></div>
+        </div>
       </div>
 
     </div><!-- #content -->

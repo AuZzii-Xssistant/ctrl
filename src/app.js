@@ -93,7 +93,6 @@ async function _spawnTab(shell) {
 
   const div = document.createElement('div');
   div.className = 'term-tab-body';
-  div.style.display = 'none';
   body.appendChild(div);
 
   const term = new window.Terminal({
@@ -151,13 +150,15 @@ function _switchToTab(id) {
   _tabs.forEach(t => { t.div.style.display = t.id === id ? '' : 'none'; });
   const tab = _activeTab();
   if (tab) {
-    try { tab.fit.fit(); } catch {}
-    const c = tab.term.cols || 80, r = tab.term.rows || 24;
-    if (tab.started && (c !== tab.lastCols || r !== tab.lastRows)) {
-      tab.lastCols = c; tab.lastRows = r;
-      invoke('pty_resize', { tabId: id, cols: c, rows: r }).catch(() => {});
-    }
-    if (document.getElementById('output-drawer')?.classList.contains('open')) tab.term.focus();
+    requestAnimationFrame(() => {
+      try { tab.fit.fit(); } catch {}
+      const c = tab.term.cols || 80, r = tab.term.rows || 24;
+      if (tab.started && (c !== tab.lastCols || r !== tab.lastRows)) {
+        tab.lastCols = c; tab.lastRows = r;
+        invoke('pty_resize', { tabId: id, cols: c, rows: r }).catch(() => {});
+      }
+      if (document.getElementById('output-drawer')?.classList.contains('open')) tab.term.focus();
+    });
   }
   _renderTabBar();
 }
@@ -180,16 +181,19 @@ async function _closeTab(id) {
 }
 
 function _renderTabBar() {
-  const wrap = document.getElementById('term-tabs');
+  const wrap = document.getElementById('term-tab-sidebar');
   if (!wrap) return;
   wrap.innerHTML = _tabs.map(t =>
     `<div class="term-tab${t.id === _activeTabId ? ' active' : ''}${t.runLock ? ' running' : ''}" data-tab="${t.id}">
-      <span>${t.name}</span>
+      <span class="term-tab-name">${t.name}</span>
       <button class="term-tab-x" data-close="${t.id}" title="Close tab">×</button>
     </div>`
   ).join('');
   wrap.querySelectorAll('.term-tab').forEach(el => {
-    el.addEventListener('click', e => { if (!e.target.closest('.term-tab-x')) _switchToTab(+el.dataset.tab); });
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!e.target.closest('.term-tab-x')) _switchToTab(+el.dataset.tab);
+    });
   });
   wrap.querySelectorAll('.term-tab-x').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); _closeTab(+btn.dataset.close); });
@@ -279,13 +283,13 @@ function _toggleOutputDrawer() {
 function _onDrawerOpened(userInitiated = false) {
   const tab = _activeTab();
   if (!tab) return;
-  if (_needsFit) {
-    _needsFit = false;
+  requestAnimationFrame(() => {
+    if (_needsFit) _needsFit = false;
     try { tab.fit.fit(); } catch {}
     const c = tab.term.cols || 80, r = tab.term.rows || 24;
     if (tab.started) invoke('pty_resize', { tabId: tab.id, cols: c, rows: r }).catch(() => {});
-  }
-  if (userInitiated) tab.term.focus();
+    if (userInitiated) tab.term.focus();
+  });
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -314,7 +318,7 @@ window.addEventListener('resize', () => {
 });
 
 document.getElementById('output-header').addEventListener('click', e => {
-  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-tabs,#term-admin-shell')) return;
+  if (e.target.closest('#output-clear,#output-copy,#output-toggle,#term-shell-toggle,#term-admin-shell')) return;
   _toggleOutputDrawer();
 });
 document.getElementById('output-toggle').addEventListener('click', _toggleOutputDrawer);
