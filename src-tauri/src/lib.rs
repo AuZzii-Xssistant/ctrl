@@ -24,6 +24,8 @@ pub fn run() {
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
             app.manage(commands::terminal::TermState(std::sync::Mutex::new(std::collections::HashMap::new())));
+            // Start workflow scheduler (startup triggers + schedule polling)
+            commands::workflows::start_workflow_scheduler(app.handle().clone());
             // Clean up stale temp files from previous sessions
             if let Ok(tmp) = std::fs::read_dir(std::env::temp_dir()) {
                 for entry in tmp.flatten() {
@@ -93,6 +95,7 @@ pub fn run() {
             commands::workflows::update_workflow,
             commands::workflows::delete_workflow,
             commands::workflows::run_workflow,
+            commands::workflows::toggle_workflow,
             commands::tweaks::run_tweak_cmd,
             commands::tweaks::get_custom_tweaks,
             commands::tweaks::add_custom_tweak,

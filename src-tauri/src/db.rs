@@ -44,6 +44,12 @@ fn migrate(conn: &Connection) -> Result<()> {
     );
     // Scripts: icon stored as data URI (added for WinScript import)
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT ''", []);
+    // Workflows: triggers, enable/disable, run tracking
+    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1", []);
+    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN trigger_type TEXT NOT NULL DEFAULT 'manual'", []);
+    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN trigger_config TEXT NOT NULL DEFAULT '{}'", []);
+    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_at TEXT", []);
+    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_ok INTEGER", []);
     // Custom tweaks table (added Loop 11)
     let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,

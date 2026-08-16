@@ -632,6 +632,19 @@ input[type="checkbox"]:focus { outline: none; }
 .tweak-applied-dot { width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; display:inline-block; box-shadow:0 0 4px var(--green); }
 
 /* ── WORKFLOWS ── */
+/* Toggle switch */
+.toggle-wrap { display:inline-flex; align-items:center; cursor:pointer; flex-shrink:0; }
+.toggle-wrap input { display:none; }
+.toggle-slider { width:32px; height:17px; background:var(--border2); border-radius:9px; position:relative; transition:background 0.15s; flex-shrink:0; }
+.toggle-slider::after { content:''; position:absolute; top:3px; left:3px; width:11px; height:11px; border-radius:50%; background:#fff; transition:left 0.15s; }
+.toggle-wrap input:checked + .toggle-slider { background:var(--amber); }
+.toggle-wrap input:checked + .toggle-slider::after { left:18px; }
+.toggle-slider.sm { width:28px; height:15px; border-radius:8px; }
+.toggle-slider.sm::after { width:9px; height:9px; top:3px; left:3px; }
+.toggle-wrap input:checked + .toggle-slider.sm::after { left:16px; }
+/* Workflow rows */
+.wf-row { cursor:default; }
+.wf-progress { transition:opacity 0.2s; }
 .wf-steps-list { display:flex; flex-direction:column; gap:4px; min-height:36px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:6px; margin-top:4px; }
 .wf-step { display:flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:6px 10px; }
 .wf-step-num { font-family:var(--mono); font-size:10px; color:var(--amber); min-width:16px; flex-shrink:0; }
