@@ -69,6 +69,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 }
 .win-btn:hover { background: var(--border); color: var(--text); }
 .win-btn.close:hover { background: var(--red); color: #fff; }
+.win-btn.ghost { color: var(--text3); opacity: 0.6; }
+.win-btn.ghost:hover { opacity: 1; color: var(--amber); background: transparent; }
 
 /* ── BODY ── */
 #body { display: flex; flex: 1; min-height: 0; }
@@ -264,7 +266,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ── OUTPUT DRAWER ── */
 /* Output drawer — always visible, collapses to header bar */
 /* ── Terminal tab sidebar (right panel, VSCode-style) ───────────────────── */
-#term-tab-sidebar { width: 130px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px 4px 3px; gap: 1px; }
+#term-tab-sidebar { width: 165px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px; gap: 1px; }
 #term-tab-sidebar::-webkit-scrollbar { width: 4px; }
 #term-tab-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .term-tab { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 9px; height: 28px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 11px; color: var(--text3); font-family: var(--mono); transition: background 0.1s, color 0.1s; user-select: none; }
@@ -648,6 +650,16 @@ input[type="checkbox"]:focus { outline: none; }
 .activity-name { flex:1; font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .activity-type { font-family:var(--mono); font-size:10px; color:var(--text3); flex-shrink:0; }
 .row-path { font-size:10px; color:var(--text3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* ── CHANGELOG ── */
+.cl-body { display: flex; flex-direction: column; gap: 18px; padding: 4px 0; }
+.cl-entry { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 18px; }
+.cl-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.cl-version { font-family: var(--mono); font-size: 14px; color: var(--amber); font-weight: 600; }
+.cl-label { font-size: 13px; color: var(--text); }
+.cl-date { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-left: auto; }
+.cl-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.cl-list li { font-size: 12px; color: var(--text2); line-height: 1.5; }
 
 /* ── SETTINGS ── */
 .settings-card {

@@ -9,6 +9,8 @@ const appWindow = getCurrentWindow();
 document.getElementById('btn-close').addEventListener('click', () => invoke('close_window'));
 document.getElementById('btn-min').addEventListener('click',   () => invoke('minimize_window'));
 document.getElementById('btn-max').addEventListener('click',   () => invoke('toggle_maximize'));
+document.getElementById('btn-bug')?.addEventListener('click',   () => invoke('open_path', { path: 'https://github.com/AuZzii-Xssistant/ctrl/issues' }));
+document.getElementById('btn-heart')?.addEventListener('click', () => invoke('open_path', { path: 'https://ko-fi.com' }));
 
 // ── Pane router ─────────────────────────────────────────────────────────────
 let _activePane = 'dash';
@@ -25,8 +27,9 @@ const _paneLoaders = {
   tweaks:   ()  => import('./modules/tweaks.js').then(m => m.load()),
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
-  activity: ()  => import('./modules/activity.js').then(m => m.load()),
-  settings: ()  => import('./modules/settings.js').then(m => m.load()),
+  activity:  ()  => import('./modules/activity.js').then(m => m.load()),
+  changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
+  settings:  ()  => import('./modules/settings.js').then(m => m.load()),
 };
 
 export function goPane(id, search = '') {
@@ -72,12 +75,12 @@ let _runTargetTabId = 0; // tab receiving the current script run
 function _activeTab() { return _tabs.find(t => t.id === _activeTabId) || null; }
 
 function _shellLabel(name) {
-  if (/PowerShell 7|pwsh/i.test(name))  return 'PS7';
-  if (/Windows PowerShell/i.test(name)) return 'PS5';
-  if (/Command/i.test(name))            return 'CMD';
+  if (/PowerShell 7|pwsh/i.test(name))  return 'PowerShell 7';
+  if (/Windows PowerShell/i.test(name)) return 'PowerShell 5';
+  if (/Command/i.test(name))            return 'Command Prompt';
   if (/WSL/i.test(name))                return 'WSL';
-  if (/Git/i.test(name))                return 'Bash';
-  return name.slice(0, 4);
+  if (/Git/i.test(name))                return 'Git Bash';
+  return name;
 }
 
 const _XTERM_THEME = {
