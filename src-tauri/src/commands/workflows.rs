@@ -293,13 +293,12 @@ fn check_days(config: &serde_json::Value) -> bool {
 }
 
 fn chrono_local_hhmm() -> String {
-    // Simple local time HH:MM without chrono crate — use PowerShell
-    // This only runs once per minute so the overhead is acceptable
-    let out = std::process::Command::new("powershell")
-        .args(["-NonInteractive", "-Command", "Get-Date -Format 'HH:mm'"])
-        .output();
-    out.ok()
-       .and_then(|o| String::from_utf8(o.stdout).ok())
-       .map(|s| s.trim().to_string())
-       .unwrap_or_default()
+    #[repr(C)]
+    struct SYSTEMTIME { year:u16,month:u16,dow:u16,day:u16,hour:u16,min:u16,sec:u16,ms:u16 }
+    extern "system" { fn GetLocalTime(t: *mut SYSTEMTIME); }
+    unsafe {
+        let mut t = SYSTEMTIME { year:0,month:0,dow:0,day:0,hour:0,min:0,sec:0,ms:0 };
+        GetLocalTime(&mut t);
+        format!("{:02}:{:02}", t.hour, t.min)
+    }
 }

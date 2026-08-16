@@ -43,7 +43,7 @@
       <button class="nav-btn"        data-pane="tweaks">  <i class="ti ti-adjustments"></i>      <span class="tip">Tweaks</span></button>
       <button class="nav-btn"        data-pane="env">    <i class="ti ti-list-details"></i>     <span class="tip">Environment</span></button>
       <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
-      <button class="nav-btn"        data-pane="compare"> <i class="ti ti-diff"></i>               <span class="tip">Compare</span></button>
+      <button class="nav-btn"        data-pane="compare"> <i class="ti ti-arrows-diff"></i>          <span class="tip">Compare</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-btn"        data-pane="activity">  <i class="ti ti-history"></i>         <span class="tip">Recent Activity</span></button>
       <button class="nav-btn"        data-pane="changelog"><i class="ti ti-notes"></i>            <span class="tip">Changelog</span></button>
@@ -60,7 +60,6 @@
           <div id="perf-header">
             <i class="ti ti-activity perf-icon"></i>
             <span id="perf-title-text">Live</span>
-            <button class="perf-collapse-btn" id="perf-taskmgr" title="Open Task Manager" style="margin-right:2px"><i class="ti ti-list-details"></i></button>
             <button class="perf-collapse-btn" id="perf-toggle" title="Collapse"><i class="ti ti-chevron-right" id="perf-chevron"></i></button>
           </div>
           <div id="perf-body"></div>
@@ -168,8 +167,11 @@
       <div class="pane" id="compare-pane">
         <div id="compare-wrap">
           <div id="compare-toolbar">
-            <span class="compare-title"><i class="ti ti-diff" style="font-size:13px"></i> Text Compare</span>
-            <button class="action-btn btn-primary" id="compare-run"><i class="ti ti-git-diff"></i> Compare</button>
+            <span class="compare-title"><i class="ti ti-arrows-diff" style="font-size:13px"></i> Text Compare</span>
+            <div id="compare-summary"></div>
+            <div style="flex:1"></div>
+            <button class="action-btn btn-ghost"   id="compare-edit-btn" style="display:none"><i class="ti ti-edit"></i> Edit</button>
+            <button class="action-btn btn-primary" id="compare-run"><i class="ti ti-arrows-diff"></i> Compare</button>
             <button class="action-btn btn-ghost"   id="compare-clear">Clear</button>
           </div>
           <div id="compare-editors">
@@ -182,9 +184,15 @@
               <textarea class="compare-ta" id="compare-right" placeholder="Paste right text here…" spellcheck="false"></textarea>
             </div>
           </div>
-          <div id="compare-output" style="display:none">
-            <div id="compare-summary"></div>
-            <div id="compare-diff"></div>
+          <div id="compare-diff-view" style="display:none">
+            <div class="compare-panel">
+              <div class="compare-panel-hdr">Left</div>
+              <div class="cmp-view" id="cmp-left-view"></div>
+            </div>
+            <div class="compare-panel">
+              <div class="compare-panel-hdr">Right</div>
+              <div class="cmp-view" id="cmp-right-view"></div>
+            </div>
           </div>
         </div>
       </div>

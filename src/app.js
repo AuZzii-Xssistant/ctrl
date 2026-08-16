@@ -333,7 +333,6 @@ document.getElementById('output-header').addEventListener('click', e => {
   if (e.target.closest('#output-clear,#output-copy,#term-shell-toggle,#term-admin-shell')) return;
   _toggleOutputDrawer();
 });
-document.getElementById('perf-taskmgr')?.addEventListener('click', e => { e.stopPropagation(); invoke('launch_shortcut', { cmd: 'taskmgr' }).catch(() => {}); });
 
 document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
