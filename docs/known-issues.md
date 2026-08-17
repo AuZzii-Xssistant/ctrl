@@ -22,6 +22,9 @@ Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.p
 ### ~~Dashboard/tray — dangling pins after deleting the pinned item~~ ✅ Resolved (2026-08-17)
 `pin_item` never validated the target still exists, and deleting a pinned tool/fix/workflow/project/script left the `pinned` row behind — `resolve_item`'s `unwrap_or_default()` returned an empty name, so it rendered as a blank row on the dashboard and a blank entry in the tray menu instead of disappearing. `get_pinned` (dashboard.rs) and `fetch_pinned` (tray.rs) now both skip and lazily delete any pin whose name resolves empty.
 
+### ~~Backup runs with a partial-success robocopy code showed as failed~~ ✅ Resolved (2026-08-18)
+`run_backup` stored robocopy's raw exit code (0-7 are all "success", e.g. 1 = files copied) directly in `run_log.exit_code`. Every reader of that column — `get_recent_activity`, run-history, and the per-item last-run check — treats it as a plain `exit_code = 0` success flag, so any backup that copied files (code 1+) showed up as a failed run on the Dashboard even though it succeeded. Now normalized to `0` on success, raw code preserved only on real failure (8+).
+
 ### Global search — max 5 results per category
 `global_search` hard-caps at 5 results per table (tools/scripts/fixes/projects). Enough for quick nav; not a full search engine. Expected behaviour.
 

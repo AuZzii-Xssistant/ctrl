@@ -77,9 +77,11 @@ pub async fn run_backup(app: tauri::AppHandle, state: State<'_, AppState>, id: i
     {
         let db = state.0.lock().map_err(|e| e.to_string())?;
         let _ = db.execute("UPDATE backup_jobs SET last_run=datetime('now') WHERE id=?1", params![id]);
+        // run_log.exit_code is read elsewhere as a plain 0=success flag (get_recent_activity),
+        // so robocopy's raw 0-7 "success" codes must be normalized, not stored as-is.
         let _ = db.execute(
             "INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('backup',?1,?2,?3,?4)",
-            params![id, name, code, output]);
+            params![id, name, if success { 0i64 } else { code }, output]);
     }
     Ok(RunResult { success, output })
 }
