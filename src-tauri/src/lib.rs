@@ -136,12 +136,8 @@ pub fn run() {
             commands::scriptstash::ss_copy_scripts_to_profile,
             commands::scriptstash::ss_export_profile,
             commands::scriptstash::ss_import_profile,
-            commands::scriptstash::ss_start_run,
-            commands::scriptstash::ss_run_now,
-            commands::scriptstash::ss_stop_run,
             commands::scriptstash::ss_import_pick_file,
             commands::scriptstash::ss_export_pick_file,
-            commands::scriptstash::ss_run_embedded,
             commands::scriptstash::ss_open_in_editor,
         ])
         .run(tauri::generate_context!())

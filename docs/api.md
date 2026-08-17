@@ -69,6 +69,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `get_scripts` | `{search?}` | `Script[]` — dashboard pin picker, workflow item picker |
 | `run_script` | `{id, forceAdmin?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
 | `open_script_editor` | `{id}` | void — called internally by `ss_open_in_editor`, not directly from JS |
+| `watch_script_edit` | `{id}` | void — called internally by `ss_open_in_editor`; polls the temp file every 1.5s and syncs edits back to `scripts.content`, emitting `script-synced` |
 
 ## ScriptStash (Scripts pane — profiles, Master, drag-reorder)
 | Command | Payload | Returns |

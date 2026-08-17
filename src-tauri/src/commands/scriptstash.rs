@@ -8,23 +8,17 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
-use tauri::{Emitter, State};
+use tauri::State;
 
 // ── Global run state ──────────────────────────────────────────────────────────
 
+// Always false — the only writer (do_run/ss_start_run, the old spawn-external-console
+// run queue) was removed 2026-08-17 as dead code. Kept because ss_get_state's `running`
+// field still reads it; the JS side tracks its own S.running instead now.
 fn ss_running() -> &'static Arc<AtomicBool> {
     static R: OnceLock<Arc<AtomicBool>> = OnceLock::new();
     R.get_or_init(|| Arc::new(AtomicBool::new(false)))
 }
-fn ss_stop() -> &'static Arc<AtomicBool> {
-    static S: OnceLock<Arc<AtomicBool>> = OnceLock::new();
-    S.get_or_init(|| Arc::new(AtomicBool::new(false)))
-}
-fn tmp_counter() -> u64 {
-    static C: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    C.fetch_add(1, Ordering::SeqCst)
-}
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 #[derive(Serialize, Clone)]
@@ -549,241 +543,11 @@ pub fn ss_import_profile(state: State<AppState>, profile_id: Option<i64>, json: 
     Ok(added)
 }
 
-// ── Run system ────────────────────────────────────────────────────────────────
-
-fn ss_run_script_sync(name: &str, stype: &str, content: &str, run_admin: bool) -> (i32, Option<String>) {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
-
-    let interactive = matches!(stype, "ps1" | "bat" | "cmd" | "py" | "sh");
-    let n = tmp_counter();
-
-    let tmp = std::env::temp_dir().join(format!("ctrl_ss_{n}.{stype}"));
-    if let Err(e) = fs::write(&tmp, content) {
-        return (-1, Some(e.to_string()));
-    }
-
-    let mut cleanup = vec![tmp.clone()];
-    let rc;
-
-    if interactive {
-        let ps_exe = crate::commands::exec::ps_bin();
-        let inner = match stype {
-            "ps1" => format!("\"{ps_exe}\" -ExecutionPolicy Bypass -File \"{}\"", tmp.display()),
-            "py"  => format!("python \"{}\"", tmp.display()),
-            "sh"  => format!("bash \"{}\"", tmp.display()),
-            _     => format!("call \"{}\"", tmp.display()),
-        };
-        let wrapper = std::env::temp_dir().join(format!("ctrl_ss_wrap_{n}.bat"));
-        let bat = format!("@echo off\ntitle {name}\n{inner}\npause\n");
-        if let Err(e) = fs::write(&wrapper, bat) { cleanup.push(wrapper); for p in &cleanup { let _ = fs::remove_file(p); } return (-1, Some(e.to_string())); }
-        cleanup.push(wrapper.clone());
-
-        if run_admin {
-            let ps1 = std::env::temp_dir().join(format!("ctrl_ss_adm_{n}.ps1"));
-            let ps1_body = format!(
-                "$w = \"{}\"\ntry {{\n    $p = Start-Process -FilePath cmd.exe -ArgumentList \"/C `\"$w`\"\" -Verb RunAs -Wait -PassThru\n    if ($p) {{ exit $p.ExitCode }} else {{ exit 1 }}\n}} catch {{ exit 1 }}\n",
-                wrapper.display().to_string().replace('"', "'")
-            );
-            if fs::write(&ps1, ps1_body).is_ok() {
-                cleanup.push(ps1.clone());
-                let status = std::process::Command::new(ps_exe)
-                    .args(["-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", &ps1.to_string_lossy()])
-                    .status();
-                rc = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
-            } else { rc = -1; }
-        } else {
-            let status = std::process::Command::new("cmd.exe")
-                .args(["/C", &wrapper.to_string_lossy()])
-                .creation_flags(CREATE_NEW_CONSOLE)
-                .status();
-            rc = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
-        }
-    } else {
-        // Silent runners
-        let (prog, args, flags): (&str, Vec<String>, u32) = match stype {
-            "vbs" | "vbe" | "js" => ("wscript.exe", vec![tmp.to_string_lossy().into_owned()], CREATE_NEW_CONSOLE),
-            "reg" => ("regedit.exe", vec!["/s".into(), tmp.to_string_lossy().into_owned()], 0),
-            "ahk" => ("autohotkey.exe", vec![tmp.to_string_lossy().into_owned()], CREATE_NEW_CONSOLE),
-            _ => ("cmd.exe", vec!["/C".into(), tmp.to_string_lossy().into_owned()], CREATE_NEW_CONSOLE),
-        };
-        if run_admin {
-            let ps_exe = crate::commands::exec::ps_bin();
-            let ps1 = std::env::temp_dir().join(format!("ctrl_ss_adm_{n}.ps1"));
-            let cmd_line = format!("{} {}", prog, args.join(" "));
-            let ps1_body = format!(
-                "Start-Process -FilePath \"{}\" -ArgumentList \"{}\" -Verb RunAs -Wait\n",
-                prog, args.join("\" \"")
-            );
-            if fs::write(&ps1, ps1_body).is_ok() {
-                cleanup.push(ps1.clone());
-                let status = std::process::Command::new(ps_exe)
-                    .args(["-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", &ps1.to_string_lossy()])
-                    .status();
-                rc = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
-            } else { rc = -1; }
-            let _ = cmd_line; // suppress warning
-        } else {
-            let status = std::process::Command::new(prog)
-                .args(&args)
-                .creation_flags(flags)
-                .status();
-            rc = status.map(|s| s.code().unwrap_or(-1)).unwrap_or(-1);
-        }
-    }
-
-    for p in &cleanup { let _ = fs::remove_file(p); }
-    (rc, None)
-}
-
-fn do_run(app: tauri::AppHandle, scripts: Vec<SsScript>, force_admin: bool) {
-    ss_stop().store(false, Ordering::SeqCst);
-    ss_running().store(true, Ordering::SeqCst);
-    let _ = app.emit("ss-run-state", serde_json::json!({"running": true}));
-
-    std::thread::spawn(move || {
-        let enabled: Vec<&SsScript> = scripts.iter().filter(|s| s.enabled).collect();
-        if enabled.is_empty() {
-            let _ = app.emit("ss-log", serde_json::json!({"level":"info","msg":"No enabled scripts to run."}));
-            let _ = app.emit("ss-run-done", serde_json::json!({"count":0,"failed":0}));
-        } else {
-            let total = enabled.len();
-            let _ = app.emit("ss-log", serde_json::json!({"level":"info","msg": format!("Starting — {total} script(s) queued.")}));
-            let _ = app.emit("ss-run-start", serde_json::json!({"total": total}));
-            let mut failed = 0usize;
-
-            for (i, s) in enabled.iter().enumerate() {
-                if ss_stop().load(Ordering::SeqCst) {
-                    let _ = app.emit("ss-log", serde_json::json!({"level":"warn","msg":"Stopped by user."}));
-                    break;
-                }
-                let _ = app.emit("ss-script-start", serde_json::json!({"id": s.id, "index": i+1, "total": total}));
-                let run_admin = force_admin || s.run_as_admin;
-                let admin_tag = if run_admin { " (Admin)" } else { "" };
-                let _ = app.emit("ss-log", serde_json::json!({"level":"info","msg": format!("▶ {}  ({}){}", s.name, s.script_type.to_uppercase(), admin_tag)}));
-
-                let content = s.content.clone().unwrap_or_default();
-                let (rc, err) = ss_run_script_sync(&s.name, &s.script_type, &content, run_admin);
-                let status = if rc == 0 && err.is_none() { "success" } else { "failed" };
-                if rc != 0 { failed += 1; }
-
-                let log_level = if rc == 0 { "ok" } else { "warn" };
-                let log_msg = if rc == 0 {
-                    format!("✓ {}  completed", s.name)
-                } else {
-                    format!("⚠ {}  closed early (exit {})", s.name, rc)
-                };
-                let _ = app.emit("ss-log", serde_json::json!({"level": log_level, "msg": log_msg}));
-
-                // Update last_run / last_status in DB
-                let now = {
-                    use std::time::{SystemTime, UNIX_EPOCH};
-                    let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
-                    format!("{}", secs)
-                };
-                {
-                    use tauri::Manager;
-                    if let Some(app_state) = app.try_state::<AppState>() {
-                        if let Ok(db) = app_state.0.lock() {
-                            let _ = db.execute(
-                                "UPDATE scripts SET last_run=?1,last_status=?2,last_error=?3 WHERE id=?4",
-                                params![now, status, err.as_deref(), s.id]
-                            );
-                        }
-                    }
-                }
-                let _ = app.emit("ss-script-done", serde_json::json!({"id": s.id, "status": status, "exitCode": rc}));
-
-                if ss_stop().load(Ordering::SeqCst) {
-                    let _ = app.emit("ss-log", serde_json::json!({"level":"warn","msg":"Stopped by user."}));
-                    break;
-                }
-            }
-
-            let done_msg = if failed > 0 {
-                format!("Run complete — {} ran, {} failed.", total, failed)
-            } else {
-                format!("Run complete — {total} script(s) completed.")
-            };
-            let _ = app.emit("ss-log", serde_json::json!({"level": if failed>0 {"warn"} else {"ok"}, "msg": done_msg}));
-            let _ = app.emit("ss-run-done", serde_json::json!({"count": total, "failed": failed}));
-        }
-
-        ss_running().store(false, Ordering::SeqCst);
-        let _ = app.emit("ss-run-state", serde_json::json!({"running": false}));
-    });
-}
-
-#[tauri::command]
-pub fn ss_start_run(
-    app: tauri::AppHandle,
-    state: State<AppState>,
-    profile_id: Option<i64>,
-    ids: Option<Vec<i64>>,
-    run_as_admin: bool,
-) -> Result<bool, String> {
-    if ss_running().load(Ordering::SeqCst) { return Ok(false); }
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut scripts = query_ss_scripts(&db, profile_id)?;
-    if let Some(ref id_list) = ids {
-        let id_set: std::collections::HashSet<i64> = id_list.iter().copied().collect();
-        scripts = scripts.into_iter().filter(|s| id_set.contains(&s.id)).map(|mut s| { s.enabled = true; s }).collect();
-    }
-    drop(db);
-    do_run(app, scripts, run_as_admin);
-    Ok(true)
-}
-
-#[tauri::command]
-pub fn ss_run_now(
-    app: tauri::AppHandle,
-    state: State<AppState>,
-    profile_id: Option<i64>,
-    script_id: i64,
-    run_as_admin: bool,
-) -> Result<bool, String> {
-    if ss_running().load(Ordering::SeqCst) { return Ok(false); }
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let all = query_ss_scripts(&db, profile_id)?;
-    let mut s = all.into_iter().find(|x| x.id == script_id).ok_or("Script not found")?;
-    s.enabled = true;
-    drop(db);
-    do_run(app, vec![s], run_as_admin);
-    Ok(true)
-}
-
-#[tauri::command]
-pub fn ss_stop_run() -> Result<bool, String> {
-    ss_stop().store(true, Ordering::SeqCst);
-    Ok(true)
-}
-
-// ── Embedded-terminal run ─────────────────────────────────────────────────────
-
-/// Run one SS script in the embedded terminal (same as Quick Fixes).
-/// Only supported for ps1/bat/cmd/py; others fall back to external console.
-#[tauri::command]
-pub async fn ss_run_embedded(
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-    script_id: i64,
-) -> Result<crate::commands::scripts::RunResult, String> {
-    use crate::commands::exec::{Shell, run as exec_run, run_elevated as exec_elevated, running_as_admin};
-    let (content, stype, run_as_admin) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        db.query_row(
-            "SELECT COALESCE(content,''), COALESCE(script_type,'ps1'), COALESCE(run_as_admin,0) FROM scripts WHERE id=?1",
-            params![script_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,i64>(2)? != 0))
-        ).map_err(|e| e.to_string())?
-    };
-    let shell = Shell::from_str(&stype);
-    let label = format!("ss_{script_id}");
-    if run_as_admin && !running_as_admin() {
-        exec_elevated(&app, &content, &shell, &label).await
-    } else {
-        exec_run(&app, &content, &shell).await
-    }
-}
+// NOTE: ss_run_script_sync/do_run/ss_start_run/ss_run_now/ss_stop_run/ss_run_embedded
+// were removed 2026-08-17 — dead code with zero frontend callers, confirmed via grep
+// across src/. This was the original spawn-external-console run queue plus an early
+// PTY-embedded prototype; both fully superseded by scripts.rs::run_script, which
+// scripts.js's _runQueue calls directly per-script (see scripts.js:_runQueue/_runOne).
 
 /// Open SS script content in the user's text editor (writes temp file) and
 /// watch that file for changes, syncing edits back into the DB — same temp
