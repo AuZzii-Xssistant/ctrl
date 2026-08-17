@@ -94,7 +94,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `stop_current_run` | — | void — sets the cancel flag `exec::run`/`run_elevated` poll each tick |
 | `kill_process` | `{pid: u32}` | void — `taskkill /PID /T /F`, used to kill an external elevated console on Stop |
 
-`SsScript` adds `interactive: bool` ("Pause Script" — holds the embedded terminal open at the end instead of spawning an external console) and `inMaster: bool` (Master membership — a real toggleable flag as of 2026-08-17, not "every script unconditionally") on top of the fields shared with `Script`.
+`SsScript` is its own shape, not `Script` plus extra fields — no `category`/`file_path`/`status`/`tags`/`icon`/`sort_order`/`disabled`; see the Types block below.
 
 ## Quick Fixes
 | Command | Payload | Returns |
@@ -192,6 +192,9 @@ FixData      = { name, command: string, description?, category?, shell_type?, ta
 Project      = { id, name, description, type, status, path, tags, notes: string }
 ProjectData  = { name: string, description?, type?, status?, path?, tags?, notes?: string }
 Script       = { id, name, description, category, file_path, script_type, tags, status, icon: string, run_as_admin, interactive: boolean, content?: string, sort_order: number, disabled: boolean }  // sort_order/disabled always 0/false from get_scripts (only meaningful for the removed get_profile_scripts); live pane uses SsScript below
+SsScript     = { id, name, description, type, content?: string, runAsAdmin, interactive, inMaster, enabled: boolean, lastRun?, lastStatus, lastError?: string, order: number, inProfiles: number[] }  // the live Scripts-pane shape — no category/file_path/status/tags/icon
+SsScriptData = { name: string, description?, type?, content?: string, runAsAdmin?, interactive?: boolean }  // payload for ss_add_script/ss_edit_script
+SsProfile    = { id, name: string, scriptCount: number }
 RunResult    = { success: boolean, output: string }
 EnvVar       = { name: string, value: string }
 EnvVars      = { user: EnvVar[], system: EnvVar[] }
