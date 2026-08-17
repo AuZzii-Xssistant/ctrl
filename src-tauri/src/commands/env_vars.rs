@@ -116,9 +116,14 @@ pub async fn add_to_path(app: tauri::AppHandle, dir: String, target: Option<Stri
     }
 }
 
+fn next_call_id() -> u64 {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+}
+
 /// Write cmd to a temp .ps1 and run it elevated via Start-Process -Verb RunAs -Wait.
 async fn run_elevated(app: &tauri::AppHandle, cmd: &str) -> Result<(), String> {
-    let tmp = std::env::temp_dir().join(format!("ctrl_env_{}.ps1", std::process::id()));
+    let tmp = std::env::temp_dir().join(format!("ctrl_env_{}_{}.ps1", std::process::id(), next_call_id()));
     fs::write(&tmp, format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{}\n", cmd))
         .map_err(|e| e.to_string())?;
     let invoke = format!(
