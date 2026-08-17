@@ -1,5 +1,16 @@
 # Known Issues & Limitations
 
+## CLI / GUI parity (audited 2026-08-17)
+
+`ctrl-cli.exe` was checked line-by-line against the current schema and the GUI's feature set. Table names and columns it touches are all correct — `custom_tweaks`, `backup_jobs`, `scripts`, `fixes`, `tools`, `snippets`, `projects`, `workflows` all match `db-schema.md`. One real bug found and fixed, one small gap closed, several capability gaps documented (not bugs — the CLI was never meant to be full parity, but they weren't written down anywhere before):
+
+- **✅ Fixed: `add workflow --steps JSON` was documented but not implemented.** The top-of-file usage comment advertised it; the actual `add_workflow()` function ignored any `--steps` flag and always inserted `'[]'`. Now reads and JSON-validates it.
+- **✅ Fixed: `add script` had no way to set the "Pause Script" flag.** Added `--pause`, mapping to the same `scripts.interactive` column the app's edit modal uses.
+- **Scripts added via CLI always land in Master only.** `add_script` inserts directly into the `scripts` table; it has no concept of `ss_profiles`/`ss_script_profile` (the ScriptStash profile-membership join table), so there's no way to assign a CLI-added script to a named profile without opening the app afterward (Manage Profiles). Not fixed — would need a `--profile <name-or-id>` flag that looks up or creates a profile row and inserts the join row. Real, but scoped enough to be a fine follow-up rather than urgent.
+- **No CLI access to**: Dashboard pins (`pinned` table), Environment Variables, Quick Launch items (`ql_items`), external Apps (`external_apps`), or run history (`run_log`). All GUI-only.
+- **`update <table> --id N --field value` blindly patches any column name** via `format!("UPDATE {table} SET {key}=?1 ...")` — this is a deliberate escape hatch (lets you set `run_as_admin`, `interactive`, `master_disabled`, etc. even without a dedicated flag), not a bug. No injection risk in practice: it's a local single-user CLI, not a network-facing service, and the *values* are parameterized — only the column name is interpolated, and a bad column name just fails the query rather than executing arbitrary SQL.
+- **`update_field()`'s `_name_col` parameter is unused (dead code)** — passed by every call site (`update_field(&conn, "scripts", "name", &flags)` etc.) but never read in the function body. Harmless, cosmetic. Not worth a signature change across 5 call sites for zero behavior change.
+
 ## Active
 
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved

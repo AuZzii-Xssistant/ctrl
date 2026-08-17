@@ -21,7 +21,7 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 
 ---
 
-> **⚠️ Beta** — CTRL is functional and actively used. Expect rough edges and breaking changes between releases. Back up your `ctrl.db` before upgrading.
+> **⚠️ Beta** — CTRL is functional and actively used, but maturity varies a lot module to module (see the table below — this isn't boilerplate, read it before relying on something). Expect rough edges and breaking changes between releases. Back up your `ctrl.db` before upgrading.
 
 > **🤖 Vibe Coded** — CTRL is a vibe-coded project, built entirely through AI-assisted development (Claude). The code works, but it's been grown organically rather than architected from scratch. Contributions and issues welcome.
 
@@ -29,25 +29,27 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 
 ## Modules
 
+Every module is present and runs — none of them crash or are placeholder stubs. "Status" here means something narrower and more honest: **how much real, hands-on use has actually exercised it.** A module can be fully wired up in code and still be one I haven't leaned on hard enough to trust yet. That's what this column tracks.
+
 | Module | Icon | Status | Description |
 |---|---|---|---|
-| Dashboard | `ti-home` | ✅ Built | Pinned launchpad — one-click access to tools, scripts, fixes |
-| Quick Fixes | `ti-bolt` | ✅ Built | One-click commands (flush DNS, clear temp, restart service…) |
-| Scripts | `ti-code` | ✅ Built | Run .ps1 / .py / .bat / .cmd / .vbs / .ahk scripts; organize into named profiles plus a Master view, drag-reorder, per-script admin/pause flags |
-| Builder | `ti-wand` | ✅ Built | Toggle-based script generator; imports from WinScript via `tools/winscript-converter.js`; supports app install (winget/choco), presets |
-| Tools | `ti-tool` | ✅ Built | Register and launch executables, with optional Run As Admin |
-| Projects | `ti-archive` | ✅ Built | Track projects by status (idea → stable → deprecated) |
-| Settings | `ti-settings` | ✅ Built | App info, keyboard shortcuts, data folder access |
-| Workflows | `ti-player-play` | ✅ Built | Chain scripts and fixes into ordered automated sequences |
-| Backup | `ti-device-floppy` | ✅ Built | Folder→folder backup jobs using robocopy (incremental) |
-| Tweaks | `ti-adjustments` | ✅ Built | Built-in Windows tweaks + user-defined custom tweaks (full CRUD) |
-| Environment | `ti-list-details` | ✅ Built | User environment variables (add/edit/delete) + system vars (UAC elevation to edit) |
-| Snippets | `ti-blockquote` | ✅ Built | Reusable text/command snippets — one-click copy, categories, tags |
-| Compare | `ti-arrows-diff` | ✅ Built | Side-by-side text diff with synced scroll |
-| Recent Activity | `ti-history` | ✅ Built | Last 50 run events (fixes, scripts, workflows) with success/fail status |
-| Changelog | `ti-notes` | ✅ Built | In-app changelog viewer |
+| Quick Fixes | `ti-bolt` | 🟢 Solid | One-click commands (flush DNS, clear temp, restart service…) — the most-used, most battle-tested part of the app |
+| Scripts | `ti-code` | 🟢 Solid | ScriptStash port — named profiles + a Master view, drag-reorder, per-script admin/pause flags. Heavily reworked and hardened; the module I trust most after Quick Fixes |
+| Builder | `ti-wand` | 🟡 Functional (ported) | Toggle-based script generator, imported from the separate [WinScript](https://github.com/flick9000/winscript) project rather than designed for CTRL from scratch. Works, but carries someone else's design decisions and hasn't had the same scrutiny as Scripts/Fixes |
+| Dashboard | `ti-home` | 🟡 Functional | Pinned launchpad — one-click access to tools/scripts/fixes, drag-reorder, compact mode |
+| Tools | `ti-tool` | 🟡 Functional | Register and launch executables, with optional Run As Admin |
+| Projects | `ti-archive` | 🟡 Functional | Track projects by status (idea → stable → deprecated) |
+| Workflows | `ti-player-play` | 🟡 Functional | Chain scripts and fixes into ordered sequences, with manual/startup/scheduled triggers |
+| Backup | `ti-device-floppy` | 🟡 Functional | Folder→folder backup jobs using robocopy (incremental) |
+| Tweaks | `ti-adjustments` | 🟡 Functional | Built-in Windows tweaks + user-defined custom tweaks |
+| Environment | `ti-list-details` | 🟡 Functional | User environment variables (add/edit/delete) + system vars (UAC elevation to edit) |
+| Snippets | `ti-blockquote` | 🟡 Functional | Reusable text/command snippets — one-click copy, categories, tags |
+| Compare | `ti-arrows-diff` | 🟡 Functional | Side-by-side text diff with synced scroll |
+| Recent Activity | `ti-history` | 🟡 Functional | Last 50 run events (fixes, scripts, workflows) with success/fail status |
+| Settings | `ti-settings` | 🟡 Functional | App info, keyboard shortcuts, data folder access |
+| Changelog | `ti-notes` | 🟡 Functional | In-app changelog viewer |
 
-> Status: ✅ Built · ⚙️ In Progress · 🕐 Stub (nav present, UI planned)
+> 🟢 Solid — I actually rely on this day to day. 🟡 Functional — works, wired up correctly, just hasn't accumulated the same real-world mileage yet, and the design may still shift. This table will keep moving items up (or down) as usage tells me more — it's a snapshot, not a promise.
 
 ---
 
@@ -132,11 +134,18 @@ ctrl-cli --db "E:\CTRL\ctrl.db" list projects
 | `add tool` | `--name`, `--path` | `--category`, `--tags`, `--desc` |
 | `add snippet` | `--title`, `--content` | `--category`, `--tags` |
 | `add backup` | `--name`, `--source`, `--dest` | — |
-| `add workflow` | `--name` | `--desc` |
+| `add workflow` | `--name` | `--desc`, `--steps` (JSON array, `[]` default) |
 | `update project` | `--id` | any `add` flag to patch |
-| `update script` | `--id` | any column name to patch |
+| `update script` | `--id` | any column name to patch (see `docs/db-schema.md`'s `scripts` table for what's settable) |
 | `update fix` | `--id` | any column name to patch |
 | `update tweak` | `--id` | any column name to patch |
+
+`add script` also takes `--pause` (sets the "Pause Script" flag — the terminal holds open at the end instead of closing immediately).
+
+**What the CLI can't do that the app can** — it's a data-entry shortcut, not full feature parity:
+- A script added via `ctrl-cli add script` always lands in **Master only**. Assigning it to a named Scripts profile has to be done in the app (Scripts pane → right-click → Manage Profiles) — there's no `--profile` flag, since profile membership lives in a separate join table the CLI doesn't touch.
+- No CLI access to Dashboard pins, Environment Variables, Quick Launch items, or external Apps.
+- `add workflow --steps` takes raw step JSON — there's no CLI helper to build steps from script/fix names, you'd need their IDs from `ctrl-cli list scripts`/`list fixes` first.
 
 ---
 
