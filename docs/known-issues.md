@@ -20,9 +20,6 @@ Double RAF ensures scroll happens after layout paint.
 ### Run As Admin — output not captured for elevated processes
 When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated console (UAC requires this — a non-elevated process cannot read another process's console buffer). The embedded terminal shows a "Running as administrator — see external terminal" status line and captures only the exit code, not live output. This is a Windows UAC architecture limitation, not a CTRL bug.
 
-### Run As Admin — no feedback if UAC is cancelled
-If the user cancels the UAC prompt, CTRL shows no error (the elevated PowerShell exits silently). The run is logged as successful because the launch itself succeeded. Planned: detect exit code from the elevated process.
-
 ### Builder — stale localStorage if action IDs change
 If `data/builder/` JSON files are modified and action IDs change, the saved selection in localStorage may reference non-existent IDs. Workaround: click Clear in the Builder to reset. Low priority — action files rarely change.
 
@@ -45,6 +42,7 @@ A named machine-state system. Each Profile is a collection of settings that acti
 
 ## Resolved
 
+- **Run As Admin — no feedback if UAC is cancelled** — checked 2026-08-17, already fixed (not by this session). `exec.rs::run_elevated`'s PTY wrapper catches the cancel, shows an amber "UAC cancelled or access denied" line plus a red "failed" divider in the terminal, and returns `success:false` — `run_script` surfaces this as a "Script failed" toast. The doc's claim ("shows no error, logged as successful") was stale; likely described the old `ss_run_script_sync` path removed in this session's second dead-code pass, which had cruder exit-code handling.
 - **Drag-to-reorder pins/scripts** — fixed 2026-08-17, HTML5 DnD with nearest-row/tile fallback (works even when the cursor leaves the drop zone — above/below/left/right); required `dragDropEnabled:false` in tauri.conf.json since WebView2's native OS file-drop intercept blocks in-page HTML5 DnD entirely
 - **"Open in Editor" didn't save back to DB** — fixed 2026-08-17, `ss_open_in_editor` now delegates to `open_script_editor` + `watch_script_edit`, polls the temp file every 1.5s and syncs edits back
 - **Stop button didn't stop a running script** — fixed 2026-08-17, added `stop_current_run` cancel flag + PTY kill/respawn + `taskkill` for external elevated consoles
