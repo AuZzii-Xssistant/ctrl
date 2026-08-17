@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions
+    url: https://github.com/AuZzii-Xssistant/ctrl/discussions
+    about: Ideas that aren't ready to be a formal proposal yet, or general chat

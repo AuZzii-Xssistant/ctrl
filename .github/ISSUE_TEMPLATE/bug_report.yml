@@ -1,0 +1,86 @@
+name: Bug Report
+description: Something in CTRL is broken or behaving unexpectedly
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Fill in as much as you can — the more concrete the repro, the faster it gets fixed.
+
+  - type: input
+    id: version
+    attributes:
+      label: CTRL version
+      description: Check Settings → App Info, or the release you downloaded
+      placeholder: e.g. v0.1.0 or commit hash
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Which module/page?
+      options:
+        - Dashboard
+        - Quick Fixes
+        - Scripts (ScriptStash)
+        - Builder
+        - Tools
+        - Projects
+        - Workflows
+        - Backup
+        - Tweaks
+        - Environment
+        - Snippets
+        - Compare
+        - Recent Activity
+        - Settings
+        - Terminal / Output drawer
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what actually happened?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps so someone else can hit the same bug
+      placeholder: |
+        1. Go to Scripts
+        2. Click...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output / error text
+      description: Anything shown in the embedded terminal, a toast error, or console output. This is auto-formatted, no need for backticks.
+      render: shell
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: e.g. Windows 11 23H2
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: portable
+    attributes:
+      label: Setup
+      options:
+        - label: Running from a portable folder (not installed)
+        - label: I can reproduce this consistently

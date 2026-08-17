@@ -1,0 +1,44 @@
+name: Feature Request
+description: Propose something new CTRL doesn't do yet
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New module, new capability, new integration — describe it here.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you doing manually today that this would replace?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Mock UI, example command, whatever helps explain it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New module/page
+        - Enhancement to an existing module
+        - New Tauri command / backend capability
+        - CLI (ctrl-cli)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you're using today, or other tools that do this
