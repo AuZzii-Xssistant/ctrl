@@ -299,6 +299,7 @@ fn check_days(config: &serde_json::Value) -> bool {
 
 fn chrono_local_hhmm() -> String {
     #[repr(C)]
+    #[allow(clippy::upper_case_acronyms)] // mirrors the real Win32 SYSTEMTIME struct name
     struct SYSTEMTIME { year:u16,month:u16,dow:u16,day:u16,hour:u16,min:u16,sec:u16,ms:u16 }
     extern "system" { fn GetLocalTime(t: *mut SYSTEMTIME); }
     unsafe {

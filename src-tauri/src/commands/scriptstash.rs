@@ -1,6 +1,6 @@
-/// ScriptStash port — full replica of the ScriptStash app inside CTRL.
-/// Profiles, global master view, run queue with events, drag-reorder,
-/// toggle enable/disable, duplicate, import/export, keyboard shortcuts.
+//! ScriptStash port — full replica of the ScriptStash app inside CTRL.
+//! Profiles, global master view, run queue with events, drag-reorder,
+//! toggle enable/disable, duplicate, import/export, keyboard shortcuts.
 
 use crate::AppState;
 use rusqlite::params;
@@ -300,13 +300,12 @@ pub fn ss_edit_script(state: State<AppState>, script_id: i64, data: SsScriptData
 pub fn ss_remove_scripts(state: State<AppState>, profile_id: Option<i64>, ids: Vec<i64>) -> Result<bool, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     for sid in &ids {
-        if profile_id.is_none() {
+        if let Some(pid) = profile_id {
+            db.execute("DELETE FROM ss_script_profile WHERE script_id=?1 AND profile_id=?2", params![sid, pid]).map_err(|e| e.to_string())?;
+        } else {
             // Master = global delete
             db.execute("DELETE FROM ss_script_profile WHERE script_id=?1", params![sid]).map_err(|e| e.to_string())?;
             db.execute("DELETE FROM scripts WHERE id=?1", params![sid]).map_err(|e| e.to_string())?;
-        } else {
-            let pid = profile_id.unwrap();
-            db.execute("DELETE FROM ss_script_profile WHERE script_id=?1 AND profile_id=?2", params![sid, pid]).map_err(|e| e.to_string())?;
         }
     }
     // Removing from a named profile does not orphan — script stays in Master

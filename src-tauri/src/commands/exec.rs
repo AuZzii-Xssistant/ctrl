@@ -1,10 +1,10 @@
-/// Shared command executor — used by fixes, tweaks, and built scripts.
-/// Writes commands to temp files and runs them with the correct shell.
-/// Using -File avoids all quoting/escaping issues with -Command.
-/// No $ErrorActionPreference='Stop' — scripts own their error handling.
+//! Shared command executor — used by fixes, tweaks, and built scripts.
+//! Writes commands to temp files and runs them with the correct shell.
+//! Using -File avoids all quoting/escaping issues with -Command.
+//! No $ErrorActionPreference='Stop' — scripts own their error handling.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
@@ -46,19 +46,19 @@ pub fn running_as_admin() -> bool {
 pub fn ps_bin() -> &'static str {
     use std::sync::OnceLock;
     static BIN: OnceLock<&'static str> = OnceLock::new();
-    *BIN.get_or_init(|| {
+    BIN.get_or_init(|| {
         use std::os::windows::process::CommandExt;
-        std::process::Command::new("pwsh")
+        let pwsh_ok = std::process::Command::new("pwsh")
             .args(["-NonInteractive", "-Command", "exit 0"])
             .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
             .output()
             .map(|o| o.status.success())
-            .unwrap_or(false)
-            .then_some("pwsh")
-            .unwrap_or("powershell")
+            .unwrap_or(false);
+        if pwsh_ok { "pwsh" } else { "powershell" }
     })
 }
 
+#[allow(clippy::enum_variant_names)] // PowerShell is the correct/clear name, not a naming accident
 pub enum Shell { PowerShell, Cmd, Python }
 
 impl Shell {
@@ -89,7 +89,7 @@ fn tmp(label: &str, suffix: &str, ext: &str) -> PathBuf {
     std::env::temp_dir().join(format!("ctrl_{label}_{pid}_{n}_{suffix}.{ext}"))
 }
 
-fn esc_ps_path(p: &PathBuf) -> String {
+fn esc_ps_path(p: &Path) -> String {
     p.to_string_lossy().replace('\'', "''")
 }
 

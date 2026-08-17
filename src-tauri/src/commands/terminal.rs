@@ -94,7 +94,6 @@ pub fn pty_open(app: AppHandle, tab_id: u32, shell: String, args: Vec<String>, c
     {
         let state: State<TermState> = app.state();
         let old = lock_terms(&state).remove(&tab_id);
-        drop(state);
         if let Some(mut s) = old { let _ = s.child.kill(); }
     }
 
@@ -154,7 +153,7 @@ pub fn pty_write(app: AppHandle, tab_id: u32, data: String) -> Result<(), String
 pub fn pty_resize(app: AppHandle, tab_id: u32, cols: u16, rows: u16) -> Result<(), String> {
     let state: State<TermState> = app.state();
     let lock = lock_terms(&state);
-    if let Some(ref s) = lock.get(&tab_id) {
+    if let Some(s) = lock.get(&tab_id) {
         let _ = s.master.resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 });
     }
     Ok(())

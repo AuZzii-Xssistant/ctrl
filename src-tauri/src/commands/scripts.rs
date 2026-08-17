@@ -153,7 +153,7 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
             let esc = p.to_string_lossy().replace('\'', "''");
             Some((Shell::Cmd, format!("cscript //NoLogo \"{}\"", esc)))
         },
-        "bat" | _   => Some((Shell::Cmd, body.clone())),
+        _           => Some((Shell::Cmd, body.clone())), // "bat" and anything else
     };
 
     // AHK: detach and return — it's GUI, not a terminal process
