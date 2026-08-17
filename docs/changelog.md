@@ -1,5 +1,28 @@
 # CTRL Changelog
 
+## 2026-08-17 — v0.1.1-beta release, tray/hotkey, README honesty pass
+
+**Release**
+- Tagged and published [v0.1.1-beta](https://github.com/AuZzii-Xssistant/ctrl/releases/tag/v0.1.1-beta) — `ctrl.exe`, `ctrl-cli.exe`, and an NSIS installer, built and verified from `main`
+
+**Backend hardening (second pass)**
+- Removed a second dead-code cluster: `ss_run_script_sync`/`do_run`/`ss_start_run`/`ss_run_now`/`ss_stop_run`/`ss_run_embedded` — an entire earlier run-queue implementation (~230 lines) confirmed via grep to have zero frontend callers, fully superseded by the `run_script` PTY rewrite
+- Fixed mutex-poisoning risk in `terminal.rs`'s PTY commands and `scripts.rs`'s editor watcher (`.lock().unwrap()` → recovers instead of propagating a panic that would otherwise brick every terminal command for the session)
+- Fixed temp-file collisions between concurrently running scripts (`exec.rs`'s `tmp()` now folds in a per-call counter, not just the process id)
+- Fixed a blocking `std::thread::sleep` inside an async Workflow Wait step that could starve other concurrent Tauri commands
+- `cargo clippy` made clean — 11 warnings fixed (doc-comment style, needless borrows, an unnecessary-unwrap-after-is_none, a couple of intentional-naming lints silenced with `#[allow]` rather than renamed)
+
+**docs/api.md** — closed the remaining gaps from the first reconciliation pass: Terminal/PTY section, Custom Tweaks, Dashboard/Tools extras, 8 missing type shapes, a `PinnedItem` field that was missing, 7 core types (`Tool`/`Fix`/`Project`/`Script`/etc.) that were referenced by name but never actually defined, and a misleading description of `SsScript` that implied it shared most of `Script`'s fields when it barely overlaps at all
+
+**Power-user roadmap** (on `feature/power-user-upgrades`, not yet in a release)
+- Command palette: `Ctrl+K` search results now have a ▶ Run button (and `Ctrl+Enter`) to execute directly instead of only navigating
+- Global hotkey (`Ctrl+Shift+Space`) + system tray: summons the window from anywhere, tray menu lists pinned items and runs them natively even with the window hidden, closing the window now minimizes to tray instead of quitting
+- `docs/ROADMAP.md` added, scoping the rest of the proposal (System Profiles, Watchers/alerting, a real History page, a Workflow macro recorder)
+
+**README + CLI**
+- Module status table no longer claims blanket "✅ Built" — now reflects real maturity per module (Quick Fixes/Scripts = Solid, Builder explicitly called out as a WinScript port, everything else = Functional but less battle-tested)
+- Full CLI/GUI parity audit: fixed `ctrl-cli add workflow --steps JSON` (documented but never implemented — always inserted empty steps), added a missing `--pause` flag to `add script`, documented the real capability gaps (CLI-added scripts always land in Master only, no CLI access to pins/env vars/Quick Launch/external apps/run history) in `docs/known-issues.md`
+
 ## 2026-08-17 — ScriptStash hardening, Master profile, drag-drop, dead code removal
 
 **Scripts pane — reliability**
