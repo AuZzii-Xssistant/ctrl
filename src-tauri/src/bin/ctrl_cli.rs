@@ -4,7 +4,8 @@
 //
 // Commands:
 //   add project  --name NAME --path PATH [--type TYPE] [--status STATUS] [--tags TAGS] [--notes NOTES]
-//   add script   --name NAME --content CONTENT [--file PATH] [--type ps1|py|bat] [--category CAT] [--tags TAGS] [--desc DESC] [--admin]
+//   add script   --name NAME --content CONTENT [--file PATH] [--type ps1|py|bat] [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--pause]
+//                (always lands in Master — no CLI support yet for assigning to a named Scripts profile)
 //   add fix      --name NAME --cmd CMD [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--confirm]
 //   add tweak    --label LABEL --apply CMD [--revert CMD] [--category CAT] [--desc DESC] [--admin]
 //   add tool     --name NAME --path PATH [--category CAT] [--tags TAGS] [--desc DESC]
@@ -106,13 +107,13 @@ fn print_usage() {
     println!();
     println!("Commands:");
     println!("  add project  --name NAME --path PATH [--type TYPE] [--status STATUS] [--tags TAGS] [--notes NOTES]");
-    println!("  add script   --name NAME [--content CONTENT] [--file PATH] [--type ps1] [--category CAT] [--tags TAGS] [--desc DESC] [--admin]");
+    println!("  add script   --name NAME [--content CONTENT] [--file PATH] [--type ps1] [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--pause]");
     println!("  add fix      --name NAME --cmd CMD [--category CAT] [--tags TAGS] [--desc DESC] [--admin] [--confirm]");
     println!("  add tweak    --label LABEL --apply CMD [--revert CMD] [--category CAT] [--desc DESC] [--admin]");
     println!("  add tool     --name NAME --path PATH [--category CAT] [--tags TAGS] [--desc DESC]");
     println!("  add snippet  --title TITLE --content CONTENT [--category CAT] [--tags TAGS]");
     println!("  add backup   --name NAME --source PATH --dest PATH");
-    println!("  add workflow --name NAME [--desc DESC]");
+    println!("  add workflow --name NAME [--desc DESC] [--steps JSON]");
     println!("  update project|script|fix|tweak|tool|snippet --id N [--field value ...]");
     println!("  list projects|scripts|fixes|tweaks|tools|snippets|backups|workflows");
     println!();
@@ -210,12 +211,14 @@ fn add_script(conn: &Connection, flags: HashMap<String, String>) {
     let tags      = get(&flags, "tags", "");
     let desc      = get(&flags, "desc", "");
     let admin     = flags.contains_key("admin") as i64;
+    let pause     = flags.contains_key("pause") as i64;
     conn.execute(
-        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content) \
-         VALUES (?1,?2,?3,?4,?5,?6,'active',?7,?8)",
-        params![name, desc, category, file_path, kind, tags, admin, content],
+        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,interactive,content) \
+         VALUES (?1,?2,?3,?4,?5,?6,'active',?7,?8,?9)",
+        params![name, desc, category, file_path, kind, tags, admin, pause, content],
     ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
     println!("✓ Script '{}' added (id={})", name, conn.last_insert_rowid());
+    println!("  Note: lands in Master only — assigning to a named Scripts profile isn't supported via the CLI yet, use the app's Manage Profiles.");
 }
 
 fn add_fix(conn: &Connection, flags: HashMap<String, String>) {
@@ -288,9 +291,14 @@ fn add_backup(conn: &Connection, flags: HashMap<String, String>) {
 fn add_workflow(conn: &Connection, flags: HashMap<String, String>) {
     let name = require(&flags, "name");
     let desc = get(&flags, "desc", "");
+    let steps = get(&flags, "steps", "[]");
+    if let Err(e) = serde_json::from_str::<serde_json::Value>(&steps) {
+        eprintln!("--steps must be valid JSON: {}", e);
+        std::process::exit(1);
+    }
     conn.execute(
-        "INSERT INTO workflows (name,description,steps) VALUES (?1,?2,'[]')",
-        params![name, desc],
+        "INSERT INTO workflows (name,description,steps) VALUES (?1,?2,?3)",
+        params![name, desc, steps],
     ).unwrap_or_else(|e| { eprintln!("Error: {}", e); std::process::exit(1); });
     println!("✓ Workflow '{}' added (id={})", name, conn.last_insert_rowid());
 }
