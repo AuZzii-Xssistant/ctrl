@@ -173,4 +173,5 @@ Copy both to your portable CTRL folder alongside `ctrl.db`.
 | [`docs/db-schema.md`](docs/db-schema.md) | SQLite table definitions |
 | [`docs/changelog.md`](docs/changelog.md) | What changed and when |
 | [`docs/known-issues.md`](docs/known-issues.md) | Known limitations and workarounds |
-| [`docs/superpowers/specs/2026-08-13-ctrl-shell-design.md`](docs/superpowers/specs/2026-08-13-ctrl-shell-design.md) | Full design spec |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Proposed power-user features, ranked by leverage |
+| [`docs/superpowers/specs/2026-08-13-ctrl-shell-design.md`](docs/superpowers/specs/2026-08-13-ctrl-shell-design.md) | Original v1 design spec (historical) |
