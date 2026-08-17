@@ -28,16 +28,46 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `browse_for_exe` | — | `string\|null` |
 
 ## Scripts
+
+The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptStash port** (`ss_*` commands) below — not the commands in this section. `get_scripts` and `run_script` are the only ones from the original pre-port API still in active use (dashboard pin picker, Workflow item picker, and script execution respectively).
+
+`add_script`, `update_script`, `delete_script`, `open_script_location`, `browse_for_script` are still registered but have **no frontend caller anywhere** — dead code left over from before the ScriptStash port. Not removed yet; flagged for a future cleanup pass.
+
+| Command | Payload | Returns | Status |
+|---|---|---|---|
+| `get_scripts` | `{search?}` | `Script[]` | live — dashboard pin picker, workflow item picker |
+| `run_script` | `{id, forceAdmin?: bool}` | `RunResult` | live — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
+| `open_script_editor` | `{id}` | void | live — called internally by `ss_open_in_editor`, not directly from JS |
+| `add_script` | `{data: ScriptData}` | `i64` | **dead — no caller** |
+| `update_script` | `{id, data: ScriptData}` | void | **dead — no caller** |
+| `delete_script` | `{id}` | void | **dead — no caller** |
+| `open_script_location` | `{id}` | void | **dead — no caller** |
+| `browse_for_script` | — | `string\|null` | **dead — no caller** |
+
+## ScriptStash (Scripts pane — profiles, Master, drag-reorder)
 | Command | Payload | Returns |
 |---|---|---|
-| `get_scripts` | `{search?}` | `Script[]` |
-| `add_script` | `{data: ScriptData}` | `i64` |
-| `update_script` | `{id, data: ScriptData}` | void |
-| `delete_script` | `{id}` | void |
-| `run_script` | `{id}` | `RunResult` |
-| `open_script_editor` | `{id}` | void |
-| `open_script_location` | `{id}` | void |
-| `browse_for_script` | — | `string\|null` |
+| `ss_get_state` | `{profileId: i64\|null}` | `{scripts: SsScript[], profiles: SsProfile[], running: bool}` — `profileId: null` = Master |
+| `ss_add_script` | `{profileId: i64\|null, data: SsScriptData}` | `SsScript` |
+| `ss_edit_script` | `{scriptId, data: SsScriptData}` | `bool` |
+| `ss_remove_scripts` | `{profileId: i64\|null, ids: i64[]}` | `bool` — Master = deletes globally; named profile = removes membership only |
+| `ss_toggle_scripts` | `{profileId: i64\|null, ids: i64[]}` | `Record<i64, bool>` (id → new enabled state) |
+| `ss_reorder_scripts` | `{profileId: i64\|null, orderedIds: i64[]}` | `bool` |
+| `ss_duplicate_script` | `{profileId: i64\|null, scriptId}` | `SsScript\|null` |
+| `ss_set_script_profiles` | `{scriptId, profileIds: i64[], inMaster: bool}` | `bool` — full membership set including Master |
+| `ss_copy_scripts_to_profile` | `{scriptIds: i64[], targetProfileIds: i64[]}` | `i64` (count copied) |
+| `ss_open_in_editor` | `{scriptId}` | `bool` — opens in default editor, watches temp file, syncs edits back to DB |
+| `ss_add_profile` | `{name}` | `SsProfile` |
+| `ss_rename_profile` | `{id, name}` | `bool` |
+| `ss_remove_profile` | `{id}` | `bool` — does not delete member scripts (Master unaffected) |
+| `ss_duplicate_profile` | `{id, newName}` | `SsProfile\|null` |
+| `ss_export_profile` | `{profileId: i64\|null}` | `string` (JSON) |
+| `ss_import_profile` | `{json: string}` | `SsProfile` |
+| `ss_export_pick_file` / `ss_import_pick_file` | — | `string\|null` (file dialog) |
+| `stop_current_run` | — | void — sets the cancel flag `exec::run`/`run_elevated` poll each tick |
+| `kill_process` | `{pid: u32}` | void — `taskkill /PID /T /F`, used to kill an external elevated console on Stop |
+
+`SsScript` adds `interactive: bool` ("Pause Script" — holds the embedded terminal open at the end instead of spawning an external console) and `inMaster: bool` (Master membership — a real toggleable flag as of 2026-08-17, not "every script unconditionally") on top of the fields shared with `Script`.
 
 ## Quick Fixes
 | Command | Payload | Returns |
@@ -63,7 +93,7 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `get_builder_actions` | — | `BuilderDefs` |
 | `build_script` | `{action_ids: string[], output_type}` | `string` |
 | `run_built_script` | `{code, script_type}` | `RunResult` |
-| `save_built_script` | `{code, name, script_type}` | void |
+| `save_built_script` | `{code, name, scriptType, profileIds: i64[], inMaster: bool}` | void — asks which profile(s) to save into (Master checked by default) |
 
 ## Workflows
 | Command | Payload | Returns |
