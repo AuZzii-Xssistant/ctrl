@@ -14,7 +14,7 @@
 ## Active
 
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
-Builder selections now saved to `localStorage` under key `ctrl_builder_selected`. Restored on next load.
+Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.
 
 ### ~~Tools — icon always shows generic app-window icon~~ ✅ Resolved
 Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.ps1` → terminal-2, `.bat/.cmd` → terminal, `.py` → brand-python, `.ahk` → keyboard.
