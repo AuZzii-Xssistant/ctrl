@@ -16,6 +16,24 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `pin_item` | `{item_type, item_id, group_name?}` | `i64` (new id) |
 | `unpin_item` | `{id}` | void |
 | `reorder_pins` | `{orders: [{id, sort_order}]}` | void |
+| `get_sys_info` | — | `SysInfo` — hostname/username/OS/RAM/CPU/boot time, via a PowerShell CIM query |
+| `get_perf_stats` | — | `PerfStats` — live CPU/RAM/network/drive usage, polled every 1.5s by the dashboard perf panel |
+| `get_recent_activity` | `{limit?}` (default 12) | `ActivityEntry[]` — most recent `run_log` rows |
+
+## Terminal / PTY
+| Command | Payload | Returns |
+|---|---|---|
+| `list_shells` | — | `ShellInfo[]` — detected PowerShell 7/5, cmd, WSL, Git Bash |
+| `pty_open` | `{tabId, shell, args, cols, rows}` | void — opens a new PTY session for that tab, killing any existing session on the same `tabId` first |
+| `pty_write` | `{tabId, data}` | void — raw bytes written to the PTY (keystrokes, or a command + `\r`) |
+| `pty_resize` | `{tabId, cols, rows}` | void |
+| `pty_close` | `{tabId}` | void — kills the child process and emits `pty-exit-{tabId}` |
+| `is_elevated` | — | `bool` |
+| `open_elevated_terminal` | — | void — spawns a new elevated PowerShell/pwsh window via UAC |
+| `stop_current_run` | — | void — see ScriptStash section; also usable to cancel a Quick Fix/tweak run in progress |
+| `kill_process` | `{pid}` | void — `taskkill /PID /T /F` |
+
+PTY output streams via `pty-data-{tabId}` events (raw terminal bytes), not as a command return value. `pty-exit-{tabId}` fires when the shell process dies.
 
 ## Tools
 | Command | Payload | Returns |
@@ -26,6 +44,21 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `delete_tool` | `{id}` | void |
 | `launch_tool` | `{id}` | void |
 | `browse_for_exe` | — | `string\|null` |
+| `get_ql_items` | — | `QlItem[]` — Windows shell shortcuts (`ms-settings:`, `.cpl` files), seeded on first run |
+| `launch_shortcut` | `{cmd}` | void — `cmd /c start "" <cmd>` |
+| `list_external_apps` | — | `ExternalApp[]` — simple name+path launch targets, used only by the Dashboard pin picker's "App" type now (Tools page's own Apps UI was removed 2026-08-17) |
+| `add_external_app` | `{name, path}` | `i64` |
+| `remove_external_app` | `{id}` | void |
+| `launch_external` | `{path}` | void |
+| `pick_exe_file` | — | `string\|null` |
+
+## Custom Tweaks
+| Command | Payload | Returns |
+|---|---|---|
+| `get_custom_tweaks` | — | `CustomTweak[]` — user-defined tweaks, rendered below the built-in (non-DB-backed) ones on the Tweaks page |
+| `add_custom_tweak` | `{data: CustomTweakData}` | `i64` |
+| `update_custom_tweak` | `{id, data: CustomTweakData}` | void |
+| `delete_custom_tweak` | `{id}` | void |
 
 ## Scripts
 
@@ -95,7 +128,9 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `add_workflow` | `{data: WorkflowData}` | `i64` |
 | `update_workflow` | `{id, data: WorkflowData}` | void |
 | `delete_workflow` | `{id}` | void |
-| `run_workflow` | `{id}` | `StepResult[]` |
+| `toggle_workflow` | `{id, enabled}` | void |
+| `run_workflow` | `{id}` | `StepResult[]` — also persists to `run_log` and updates `last_run_at`/`last_run_ok` |
+| `start_workflow_scheduler` | — | void (no return) — called once at app startup; polls `trigger_type='schedule'` workflows and fires `run_workflow` when due |
 
 ## Tweaks
 | Command | Payload | Returns |
@@ -154,16 +189,24 @@ EnvVar       = { name: string, value: string }
 EnvVars      = { user: EnvVar[], system: EnvVar[] }
 Snippet      = { id, title, content, category, tags, created_at: string }
 SnippetData  = { title, content, category?, tags?: string }
-Stats        = { tools, scripts, fixes, projects: number }
+Stats        = { tools, scripts, fixes, projects, workflows, runs: number }
 PinnedItem   = { id, item_type, item_id, item_name, item_icon, group_name, sort_order }
 SearchResults= { tools, scripts, fixes, projects: SearchResult[] }
 SearchResult = { item_type, id, name, meta: string }
 LastRun      = { item_id: number, success: boolean, ran_at: string }
 RunHistoryEntry = { id: number, success: boolean, ran_at: string, output: string }
-Workflow     = { id, name, description, steps: string (JSON), created_at: string }
+Workflow     = { id, name, description, steps: string (JSON), enabled: boolean, trigger_type, trigger_config: string (JSON), last_run_at?, last_run_ok?: boolean, created_at: string }
 WorkflowData = { name, description?, steps: string (JSON) }
 StepResult   = { label: string, success: boolean, output: string }
 BackupJob    = { id, name, source, dest, last_run?: string, created_at: string }
 BackupData   = { name, source, dest: string }
 ActivityEntry= { item_type, item_name, success: boolean, ran_at: string }
+SysInfo      = { hostname, username, os, ram_gb, cpu: string, boot_epoch_ms: number }
+PerfStats    = { cpu_pct: number, ram_used_gb, ram_total_gb: number, net_name: string, net_recv_bytes, net_sent_bytes: number, drives: DriveInfo[] }
+DriveInfo    = { name: string, used_gb, total_gb: number }
+ShellInfo    = { name, path: string, args: string[] }
+QlItem       = { id, label, icon, cmd: string }
+ExternalApp  = { id, name, path: string }
+CustomTweak  = { id, category, label, description, apply_cmd, revert_cmd: string, admin: boolean, sort_order: number }
+CustomTweakData = { category?, label, description?, apply_cmd?, revert_cmd?: string, admin?: boolean }
 ```
