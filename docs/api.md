@@ -185,13 +185,20 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 ## Types
 
 ```typescript
+Tool         = { id, name, category, path, args, tags, notes: string, run_as_admin: boolean }
+ToolData     = { name, path: string, category?, args?, tags?, notes?: string, run_as_admin?: boolean }
+Fix          = { id, name, description, category, shell_type, command, tags: string, confirm_required, run_as_admin: boolean }
+FixData      = { name, command: string, description?, category?, shell_type?, tags?: string, confirm_required?, run_as_admin?: boolean }
+Project      = { id, name, description, type, status, path, tags, notes: string }
+ProjectData  = { name: string, description?, type?, status?, path?, tags?, notes?: string }
+Script       = { id, name, description, category, file_path, script_type, tags, status, icon: string, run_as_admin, interactive: boolean, content?: string, sort_order: number, disabled: boolean }  // sort_order/disabled always 0/false from get_scripts (only meaningful for the removed get_profile_scripts); live pane uses SsScript below
 RunResult    = { success: boolean, output: string }
 EnvVar       = { name: string, value: string }
 EnvVars      = { user: EnvVar[], system: EnvVar[] }
 Snippet      = { id, title, content, category, tags, created_at: string }
 SnippetData  = { title, content, category?, tags?: string }
 Stats        = { tools, scripts, fixes, projects, workflows, runs: number }
-PinnedItem   = { id, item_type, item_id, item_name, item_icon, group_name, sort_order }
+PinnedItem   = { id, item_type, item_id, item_name, item_icon, item_meta, group_name, sort_order }  // item_meta: cmd for 'ql', path for 'app', empty otherwise
 SearchResults= { tools, scripts, fixes, projects, workflows, snippets, quick_launch, apps: SearchResult[] }
 SearchResult = { item_type, id, name, meta: string }  // item_type: 'tool'|'script'|'fix'|'project'|'workflow'|'snippet'|'ql'|'app'
 LastRun      = { item_id: number, success: boolean, ran_at: string }
