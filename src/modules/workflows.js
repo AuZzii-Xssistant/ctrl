@@ -9,6 +9,8 @@ const TRIGGER_ICONS  = { manual: 'ti-hand-click', startup: 'ti-player-play', sch
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 
+let _eventsBound = false;
+
 export async function load() {
   const el = document.getElementById('workflows-scroll');
   el.innerHTML = paneHeader('ti-player-play', 'Workflows', 'New Workflow', 'window._showWorkflowModal(null)', 'wf-filter')
@@ -17,13 +19,18 @@ export async function load() {
   const wfs = await inv('get_workflows');
   _render(wfs);
 
-  // Live step progress
-  listen('wf-step', e => {
-    const { wf_id, step, total, label } = e.payload;
-    const el = document.querySelector(`[data-wf-progress="${wf_id}"]`);
-    if (el) el.textContent = label ? `${step}/${total} — ${label}` : '';
-  });
-  listen('wf-done', () => load());
+  // Live step progress — bound once. load() re-runs on every pane visit AND
+  // wf-done's own handler calls load() again, so binding this unguarded stacked
+  // a new listener pair on every visit/run and compounded exponentially over time.
+  if (!_eventsBound) {
+    _eventsBound = true;
+    listen('wf-step', e => {
+      const { wf_id, step, total, label } = e.payload;
+      const el = document.querySelector(`[data-wf-progress="${wf_id}"]`);
+      if (el) el.textContent = label ? `${step}/${total} — ${label}` : '';
+    });
+    listen('wf-done', () => load());
+  }
 
   setTimeout(() => {
     const f = document.getElementById('wf-filter');
