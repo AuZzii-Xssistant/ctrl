@@ -1,5 +1,5 @@
 'use strict';
-import { esc, toast, showOutput, goPane } from '../app.js';
+import { esc, toast, showOutput, goPane, openModal, closeModal } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -651,12 +651,43 @@ document.getElementById('builder-save').addEventListener('click', async () => {
   const name = document.getElementById('save-name').value.trim();
   if (!raw.trim()) { toast('Nothing to save', 'err'); return; }
   if (!name) { toast('Enter a script name', 'err'); document.getElementById('save-name').focus(); return; }
-  try {
-    await inv('save_built_script', { code: raw, name, scriptType: 'ps1' });
-    toast('Saved to Scripts', 'ok');
-    document.getElementById('save-name').value = '';
-    goPane('scripts');
-  } catch (e) { toast(String(e), 'err'); }
+
+  const { profiles } = await inv('ss_get_state', { profileId: null }).catch(() => ({ profiles: [] }));
+  openModal('Save to Profiles', `
+<p class="modal-confirm-msg">Save "<strong>${esc(name)}</strong>" into:</p>
+<div class="form-row">
+  <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+    <input type="checkbox" class="bs-pp-cb" data-master="1" checked>
+    <span style="flex:1;font-size:13px;">Master</span>
+    <span style="font-size:11px;color:var(--text3);">default</span>
+  </label>
+  ${profiles.map(p => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+      <input type="checkbox" class="bs-pp-cb" data-pid="${p.id}">
+      <span style="flex:1;font-size:13px;">${esc(p.name)}</span>
+      <span style="font-size:11px;color:var(--text3);">${p.scriptCount} scripts</span>
+    </label>`).join('')}
+</div>
+<p id="bs-warn" style="display:none;color:var(--red);font-size:11px;margin:0 0 8px">Must select at least one profile.</p>
+<div class="form-actions">
+  <button class="action-btn btn-ghost" id="bs-cancel">Cancel</button>
+  <button class="action-btn btn-primary" id="bs-confirm">Save</button>
+</div>`);
+
+  document.getElementById('bs-cancel').onclick = () => closeModal();
+  document.getElementById('bs-confirm').onclick = async () => {
+    const checked = [...document.querySelectorAll('.bs-pp-cb:checked')];
+    if (!checked.length) { document.getElementById('bs-warn').style.display = 'block'; return; }
+    const inMaster = checked.some(cb => cb.dataset.master);
+    const profileIds = checked.filter(cb => cb.dataset.pid).map(cb => parseInt(cb.dataset.pid));
+    try {
+      await inv('save_built_script', { code: raw, name, scriptType: 'ps1', profileIds, inMaster });
+      closeModal();
+      toast('Saved to Scripts', 'ok');
+      document.getElementById('save-name').value = '';
+      goPane('scripts');
+    } catch (e) { toast(String(e), 'err'); }
+  };
 });
 
 document.getElementById('builder-run').addEventListener('click', async () => {

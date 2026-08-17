@@ -169,8 +169,17 @@ window._showWorkflowModal = async (wf) => {
           ${fixes.map(f => `<option value="fix:${f.id}:${esc(f.name)}">[Fix] ${esc(f.name)}</option>`).join('')}
         </select>
         <button type="button" class="action-btn btn-secondary" onclick="window._wfAdd('item')"><i class="ti ti-plus"></i> Add</button>
-        <button type="button" class="action-btn btn-ghost" onclick="window._wfAdd('notify')"><i class="ti ti-bell"></i> Notify</button>
-        <button type="button" class="action-btn btn-ghost" onclick="window._wfAdd('wait')"><i class="ti ti-clock-pause"></i> Wait</button>
+        <button type="button" class="action-btn btn-ghost" onclick="window._wfTogglePanel('notify')"><i class="ti ti-bell"></i> Notify</button>
+        <button type="button" class="action-btn btn-ghost" onclick="window._wfTogglePanel('wait')"><i class="ti ti-clock-pause"></i> Wait</button>
+      </div>
+      <div id="wf-notify-panel" style="display:none;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <input class="form-input" id="wf-notify-title" placeholder="Notification title" value="CTRL" style="flex:1;min-width:120px">
+        <input class="form-input" id="wf-notify-body" placeholder="Notification message" style="flex:2;min-width:160px">
+        <button type="button" class="action-btn btn-primary" onclick="window._wfAdd('notify')">Add</button>
+      </div>
+      <div id="wf-wait-panel" style="display:none;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <input class="form-input" id="wf-wait-secs" type="number" min="1" placeholder="Seconds" value="5" style="width:100px">
+        <button type="button" class="action-btn btn-primary" onclick="window._wfAdd('wait')">Add</button>
       </div>
     </div>
 
@@ -190,6 +199,15 @@ window._showWorkflowModal = async (wf) => {
     });
   });
 
+  window._wfTogglePanel = (which) => {
+    const panel = document.getElementById(`wf-${which}-panel`);
+    if (!panel) return;
+    const show = panel.style.display === 'none';
+    document.getElementById('wf-notify-panel').style.display = 'none';
+    document.getElementById('wf-wait-panel').style.display   = 'none';
+    if (show) panel.style.display = 'flex';
+  };
+
   window._wfAdd = (type) => {
     if (type === 'item') {
       const picker = document.getElementById('wf-item-picker');
@@ -197,12 +215,14 @@ window._showWorkflowModal = async (wf) => {
       const [stype, itemId, ...rest] = picker.value.split(':');
       window._wfSteps.push({ step_type: stype, item_id: +itemId, label: rest.join(':') });
     } else if (type === 'notify') {
-      const title = prompt('Notification title:') || 'CTRL';
-      const body  = prompt('Notification message:') || '';
+      const title = document.getElementById('wf-notify-title').value.trim() || 'CTRL';
+      const body  = document.getElementById('wf-notify-body').value.trim();
       window._wfSteps.push({ step_type: 'notify', label: `Notify: ${title}`, title, body });
+      document.getElementById('wf-notify-panel').style.display = 'none';
     } else if (type === 'wait') {
-      const s = parseInt(prompt('Wait how many seconds?') || '5', 10) || 5;
+      const s = parseInt(document.getElementById('wf-wait-secs').value, 10) || 5;
       window._wfSteps.push({ step_type: 'wait', label: `Wait ${s}s`, seconds: s });
+      document.getElementById('wf-wait-panel').style.display = 'none';
     }
     const list = document.getElementById('wf-steps-list');
     if (list) list.innerHTML = _stepsHtml(window._wfSteps);

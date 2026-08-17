@@ -10,6 +10,8 @@ let _bootEpochMs  = 0;
 let _prevNetRecv  = 0, _prevNetSent = 0, _prevNetTs = 0;
 let _perfBodyBuilt = false;
 
+export function invalidatePins() { _initialized = false; }
+
 export async function load() {
   if (_initialized) {
     _startPerfPolling();
@@ -282,20 +284,26 @@ function _renderPins(pins, el) {
     return;
   }
 
+  const compact = localStorage.getItem('ctrl_dash_compact') === '1';
   const groups = pins.reduce((acc, p) => { (acc[p.group_name] = acc[p.group_name] || []).push(p); return acc; }, {});
   let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px">
     <span style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase">Launchpad</span>
-    <button class="action-btn btn-secondary" onclick="window._openPinPicker()" style="font-size:10px;padding:3px 10px">
-      <i class="ti ti-pin"></i> Pin
-    </button>
+    <div style="display:flex;gap:6px">
+      <button class="action-btn btn-secondary" id="pin-compact-toggle" title="${compact ? 'Switch to full view' : 'Switch to compact view'}" style="font-size:10px;padding:3px 10px">
+        <i class="ti ${compact ? 'ti-layout-grid' : 'ti-list'}"></i> ${compact ? 'Full' : 'Compact'}
+      </button>
+      <button class="action-btn btn-secondary" onclick="window._openPinPicker()" style="font-size:10px;padding:3px 10px">
+        <i class="ti ti-pin"></i> Pin
+      </button>
+    </div>
   </div>`;
 
   for (const [group, items] of Object.entries(groups)) {
     html += `<div class="dash-group">
       <div class="dash-group-header"><span class="dash-group-name">${esc(group)}</span></div>
-      <div class="dash-tile-grid">`;
+      <div class="dash-tile-grid${compact ? ' compact' : ''}">`;
     for (const p of items) {
-      html += `<div class="dash-tile" data-pin-id="${p.id}" data-type="${p.item_type}" data-item-id="${p.item_id}" data-name="${esc(p.item_name)}" data-meta="${esc(p.item_meta || '')}" title="${esc(p.item_name)}">
+      html += `<div class="dash-tile" draggable="true" data-pin-id="${p.id}" data-type="${p.item_type}" data-item-id="${p.item_id}" data-name="${esc(p.item_name)}" data-meta="${esc(p.item_meta || '')}" title="${esc(p.item_name)} (${esc(p.item_type)})">
         <i class="ti ${esc(p.item_icon)}"></i>
         <div class="dash-tile-name">${esc(p.item_name)}</div>
         <span class="tag tag-${esc(p.item_type)}">${esc(p.item_type)}</span>
@@ -304,6 +312,11 @@ function _renderPins(pins, el) {
     html += '</div></div>';
   }
   el.innerHTML = html;
+
+  document.getElementById('pin-compact-toggle')?.addEventListener('click', () => {
+    localStorage.setItem('ctrl_dash_compact', compact ? '0' : '1');
+    _renderPins(pins, el);
+  });
 
   el.querySelectorAll('.dash-tile').forEach(tile => {
     tile.addEventListener('click', () => _runPin(tile));
@@ -315,6 +328,82 @@ function _renderPins(pins, el) {
         { label: 'Unpin', icon: 'ti-pin-off', danger: true, fn: () => _unpin(pinId) },
       ]);
     });
+  });
+
+  _bindPinDrag(el);
+}
+
+let _pinDragId = null;
+let _pinDragGrid = null; // grid the drag started in — reorder stays scoped to it even if
+                          // the cursor wanders off (over the sidebar, past the last tile, etc.)
+
+// 2D nearest-tile — closest() alone misses drops in the blank grid area past the
+// last tile / before the first / anywhere outside the grid entirely (e.g. sidebar).
+function _nearestTile(grid, x, y) {
+  const tiles = [...grid.querySelectorAll('.dash-tile')];
+  if (!tiles.length) return null;
+  let best = null, bestDist = Infinity, before = true;
+  for (const t of tiles) {
+    const r = t.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist < bestDist) { bestDist = dist; best = t; before = x < cx; }
+  }
+  return { tile: best, before };
+}
+
+function _bindPinDrag(el) {
+  el.querySelectorAll('.dash-tile').forEach(tile => {
+    tile.addEventListener('dragstart', e => {
+      _pinDragId = +tile.dataset.pinId;
+      _pinDragGrid = tile.closest('.dash-tile-grid');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tile.dataset.pinId);
+      tile.classList.add('dragging');
+    });
+    tile.addEventListener('dragend', () => {
+      _pinDragId = null; _pinDragGrid = null;
+      el.querySelectorAll('.dragging,.drag-over-left,.drag-over-right').forEach(t => t.classList.remove('dragging', 'drag-over-left', 'drag-over-right'));
+    });
+  });
+
+  // Reorder listeners bound once at document level — the cursor may leave the grid
+  // (over the sidebar, above/below the dashboard) and reordering should still track
+  // the nearest tile in the grid the drag started in, not go dead.
+  if (document.body.dataset.dashDragBound) return;
+  document.body.dataset.dashDragBound = '1';
+
+  document.addEventListener('dragover', e => {
+    if (!_pinDragId || !_pinDragGrid) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    _pinDragGrid.querySelectorAll('.drag-over-left,.drag-over-right').forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+    const hit = _nearestTile(_pinDragGrid, e.clientX, e.clientY);
+    if (!hit) return;
+    hit.tile.classList.add(hit.before ? 'drag-over-left' : 'drag-over-right');
+  });
+  document.addEventListener('drop', async e => {
+    if (!_pinDragId || !_pinDragGrid) return;
+    e.preventDefault();
+    const grid = _pinDragGrid;
+    grid.querySelectorAll('.drag-over-left,.drag-over-right').forEach(t => t.classList.remove('drag-over-left', 'drag-over-right'));
+    const hit = _nearestTile(grid, e.clientX, e.clientY);
+    if (!hit) return;
+    const over = hit.tile;
+    const dropId = +over.dataset.pinId;
+    if (dropId === _pinDragId) return;
+    const before = hit.before;
+    const tiles = [...grid.querySelectorAll('.dash-tile')];
+    const si = tiles.findIndex(t => +t.dataset.pinId === _pinDragId);
+    let di = tiles.findIndex(t => +t.dataset.pinId === dropId);
+    if (si < 0 || di < 0) return;
+    const [mv] = tiles.splice(si, 1);
+    if (si < di) di--;
+    tiles.splice(before ? di : di + 1, 0, mv);
+    const orders = tiles.map((t, i) => ({ id: +t.dataset.pinId, sort_order: i }));
+    grid.innerHTML = '';
+    tiles.forEach(t => grid.appendChild(t));
+    await invoke('reorder_pins', { orders }).catch(err => toast(String(err), 'err'));
   });
 }
 

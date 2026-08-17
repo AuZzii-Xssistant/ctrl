@@ -1,4 +1,5 @@
 import { esc, sectionHdr, emptyState, skeletonRows, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu } from '../app.js';
+import { invalidatePins } from './dashboard.js';
 
 const inv = window.__TAURI__.core.invoke;
 const STATUS_ORDER = ['stable','working','prototype','idea','deprecated','replaced'];
@@ -126,6 +127,10 @@ window._showProjectModal = (proj) => {
     </div>
     <div class="form-row"><label class="form-label">Tags</label><input class="form-input" id="f-tags" value="${esc(proj?.tags||'')}" placeholder="backup, automation" /></div>
     <div class="form-row"><label class="form-label">Notes</label><textarea class="form-textarea" id="f-notes" placeholder="Context, decisions…">${esc(proj?.notes||'')}</textarea></div>
+    ${!proj ? `<div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="f-pin" checked />
+      <label for="f-pin" class="form-label" style="margin:0;cursor:pointer">Pin to Dashboard</label>
+    </div>` : ''}
     <div class="form-actions">
       <button class="action-btn btn-ghost" onclick="window._closeProjectModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveProject(${proj?.id||'null'})">${proj?'Save':'Add'}</button>
@@ -150,7 +155,15 @@ window._saveProject = async (id) => {
   };
   if (!data.name) { toast('Name required', 'err'); return; }
   try {
-    if (id) await inv('update_project', { id, data }); else await inv('add_project', { data });
+    if (id) {
+      await inv('update_project', { id, data });
+    } else {
+      const newId = await inv('add_project', { data });
+      if (document.getElementById('f-pin')?.checked) {
+        await inv('pin_item', { itemType: 'project', itemId: newId, groupName: 'Pinned' }).catch(() => {});
+        invalidatePins();
+      }
+    }
     closeModal(); toast(id ? 'Project updated' : 'Project added', 'ok');
     window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }

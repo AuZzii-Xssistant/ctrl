@@ -131,13 +131,13 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 const SCRIPT_FOOTER: &str = r#"
 # ── Finalise ──────────────────────────────────────────────────────────────────
+Pause
 Write-Host ""
 Write-Host "Restarting Explorer..." -ForegroundColor Cyan
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 Start-Process explorer
 Write-Host ""
-Read-Host "Press Enter to exit"
 "#;
 
 #[tauri::command]
@@ -177,12 +177,24 @@ pub async fn run_built_script(app: tauri::AppHandle, code: String, script_type: 
 }
 
 #[tauri::command]
-pub fn save_built_script(state: State<AppState>, code: String, name: String, script_type: String) -> Result<(), String> {
+pub fn save_built_script(state: State<AppState>, code: String, name: String, script_type: String, profile_ids: Vec<i64>, in_master: bool) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
+    let max_mo: i64 = db.query_row("SELECT COALESCE(MAX(master_order)+1,0) FROM scripts", [], |r| r.get(0)).unwrap_or(0);
     db.execute(
-        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content) \
-         VALUES (?1,'Built with Script Builder','Builder','',?2,'','active',0,?3)",
-        params![name, script_type, code],
+        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,content,in_master,master_order) \
+         VALUES (?1,'Built with Script Builder','Builder','',?2,'','active',0,?3,?4,?5)",
+        params![name, script_type, code, in_master as i64, max_mo],
     ).map_err(|e| e.to_string())?;
+    let script_id = db.last_insert_rowid();
+    for pid in profile_ids {
+        let max_ord: i64 = db.query_row(
+            "SELECT COALESCE(MAX(sort_order)+1,0) FROM ss_script_profile WHERE profile_id=?1",
+            params![pid], |r| r.get(0)
+        ).unwrap_or(0);
+        db.execute(
+            "INSERT OR IGNORE INTO ss_script_profile (script_id,profile_id,sort_order) VALUES (?1,?2,?3)",
+            params![script_id, pid, max_ord]
+        ).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }

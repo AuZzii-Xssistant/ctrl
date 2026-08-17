@@ -130,6 +130,8 @@ pub fn run() {
             commands::terminal::pty_close,
             commands::terminal::open_elevated_terminal,
             commands::terminal::is_elevated,
+            commands::exec::stop_current_run,
+            commands::exec::kill_process,
             commands::external_apps::get_ql_items,
             commands::external_apps::list_external_apps,
             commands::external_apps::add_external_app,

@@ -245,5 +245,7 @@ fn migrate_scriptstash(conn: &Connection) -> Result<()> {
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_run TEXT", []);
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_status TEXT NOT NULL DEFAULT 'never'", []);
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_error TEXT", []);
+    // Master is a real, toggleable profile — not "every script unconditionally".
+    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN in_master INTEGER NOT NULL DEFAULT 1", []);
     Ok(())
 }

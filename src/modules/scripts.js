@@ -1,4 +1,4 @@
-import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun } from '../app.js';
+import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -39,6 +39,11 @@ function _attachListeners() {
     if (s) { s.lastStatus = e.payload.status; _patchRow(s.id); }
   });
   listen('ss-run-done', () => { S.running = false; S.progress = 0; _renderToolbar(); _patchStatusBar(); _reload(); });
+  // External editor saved the temp file — sync content back into memory, no re-render needed (not shown in table).
+  listen('script-synced', e => {
+    const s = S.scripts.find(x => x.id === e.payload.id);
+    if (s) { s.content = e.payload.content; toast(`Synced: ${s.name}`, 'ok'); }
+  });
 }
 
 // ── Entry ─────────────────────────────────────────────────────────────────────
@@ -185,13 +190,14 @@ function _renderToolbar() {
 <button class="sc-btn sc-btn-danger" id="tb-remove" title="Remove [Del]" ${!hasSel?'disabled':''}><i class="ti ti-trash"></i> Remove</button>
 <button class="sc-btn" id="tb-toggle" title="Toggle [Space]" ${!hasSel?'disabled':''}><i class="ti ti-player-pause"></i> Toggle</button>
 <div class="sc-sep"></div>
-<button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
+<button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Ctrl+Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
 <button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
 <div class="sc-sep"></div>
 <button class="sc-btn sc-btn-admin" id="tb-rsa" title="Run selected (Admin)" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Sel. Admin</button>
 <button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
 <button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
+<button class="sc-btn" id="tb-open-editor" title="Open in default editor" ${!S.sel.size?'disabled':''}><i class="ti ti-external-link"></i> Open in Editor</button>
 <button class="sc-btn" id="tb-import" title="Import"><i class="ti ti-file-import"></i> Import</button>
 <button class="sc-btn" id="tb-export" title="Export"><i class="ti ti-file-export"></i> Export</button>
 <button class="sc-btn" id="tb-shortcuts" title="Shortcuts [?]"><i class="ti ti-keyboard"></i></button>`;
@@ -202,9 +208,12 @@ function _renderToolbar() {
   document.getElementById('tb-toggle').onclick    = _toggleSelected;
   document.getElementById('tb-run-sel').onclick   = () => _runSelected(false);
   document.getElementById('tb-run-all').onclick   = () => _runAll(false);
-  document.getElementById('tb-stop').onclick      = () => { _stopQueue = true; };
+  document.getElementById('tb-stop').onclick      = () => { _stopQueue = true; stopCurrentRun(); };
   document.getElementById('tb-rsa').onclick       = () => _runSelected(true);
   document.getElementById('tb-raa').onclick       = () => _runAll(true);
+  document.getElementById('tb-open-editor').onclick = () => {
+    [...S.sel].forEach(id => inv('ss_open_in_editor', { scriptId: id }).catch(err => toast(String(err), 'err')));
+  };
   document.getElementById('tb-import').onclick    = _importProfile;
   document.getElementById('tb-export').onclick    = _exportProfile;
   document.getElementById('tb-shortcuts').onclick = _showShortcuts;
@@ -256,13 +265,14 @@ function _renderTable() {
     _renderTable();
   }));
 
-  tbody.innerHTML = rows.map((s, i) => _buildRow(s, i)).join('');
+  tbody.innerHTML = rows.map(s => _buildRow(s)).join('');
   _bindRowEvents(tbody, rows);
 
   const c = document.getElementById('sc-count');
   if (c) c.textContent = `${rows.length} / ${S.scripts.length}`;
 }
 
+// Returns visible scripts in current sort order — mirrors SS sortList(visible())
 function _filtered() {
   let rows = S.scripts.slice();
   if (!S.showDisabled) rows = rows.filter(s => s.enabled);
@@ -272,22 +282,25 @@ function _filtered() {
   }
   if (S.typeFilter) rows = rows.filter(s => s.type === S.typeFilter);
   rows.sort((a, b) => {
-    let av = a[S.sortCol] ?? '', bv = b[S.sortCol] ?? '';
-    return String(av).localeCompare(String(bv)) * S.sortDir;
+    let av = a[S.sortCol] ?? a.lastStatus ?? '';
+    let bv = b[S.sortCol] ?? b.lastStatus ?? '';
+    if (S.sortCol === 'order') { av = +av; bv = +bv; }
+    return av < bv ? -S.sortDir : av > bv ? S.sortDir : 0;
   });
   return rows;
 }
 
-function _buildRow(s, i) {
+function _buildRow(s) {
   const sel = S.sel.has(s.id);
   const status = s.lastStatus || 'never';
-  const sCls = { success:'sc-pill-ok', failed:'sc-pill-fail', running:'sc-pill-run', never:'sc-pill-never' }[status] || 'sc-pill-never';
+  const sCls = { ok:'sc-pill-ok', success:'sc-pill-ok', failed:'sc-pill-fail', running:'sc-pill-run', never:'sc-pill-never' }[status] || 'sc-pill-never';
   const lr = s.lastRun ? _fmtTs(s.lastRun) : '—';
-  return `<tr class="sc-row${sel?' selected':''}${!s.enabled?' sc-disabled':''}" data-id="${s.id}" data-idx="${i}" draggable="true">
+  // # shows the script's stored position in custom order (s.order+1), not the row index
+  return `<tr class="sc-row${sel?' selected':''}${!s.enabled?' sc-disabled':''}" data-id="${s.id}" draggable="true">
     <td class="col-grip" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></td>
-    <td class="col-ord">${i+1}</td>
+    <td class="col-ord">${s.order + 1}</td>
     <td class="col-cb"><input type="checkbox" class="sc-cb" data-id="${s.id}" ${sel?'checked':''}></td>
-    <td class="col-name">${esc(s.name)}</td>
+    <td class="col-name" title="${esc(s.name)}"><span class="col-name-wrap"><span class="col-name-text">${esc(s.name)}</span>${s.runAsAdmin ? '<i class="ti ti-shield-half-filled sc-admin-badge" title="Runs as Administrator"></i>' : ''}</span></td>
     <td class="col-type"><span class="sc-badge sc-badge-${s.type}">${s.type}</span></td>
     <td class="col-desc" title="${esc(s.description)}">${esc(s.description)}</td>
     <td class="col-status"><span class="sc-pill ${sCls}">${status}</span></td>
@@ -310,7 +323,8 @@ function _bindRowEvents(tbody, rows) {
   tbody.querySelectorAll('.sc-row').forEach(tr => {
     tr.addEventListener('click', e => {
       if (e.target.closest('.sc-run-btn') || e.target.closest('.sc-cb')) return;
-      const id = parseInt(tr.dataset.id), idx = parseInt(tr.dataset.idx);
+      const id = parseInt(tr.dataset.id);
+      const idx = rows.findIndex(s => s.id === id);
       if (e.shiftKey && S.lastClickIdx >= 0) {
         const lo = Math.min(S.lastClickIdx, idx), hi = Math.max(S.lastClickIdx, idx);
         rows.slice(lo, hi+1).forEach(s => S.sel.add(s.id));
@@ -321,6 +335,13 @@ function _bindRowEvents(tbody, rows) {
       _refreshSel();
     });
 
+    tr.addEventListener('dblclick', e => {
+      if (e.target.closest('.sc-run-btn') || e.target.closest('.sc-cb')) return;
+      const id = parseInt(tr.dataset.id);
+      const s = S.scripts.find(x => x.id === id);
+      if (s) _openScriptModal(s);
+    });
+
     tr.addEventListener('contextmenu', e => {
       e.preventDefault();
       const id = parseInt(tr.dataset.id);
@@ -328,21 +349,70 @@ function _bindRowEvents(tbody, rows) {
       _ctxMenu(e, id);
     });
 
-    tr.addEventListener('dragstart', () => { S.dragSrcId = parseInt(tr.dataset.id); tr.classList.add('dragging'); });
-    tr.addEventListener('dragend', () => { S.dragSrcId = null; tbody.querySelectorAll('.dragging,.drag-over').forEach(el => el.classList.remove('dragging','drag-over')); });
-    tr.addEventListener('dragover', e => { e.preventDefault(); tr.classList.add('drag-over'); });
-    tr.addEventListener('dragleave', () => tr.classList.remove('drag-over'));
-    tr.addEventListener('drop', async e => {
-      e.preventDefault(); tr.classList.remove('drag-over');
-      if (S.dragSrcId === null || S.dragSrcId === parseInt(tr.dataset.id)) return;
-      const ids = _filtered().map(s => s.id);
-      const fi = ids.indexOf(S.dragSrcId), ti = ids.indexOf(parseInt(tr.dataset.id));
-      if (fi < 0 || ti < 0) return;
-      ids.splice(fi, 1); ids.splice(ti, 0, S.dragSrcId);
-      await inv('ss_reorder_scripts', { profileId: S.profileId, orderedIds: ids });
-      _reload();
+    tr.addEventListener('dragstart', e => {
+      S.dragSrcId = parseInt(tr.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tr.dataset.id);
+      tr.classList.add('dragging');
+    });
+    tr.addEventListener('dragend', () => {
+      S.dragSrcId = null;
+      document.querySelectorAll('.dragging,.drag-over').forEach(el => el.classList.remove('dragging','drag-over'));
     });
   });
+
+  // Delegate dragover/drop to document — the cursor may leave the table entirely
+  // (above the header, past the last row, over the sidebar) and should still resolve
+  // to the nearest row instead of the drag just going dead. Bound once globally —
+  // looks up #sc-tbody fresh each time since load() rebuilds it on every pane visit.
+  if (!document.body.dataset.scDragBound) {
+    document.body.dataset.scDragBound = '1';
+    const dropZone = document;
+
+    const nearestRow = clientY => {
+      const tb = document.getElementById('sc-tbody');
+      const rows = tb ? [...tb.querySelectorAll('.sc-row')] : [];
+      if (!rows.length) return null;
+      let best = null, bestDist = Infinity, before = true;
+      for (const row of rows) {
+        const rect = row.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const dist = Math.abs(clientY - mid);
+        if (dist < bestDist) { bestDist = dist; best = row; before = clientY < mid; }
+      }
+      return { row: best, before };
+    };
+
+    dropZone.addEventListener('dragover', e => {
+      if (!S.dragSrcId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.getElementById('sc-tbody')?.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+      const hit = nearestRow(e.clientY);
+      if (!hit) return;
+      hit.row.classList.add(hit.before ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      document.getElementById('sc-tbody')?.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+      const hit = nearestRow(e.clientY);
+      if (!hit || !S.dragSrcId) return;
+      const dropId = parseInt(hit.row.dataset.id);
+      if (S.dragSrcId === dropId) return;
+      const visible = _filtered();
+      const si = visible.findIndex(x => x.id === S.dragSrcId);
+      let di = visible.findIndex(x => x.id === dropId);
+      if (si < 0 || di < 0) return;
+      const [mv] = visible.splice(si, 1);
+      if (si < di) di--; // account for removal shifting index
+      visible.splice(hit.before ? di : di + 1, 0, mv);
+      visible.forEach((s, i) => { s.order = i; });
+      let off = visible.length;
+      S.scripts.forEach(s => { if (!visible.find(x => x.id === s.id)) s.order = off++; });
+      _renderTable();
+      inv('ss_reorder_scripts', { profileId: S.profileId, orderedIds: [...S.scripts].sort((a, b) => a.order - b.order).map(s => s.id) });
+    });
+  }
 
   tbody.querySelectorAll('.sc-cb').forEach(cb => cb.addEventListener('change', () => {
     const id = parseInt(cb.dataset.id);
@@ -394,6 +464,11 @@ async function _profilePicker(scriptId) {
   openModal('Manage Profiles', `
 <p class="modal-confirm-msg">Select which profiles contain "<strong>${esc(s.name)}</strong>":</p>
 <div class="form-row">
+  <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+    <input type="checkbox" class="sc-pp-cb" data-master="1" ${s.inMaster?'checked':''}>
+    <span style="flex:1;font-size:13px;">Master</span>
+    <span style="font-size:11px;color:var(--text3);">default</span>
+  </label>
   ${S.profiles.map(p => `
     <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
       <input type="checkbox" class="sc-pp-cb" data-pid="${p.id}" ${cur.has(p.id)?'checked':''}>
@@ -401,6 +476,7 @@ async function _profilePicker(scriptId) {
       <span style="font-size:11px;color:var(--text3);">${p.scriptCount} scripts</span>
     </label>`).join('')}
 </div>
+<p id="pp-warn" style="display:none;color:var(--red);font-size:11px;margin:0 0 8px">Must stay in at least one profile.</p>
 <div class="form-actions">
   <button class="action-btn btn-ghost" id="pp-cancel">Cancel</button>
   <button class="action-btn btn-primary" id="pp-save">Save</button>
@@ -408,8 +484,11 @@ async function _profilePicker(scriptId) {
 
   document.getElementById('pp-cancel').onclick = () => closeModal();
   document.getElementById('pp-save').onclick = async () => {
-    const ids = [...document.querySelectorAll('.sc-pp-cb:checked')].map(cb => parseInt(cb.dataset.pid));
-    await inv('ss_set_script_profiles', { scriptId, profileIds: ids });
+    const checked = [...document.querySelectorAll('.sc-pp-cb:checked')];
+    if (!checked.length) { document.getElementById('pp-warn').style.display = 'block'; return; }
+    const inMaster = checked.some(cb => cb.dataset.master);
+    const ids = checked.filter(cb => cb.dataset.pid).map(cb => parseInt(cb.dataset.pid));
+    await inv('ss_set_script_profiles', { scriptId, profileIds: ids, inMaster });
     closeModal(); _reload();
   };
 }
@@ -456,7 +535,7 @@ function _openScriptModal(s) {
       <input type="checkbox" id="sm-admin" ${s?.runAsAdmin?'checked':''}> Run as Administrator
     </label>
     <label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;">
-      <input type="checkbox" id="sm-interactive" ${s?.interactive?'checked':''}> Interactive (visible terminal)
+      <input type="checkbox" id="sm-interactive" ${s?.interactive?'checked':''}> Pause Script (wait for keypress when done)
     </label>
   </div>
 </div>
@@ -514,12 +593,13 @@ async function _duplicateScript(id) {
 // ── Run ───────────────────────────────────────────────────────────────────────
 // All runs go through run_script — CTRL's existing runner.
 // forceAdmin=true overrides the script's own run_as_admin setting.
-// Interactive scripts (checkbox) open a visible console; others use embedded terminal.
+// "Pause Script" scripts run in the same embedded terminal but hold at the end for a keypress.
 
 let _stopQueue = false;
 
 async function _runOne(id, forceAdmin) {
   await acquireRun();
+  toast('Running…', 'info');
   try {
     const r = await inv('run_script', { id, forceAdmin: forceAdmin || false });
     showOutput(r.output, r.success);
@@ -538,9 +618,11 @@ async function _runQueue(scriptIds, forceAdmin) {
   for (const s of scripts) {
     if (_stopQueue) break;
     S.progress++; _patchStatusBar();
+    toast(`Running: ${s.name}`, 'info');
     try {
       const r = await inv('run_script', { id: s.id, forceAdmin: forceAdmin || false });
       showOutput(r.output, r.success);
+      toast(r.success ? `Done: ${s.name}` : `Failed: ${s.name}`, r.success ? 'ok' : 'err');
     } catch (e) { toast(`${s.name}: ${String(e)}`, 'err'); }
   }
   releaseRun();
@@ -585,7 +667,7 @@ function _showShortcuts() {
       ['F2',      'Edit selected'],
       ['Del',     'Remove selected'],
       ['Space',   'Toggle enable/disable'],
-      ['Enter',   'Run selected'],
+      ['Ctrl+Enter', 'Run selected'],
       ['F5',      'Run all'],
       ['Esc',     'Stop run / close modal'],
       ['Ctrl+A',  'Select all'],
@@ -632,9 +714,9 @@ function _bindShortcuts() {
       case 'F2':     e.preventDefault(); _editSelected(); break;
       case 'Delete': e.preventDefault(); _removeSelected(); break;
       case ' ':      if (!inInput) { e.preventDefault(); _toggleSelected(); } break;
-      case 'Enter':  e.preventDefault(); _runSelected(false); break;
+      case 'Enter':  if (e.ctrlKey||e.metaKey) { e.preventDefault(); _runSelected(false); } break;
       case 'F5':     e.preventDefault(); _runAll(false); break;
-      case 'Escape': if (S.running) _stopQueue = true; break;
+      case 'Escape': if (S.running) { _stopQueue = true; stopCurrentRun(); } break;
       case '?':      if (!inInput) _showShortcuts(); break;
       case 'a': case 'A': if (e.ctrlKey||e.metaKey) { e.preventDefault(); _filtered().forEach(s => S.sel.add(s.id)); _refreshSel(); } break;
     }

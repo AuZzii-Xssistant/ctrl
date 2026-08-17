@@ -16,8 +16,10 @@ fn watch_ids() -> &'static Mutex<std::collections::HashSet<i64>> {
 /// Resolve the best available text editor: VS Code → Notepad++ → Notepad.
 /// Never uses shell file-association (which can execute .ps1 files).
 pub fn find_editor() -> String {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     // VS Code: check PATH first, then common install locations
-    if let Ok(out) = std::process::Command::new("where").arg("code").output() {
+    if let Ok(out) = std::process::Command::new("where").arg("code").creation_flags(CREATE_NO_WINDOW).output() {
         if out.status.success() {
             let s = String::from_utf8_lossy(&out.stdout);
             if let Some(p) = s.trim().lines().next() {
@@ -353,107 +355,87 @@ pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i
     };
     let run_as_admin = force_admin.unwrap_or(false) || db_admin;
 
-    // Interactive mode: open a visible cmd window with pause.
-    // If admin, launch via Start-Process -Verb RunAs so UAC fires.
-    if interactive && std::env::var("CTRL_SANDBOX").as_deref() != Ok("1") {
-        let tmp_path = content.as_ref().map(|c| {
-            let p = std::env::temp_dir().join(format!("ctrl_script_{}.{}", id, script_type));
-            let _ = fs::write(&p, c);
-            p
-        });
-        let run_path = tmp_path.as_ref()
-            .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_else(|| file_path.clone());
-        let call_line = match script_type.as_str() {
-            "ps1" => format!("powershell -ExecutionPolicy Bypass -NoProfile -File \"{}\"", run_path),
-            "py"  => format!("python \"{}\"", run_path),
-            "vbs" => format!("cscript //NoLogo \"{}\"", run_path),
-            _     => format!("call \"{}\"", run_path),
-        };
-        let bat = std::env::temp_dir().join(format!("ctrl_irun_{}.bat", id));
-        let _ = fs::write(&bat, format!("@echo off\ntitle {}\n{}\necho.\npause\n", name, call_line));
-        let bat_str = bat.to_string_lossy();
-        if run_as_admin && !crate::commands::exec::running_as_admin() {
-            let ps = crate::commands::exec::ps_bin();
-            let _ = std::process::Command::new(ps)
-                .args(["-WindowStyle", "Hidden", "-Command",
-                    &format!("Start-Process -FilePath cmd.exe -ArgumentList '/C \"{bat_str}\"' -Verb RunAs")])
-                .spawn();
-        } else {
-            app.shell().command("cmd").args(["/c", "start", "", &*bat_str]).spawn().map_err(|e| e.to_string())?;
-        }
-        return Ok(RunResult { success: true, output: String::new() });
-    }
-
     // Sandbox dry-run
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
         let preview = content.as_deref().unwrap_or(&file_path);
         return Ok(RunResult { success: true, output: format!("SANDBOX: would run script \"{name}\" ({script_type}):\n{preview}") });
     }
 
-    // Write DB content to temp file if needed
-    let tmp_content_file = content.as_ref().map(|c| {
-        let p = std::env::temp_dir().join(format!("ctrl_script_content_{}.{}", id, script_type));
-        let _ = fs::write(&p, c);
-        p
-    });
-    let exec_path = tmp_content_file.as_ref()
-        .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|| file_path.clone());
+    use crate::commands::exec::{Shell, run as exec_run, run_elevated as exec_run_elevated};
 
-    // Admin: UAC elevation via embedded terminal (only when CTRL itself is not already elevated)
-    if run_as_admin && !crate::commands::exec::running_as_admin() {
-        use crate::commands::exec::{Shell, run_elevated};
-        // Build a one-liner that runs the script file in the appropriate shell
-        let exec_esc = exec_path.replace('\'', "''");
-        let (shell, cmd) = match script_type.as_str() {
-            "ps1"       => (Shell::PowerShell, format!("& '{exec_esc}'")),
-            "py"        => (Shell::Python,     format!("'{exec_esc}'")),
-            "vbs"       => (Shell::PowerShell, format!("cscript //NoLogo '{exec_esc}'")),
-            "ahk"       => (Shell::PowerShell, format!("Start-Process -FilePath AutoHotkey -ArgumentList '{exec_esc}' -Wait")),
-            _           => (Shell::Cmd,        format!("call \"{exec_esc}\"")),
-        };
-        let result = run_elevated(&app, &cmd, &shell, &format!("script_{id}")).await?;
-        if let Some(p) = &tmp_content_file { let _ = fs::remove_file(p); }
-        {
-            let db = state.0.lock().map_err(|e| e.to_string())?;
-            let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,?3,?4)",
-                params![id, name, if result.success { 0i64 } else { 1i64 }, ""]);
-        }
-        return Ok(RunResult { success: result.success, output: String::new() });
-    }
-
-    // Find AutoHotkey.exe in common install locations
-    let ahk_path: String;
-    let ps = crate::commands::exec::ps_bin();
-    let (program, args) = match script_type.as_str() {
-        "ps1" => (ps, vec!["-ExecutionPolicy".into(), "Bypass".into(), "-NoProfile".into(), "-File".into(), exec_path.clone()]),
-        "py"  => ("python", vec![exec_path.clone()]),
-        "vbs" => ("cscript", vec!["//NoLogo".into(), exec_path.clone()]),
-        "ahk" => {
-            let candidates = [
-                "C:\\Program Files\\AutoHotkey\\AutoHotkey.exe",
-                "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe",
-                "C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe",
-            ];
-            ahk_path = candidates.iter()
-                .find(|p| std::path::Path::new(p).exists())
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "AutoHotkey".to_string());
-            (&*ahk_path, vec![exec_path.clone()])
-        },
-        _     => ("cmd", vec!["/c".into(), exec_path.clone()]),
+    // Resolve the script body — content from DB, or read from file_path
+    let mut body: String = if let Some(c) = content {
+        c
+    } else if !file_path.is_empty() {
+        fs::read_to_string(&file_path).map_err(|e| e.to_string())?
+    } else {
+        return Err(format!("Script \"{name}\" has no content and no file path."));
     };
-    let RunResult { success, output } = crate::commands::exec::spawn_streaming(&app, program, args).await?;
-    if let Some(p) = &tmp_content_file { let _ = fs::remove_file(p); }
-    {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        let code: i64 = if success { 0 } else { 1 };
-        let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,?3,?4)",
-            params![id, name, code, output]);
+
+    // "Pause Script" — hold the embedded terminal open at the end instead of
+    // spawning a separate console window. No-op for vbs/ahk (rare, own path).
+    if interactive {
+        body.push_str(match script_type.as_str() {
+            "ps1" => "\nWrite-Host \"\"; Write-Host 'Press Enter to continue...' -NoNewline; Read-Host | Out-Null",
+            "py"  => "\ninput('\\nPress Enter to continue...')",
+            _     => "\necho.\r\npause",
+        });
     }
-    // Output was already streamed via run-output events; return empty so JS doesn't double-write
-    Ok(RunResult { success, output: String::new() })
+
+    // Build the (shell, command) pair that exec functions understand.
+    // For AHK: spawn detached — it's a GUI process, not a terminal script.
+    let shell_cmd: Option<(Shell, String)> = match script_type.as_str() {
+        "ps1"       => Some((Shell::PowerShell, body.clone())),
+        "py"        => Some((Shell::Python,     body.clone())),
+        "vbs"       => {
+            // Write vbs to temp, then run via cscript one-liner through Cmd shell
+            let p = std::env::temp_dir().join(format!("ctrl_script_{id}.vbs"));
+            let _ = fs::write(&p, &body);
+            let esc = p.to_string_lossy().replace('\'', "''");
+            Some((Shell::Cmd, format!("cscript //NoLogo \"{}\"", esc)))
+        },
+        "bat" | _   => Some((Shell::Cmd, body.clone())),
+    };
+
+    // AHK: detach and return — it's GUI, not a terminal process
+    if script_type == "ahk" {
+        let p = std::env::temp_dir().join(format!("ctrl_script_{id}.ahk"));
+        let _ = fs::write(&p, &body);
+        let candidates = [
+            "C:\\Program Files\\AutoHotkey\\AutoHotkey.exe",
+            "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey64.exe",
+            "C:\\Program Files (x86)\\AutoHotkey\\AutoHotkey.exe",
+        ];
+        let ahk = candidates.iter()
+            .find(|c| std::path::Path::new(c).exists())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "AutoHotkey".to_string());
+        let _ = std::process::Command::new(&ahk).arg(p.to_str().unwrap_or("")).spawn();
+        return Ok(RunResult { success: true, output: format!("Script \"{name}\" launched (AutoHotkey).") });
+    }
+
+    let (shell, cmd) = shell_cmd.unwrap();
+
+    // Route through PTY — same path as Quick Fixes (exec::run / exec::run_elevated).
+    // This avoids PSReadLine cursor issues that spawn_streaming caused.
+    let result = if run_as_admin && !crate::commands::exec::running_as_admin() {
+        exec_run_elevated(&app, &cmd, &shell, &format!("script_{id}")).await?
+    } else {
+        exec_run(&app, &cmd, &shell).await?
+    };
+
+    {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now_secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now_str = format!("{}", now_secs);
+        let status = if result.success { "ok" } else { "failed" };
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        let _ = db.execute("INSERT INTO run_log (item_type,item_id,item_name,exit_code,output) VALUES ('script',?1,?2,?3,?4)",
+            params![id, name, if result.success { 0i64 } else { 1i64 }, ""]);
+        let _ = db.execute("UPDATE scripts SET last_run=?1,last_status=?2 WHERE id=?3",
+            params![now_str, status, id]);
+    }
+    Ok(RunResult { success: result.success, output: String::new() })
 }
 
 #[tauri::command]
@@ -541,7 +523,9 @@ pub async fn watch_script_edit(app: tauri::AppHandle, state: tauri::State<'_, Ap
                     if let Ok(db) = db_res.0.lock() {
                         let _ = db.execute("UPDATE scripts SET content=?1 WHERE id=?2", params![content, id]);
                     }
-                    let _ = app2.emit("script-synced", id);
+                    #[derive(serde::Serialize, Clone)]
+                    struct SyncPayload { id: i64, content: String }
+                    let _ = app2.emit("script-synced", SyncPayload { id, content });
                 }
             }
         }

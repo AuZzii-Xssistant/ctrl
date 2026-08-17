@@ -17,11 +17,8 @@ The inline filter in each pane searches only that pane's data. Use `Ctrl+K` glob
 ~~### Output drawer — no scroll-to-bottom on new output~~ ✅ Resolved
 Double RAF ensures scroll happens after layout paint.
 
-### Drag-to-reorder pins — not implemented
-Dashboard pins can't be reordered by dragging. Workaround: unpin and re-pin in the desired order.
-
 ### Run As Admin — output not captured for elevated processes
-When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated shell. Output from that shell cannot be captured by the parent process. The output drawer will show "Launched with administrator privileges. Output is not captured for elevated processes." This is a Windows UAC architecture limitation.
+When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated console (UAC requires this — a non-elevated process cannot read another process's console buffer). The embedded terminal shows a "Running as administrator — see external terminal" status line and captures only the exit code, not live output. This is a Windows UAC architecture limitation, not a CTRL bug.
 
 ### Run As Admin — no feedback if UAC is cancelled
 If the user cancels the UAC prompt, CTRL shows no error (the elevated PowerShell exits silently). The run is logged as successful because the launch itself succeeded. Planned: detect exit code from the elevated process.
@@ -48,6 +45,10 @@ A named machine-state system. Each Profile is a collection of settings that acti
 
 ## Resolved
 
+- **Drag-to-reorder pins/scripts** — fixed 2026-08-17, HTML5 DnD with nearest-row/tile fallback (works even when the cursor leaves the drop zone — above/below/left/right); required `dragDropEnabled:false` in tauri.conf.json since WebView2's native OS file-drop intercept blocks in-page HTML5 DnD entirely
+- **"Open in Editor" didn't save back to DB** — fixed 2026-08-17, `ss_open_in_editor` now delegates to `open_script_editor` + `watch_script_edit`, polls the temp file every 1.5s and syncs edits back
+- **Stop button didn't stop a running script** — fixed 2026-08-17, added `stop_current_run` cancel flag + PTY kill/respawn + `taskkill` for external elevated consoles
+- **Terminal garbled on first run while collapsed** — fixed 2026-08-17, `run-pty-cmd` now waits for the drawer's open transition and re-fits before writing (was racing PSReadLine's redraw)
 - **Builder state lost on close** — fixed 2026-08-13, localStorage persistence
 - **Tool icons always app-window** — fixed 2026-08-13, extension-to-icon mapping
 - **run_log `success` column missing** — fixed 2026-08-13, query uses `(exit_code=0)` instead

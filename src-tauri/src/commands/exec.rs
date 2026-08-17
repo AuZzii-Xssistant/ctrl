@@ -5,10 +5,33 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
+
+// Stop button — single-flight cancel flag. Only one script/fix run is ever
+// active at a time (acquireRun() serializes on the JS side), so one flag suffices.
+static RUN_CANCELLED: AtomicBool = AtomicBool::new(false);
+
+#[tauri::command]
+pub fn stop_current_run() {
+    RUN_CANCELLED.store(true, Ordering::SeqCst);
+}
+
+/// Kill an external elevated console spawned for the current run (Stop button).
+#[tauri::command]
+pub fn kill_process(pid: u32) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    std::process::Command::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 
 /// Cached elevation check — computed once at first use.
@@ -140,10 +163,13 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
     );
     fs::write(&wrapper, &wrapper_content).map_err(|e| e.to_string())?;
 
+    RUN_CANCELLED.store(false, Ordering::SeqCst);
     app.emit("run-start",   ()).ok();
     app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&wrapper))).ok();
 
     // Poll for sentinel written by wrapper on completion (max 10 min, blocking thread).
+    // Stop button sets RUN_CANCELLED — bail immediately instead of waiting on a
+    // sentinel that will never come once the PTY shell running it has been killed.
     let success = tauri::async_runtime::spawn_blocking(move || {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
         loop {
@@ -155,6 +181,11 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
                     .unwrap_or(1);
                 let _ = fs::remove_file(&sentinel);
                 return ec == 0;
+            }
+            if RUN_CANCELLED.swap(false, Ordering::SeqCst) {
+                let _ = fs::remove_file(&script);
+                let _ = fs::remove_file(&wrapper);
+                return false;
             }
             if std::time::Instant::now() > deadline { return false; }
         }
@@ -175,6 +206,7 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let pty_wrap  = tmp(label, "ptywrap",  "ps1");
     let exit_file = tmp(label, "exit",     "txt");
     let sentinel  = tmp(label, "sentinel", "txt");
+    let pid_file  = tmp(label, "pid",      "txt");
 
     // The actual script content (run elevated)
     let cmd_content = match shell {
@@ -207,6 +239,7 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     let exit_esc2 = esc_ps_path(&exit_file);
     let s_esc     = esc_ps_path(&sentinel);
     let pw_esc    = esc_ps_path(&pty_wrap);
+    let pid_esc   = esc_ps_path(&pid_file);
     let ps        = ps_bin();
 
     // PTY wrapper: runs non-elevated in the embedded terminal.
@@ -220,9 +253,11 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
          Write-Host \"$($e)[33mRunning as administrator \u{2014} see external terminal$($e)[0m\"\n\
          $ec=1\n\
          try {{\n\
-           Start-Process -Verb RunAs -Wait -WindowStyle Normal \
+           $__p = Start-Process -Verb RunAs -WindowStyle Normal -PassThru \
              -FilePath '{ps}' \
              -ArgumentList @('-ExecutionPolicy','Bypass','-NoProfile','-File','{elev_esc}')\n\
+           $__p.Id | Out-File -FilePath '{pid_esc}' -Encoding UTF8 -Force\n\
+           $__p.WaitForExit()\n\
            $ec_str=(Get-Content '{exit_esc2}' -ErrorAction SilentlyContinue)\n\
            if ($null -ne $ec_str) {{ $ec=[int]$ec_str.Trim() }}\n\
          }} catch {{\n\
@@ -237,18 +272,33 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
          Remove-Item '{cmd_esc}'   -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{elev_esc}' -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{exit_esc2}' -Force -ErrorAction SilentlyContinue\n\
+         Remove-Item '{pid_esc}'  -Force -ErrorAction SilentlyContinue\n\
          Remove-Item '{pw_esc}'   -Force -ErrorAction SilentlyContinue\n"
     );
     fs::write(&pty_wrap, &pty_content).map_err(|e| e.to_string())?;
 
+    RUN_CANCELLED.store(false, Ordering::SeqCst);
     app.emit("run-start",   ()).ok();
     app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&pty_wrap))).ok();
 
     // Poll for sentinel written by pty_wrap on completion (max 10 min, blocking thread).
+    // Also opportunistically pick up the elevated process's PID once Start-Process
+    // writes it, so the Stop button can taskkill the external console directly.
+    let app_pid = app.clone();
+    let pid_file2 = pid_file.clone();
     let success = tauri::async_runtime::spawn_blocking(move || {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
+        let mut pid_emitted = false;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(150));
+            if !pid_emitted {
+                if let Ok(s) = fs::read_to_string(&pid_file2) {
+                    if let Ok(pid) = s.trim().parse::<u32>() {
+                        let _ = app_pid.emit("elevated-pid", pid);
+                        pid_emitted = true;
+                    }
+                }
+            }
             if sentinel.exists() {
                 let ec = fs::read_to_string(&sentinel)
                     .ok()
@@ -256,6 +306,10 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
                     .unwrap_or(1);
                 let _ = fs::remove_file(&sentinel);
                 return ec == 0;
+            }
+            if RUN_CANCELLED.swap(false, Ordering::SeqCst) {
+                let _ = fs::remove_file(&pid_file2);
+                return false;
             }
             if std::time::Instant::now() > deadline { return false; }
         }

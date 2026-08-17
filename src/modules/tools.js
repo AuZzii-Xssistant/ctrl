@@ -1,4 +1,5 @@
 import { esc, groupBy, sectionHdr, emptyState, skeletonCards, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu } from '../app.js';
+import { invalidatePins } from './dashboard.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -16,15 +17,14 @@ export async function load(search = '') {
 
   _wireSearch(el, search);
 
-  const [tools, qls, apps] = await Promise.all([
+  const [tools, qls] = await Promise.all([
     inv('get_tools', { search }),
     inv('get_ql_items').catch(() => []),
-    inv('list_external_apps').catch(() => []),
   ]);
-  _render(el, tools, qls, apps);
+  _render(el, tools, qls);
 }
 
-function _render(el, tools, qls = [], apps = []) {
+function _render(el, tools, qls = []) {
   const body = el.querySelector('#tools-body') || (() => {
     const d = document.createElement('div'); d.id = 'tools-body'; el.appendChild(d); return d;
   })();
@@ -40,23 +40,6 @@ function _render(el, tools, qls = [], apps = []) {
       </button>
       <button class="ql-pin-btn" data-ql-id="${q.id}" title="Pin to Dashboard"><i class="ti ti-pin"></i></button>
     </div>`).join('') + '</div>';
-
-  // External Apps section
-  html += `<div class="section-hdr"><span class="section-label">Apps</span><span class="section-count">${apps.length}</span>
-    <button class="action-btn btn-secondary" style="margin-left:auto;font-size:10px;padding:3px 10px" id="add-app-btn"><i class="ti ti-plus"></i> Add App</button>
-  </div>`;
-  if (apps.length) {
-    html += '<div class="ql-grid">' + apps.map(a => `
-      <div class="ql-pill-wrap">
-        <button class="ql-pill app-pill" data-path="${esc(a.path)}" title="${esc(a.path)}">
-          <i class="ti ti-device-desktop"></i>${esc(a.name)}
-        </button>
-        <button class="ql-pin-btn" data-app-id="${a.id}" title="Pin to Dashboard"><i class="ti ti-pin"></i></button>
-        <button class="ql-del-btn" data-app-id="${a.id}" title="Remove"><i class="ti ti-trash"></i></button>
-      </div>`).join('') + '</div>';
-  } else {
-    html += `<div style="color:var(--text3);font-size:11px;padding:8px 0 4px">No apps added. Click <strong>Add App</strong> to browse for .exe or .lnk files.</div>`;
-  }
 
   if (!tools.length) {
     html += emptyState('ti-app-window', 'No tools registered yet.', '+ Add Tool', 'window._showToolModal(null)');
@@ -92,41 +75,21 @@ function _render(el, tools, qls = [], apps = []) {
   body.querySelectorAll('.ql-pill[data-cmd]').forEach(btn =>
     btn.addEventListener('click', () => inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err')))
   );
-  body.querySelectorAll('.app-pill').forEach(btn =>
-    btn.addEventListener('click', () => inv('launch_external', { path: btn.dataset.path }).catch(e => toast(String(e), 'err')))
-  );
   body.querySelectorAll('.ql-pin-btn[data-ql-id]').forEach(btn =>
     btn.addEventListener('click', async e => {
       e.stopPropagation();
       await inv('pin_item', { itemType: 'ql', itemId: +btn.dataset.qlId, groupName: 'Pinned' });
+      invalidatePins();
       toast('Pinned to Dashboard', 'ok');
     })
   );
-  body.querySelectorAll('.ql-pin-btn[data-app-id]').forEach(btn =>
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      await inv('pin_item', { itemType: 'app', itemId: +btn.dataset.appId, groupName: 'Pinned' });
-      toast('Pinned to Dashboard', 'ok');
-    })
-  );
-  body.querySelectorAll('.ql-del-btn[data-app-id]').forEach(btn =>
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const ok = await confirmDialog('Remove this app?', true);
-      if (!ok) return;
-      await inv('remove_external_app', { id: +btn.dataset.appId });
-      toast('Removed', 'info');
-      load();
-    })
-  );
-  document.getElementById('add-app-btn')?.addEventListener('click', _addApp);
 
   body.querySelectorAll('.card[data-id]').forEach(card => {
     card.addEventListener('contextmenu', e => {
       const id = +card.dataset.id;
       showContextMenu(e, [
         { label: 'Launch', icon: 'ti-player-play', fn: () => _launch(id) },
-        { label: 'Pin to Dashboard', icon: 'ti-pin', fn: () => inv('pin_item', { itemType: 'tool', itemId: id, groupName: 'Pinned' }).then(() => toast('Pinned', 'ok')) },
+        { label: 'Pin to Dashboard', icon: 'ti-pin', fn: () => inv('pin_item', { itemType: 'tool', itemId: id, groupName: 'Pinned' }).then(() => { invalidatePins(); toast('Pinned', 'ok'); }) },
         { label: 'Edit',   icon: 'ti-edit',        fn: () => _editById(id, tools) },
         '---',
         { label: 'Remove', icon: 'ti-trash', danger: true, fn: () => _delete(id) },
@@ -136,17 +99,6 @@ function _render(el, tools, qls = [], apps = []) {
   body.querySelectorAll('[data-launch]').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); _launch(+btn.dataset.launch); }));
   body.querySelectorAll('[data-edit]').forEach(btn   => btn.addEventListener('click', e => { e.stopPropagation(); _editById(+btn.dataset.edit, tools); }));
   body.querySelectorAll('[data-del]').forEach(btn    => btn.addEventListener('click', e => { e.stopPropagation(); _delete(+btn.dataset.del); }));
-}
-
-async function _addApp() {
-  try {
-    const path = await inv('pick_exe_file');
-    if (!path) return;
-    const name = path.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
-    await inv('add_external_app', { name, path });
-    toast(`Added "${name}"`, 'ok');
-    load();
-  } catch (e) { toast(String(e), 'err'); }
 }
 
 function _wireSearch(el, initial) {
@@ -162,8 +114,11 @@ function _wireSearch(el, initial) {
     f.addEventListener('input', () => {
       clearTimeout(timer);
       timer = setTimeout(async () => {
-        const tools = await inv('get_tools', { search: f.value.trim() });
-        _render(el, tools);
+        const [tools, qls] = await Promise.all([
+          inv('get_tools', { search: f.value.trim() }),
+          inv('get_ql_items').catch(() => []),
+        ]);
+        _render(el, tools, qls);
       }, 180);
     });
   }, 0);
@@ -205,6 +160,10 @@ window._showToolModal = (tool) => {
       <input type="checkbox" id="f-admin" ${tool?.run_as_admin ? 'checked' : ''} />
       <label for="f-admin" class="form-label" style="margin:0;cursor:pointer">Run as Administrator</label>
     </div>
+    ${!tool ? `<div class="form-row" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="f-pin" checked />
+      <label for="f-pin" class="form-label" style="margin:0;cursor:pointer">Pin to Dashboard</label>
+    </div>` : ''}
     <div class="form-actions">
       <button class="action-btn btn-ghost" onclick="window._closeToolModal()">Cancel</button>
       <button class="action-btn btn-primary" onclick="window._saveTool(${tool?.id||'null'})">${tool?'Save':'Add'}</button>
@@ -229,7 +188,15 @@ window._saveTool = async (id) => {
   };
   if (!data.name || !data.path) { toast('Name and path required', 'err'); return; }
   try {
-    if (id) await inv('update_tool', { id, data }); else await inv('add_tool', { data });
+    if (id) {
+      await inv('update_tool', { id, data });
+    } else {
+      const newId = await inv('add_tool', { data });
+      if (document.getElementById('f-pin')?.checked) {
+        await inv('pin_item', { itemType: 'tool', itemId: newId, groupName: 'Pinned' }).catch(() => {});
+        invalidatePins();
+      }
+    }
     closeModal(); toast(id ? 'Tool updated' : 'Tool added', 'ok');
     window._refreshStats?.(); load();
   } catch (e) { toast(String(e), 'err'); }

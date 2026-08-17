@@ -259,16 +259,51 @@ export function releaseRun() {
 }
 
 // Run-event listeners
-listen('run-start', () => { _openDrawer(); document.getElementById('output-new-dot')?.style.setProperty('display', ''); });
+let _pendingDrawerOpen = false;
+let _elevatedPid = 0;
+listen('run-start', () => {
+  const d = document.getElementById('output-drawer');
+  _pendingDrawerOpen = !d?.classList.contains('open');
+  _openDrawer();
+  document.getElementById('output-new-dot')?.style.setProperty('display', '');
+});
 listen('run-output', e => _activeTab()?.term.write(e.payload));  // admin mode status
-listen('run-done',   () => _activeTab()?.term.blur());
+listen('run-done',   () => { _activeTab()?.term.blur(); _elevatedPid = 0; });
+listen('elevated-pid', e => { _elevatedPid = e.payload; });
 listen('run-pty-cmd', async e => {
   const tab = _tabs.find(t => t.id === _runTargetTabId) || _activeTab();
   if (!tab) return;
   for (let i = 0; i < 30 && !tab.started; i++)
     await new Promise(r => setTimeout(r, 100));
-  if (tab.started) invoke('pty_write', { tabId: tab.id, data: e.payload + '\r' }).catch(() => {});
+  if (!tab.started) return;
+  // If the drawer was collapsed, its fit() hasn't run against the real visible
+  // size yet — writing the command before that resize lands corrupts PSReadLine's
+  // redraw (garbled "&" line, phantom history popup). Wait out the drawer's own
+  // 220ms open transition, then fit+resize, before typing anything.
+  if (_pendingDrawerOpen) await new Promise(r => setTimeout(r, 260));
+  try { tab.fit.fit(); } catch {}
+  const c = tab.term.cols || 80, r = tab.term.rows || 24;
+  if (c !== tab.lastCols || r !== tab.lastRows) {
+    tab.lastCols = c; tab.lastRows = r;
+    await invoke('pty_resize', { tabId: tab.id, cols: c, rows: r }).catch(() => {});
+  }
+  invoke('pty_write', { tabId: tab.id, data: e.payload + '\r' }).catch(() => {});
 });
+
+// Stop button — kills the currently-executing script: unblocks the Rust-side
+// poll, kills+respawns the PTY tab running it (internal), and taskkills any
+// spawned external elevated console (admin runs).
+export async function stopCurrentRun() {
+  invoke('stop_current_run').catch(() => {});
+  const tab = _tabs.find(t => t.id === _runTargetTabId) || _activeTab();
+  if (tab?.started) {
+    await invoke('pty_close', { tabId: tab.id }).catch(() => {});
+    tab.started = false;
+    tab.term.write('\r\n\x1b[33m[Stopped]\x1b[0m\r\n');
+    await _startTabPty(tab);
+  }
+  if (_elevatedPid) { invoke('kill_process', { pid: _elevatedPid }).catch(() => {}); _elevatedPid = 0; }
+}
 
 // ── Drawer open/close ─────────────────────────────────────────────────────────
 
@@ -381,6 +416,7 @@ _loadShells();
 
 // ── Custom modal ─────────────────────────────────────────────────────────────
 let _confirmResolve = null;
+let _promptResolve = null;
 
 export function openModal(title, bodyHtml) {
   document.getElementById('modal-title').textContent = title;
@@ -392,6 +428,7 @@ export function openModal(title, bodyHtml) {
     el.setAttribute('spellcheck', 'false');
   });
   document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('global-search').disabled = true;
   // Enter key: move to next input, or click primary btn on last field
   setTimeout(() => {
     const inputs = [...document.querySelectorAll('#modal-body input:not([type=checkbox]), #modal-body select, #modal-body textarea')];
@@ -411,8 +448,33 @@ export function openModal(title, bodyHtml) {
 
 export function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('global-search').disabled = false;
   if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+  if (_promptResolve)  { _promptResolve(null);   _promptResolve = null; }
 }
+
+/** Replaces browser prompt(). Returns Promise<string|null>. */
+export function promptText(title, label, defaultVal = '') {
+  return new Promise(resolve => {
+    _promptResolve = resolve;
+    openModal(title, `
+      <div class="form-row">
+        <label class="form-label">${esc(label)}</label>
+        <input class="form-input" id="pt-input" value="${esc(defaultVal)}">
+      </div>
+      <div class="form-actions">
+        <button class="action-btn btn-ghost" onclick="window._modalCancel()">Cancel</button>
+        <button class="action-btn btn-primary" onclick="window._promptOk()">OK</button>
+      </div>`);
+    document.getElementById('pt-input')?.select();
+  });
+}
+window._promptOk = () => {
+  const v = document.getElementById('pt-input')?.value ?? '';
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (_promptResolve) { _promptResolve(v); _promptResolve = null; }
+  _confirmResolve = null;
+};
 
 /** Replaces browser confirm(). Returns Promise<boolean>. */
 export function confirmDialog(message, danger = false) {
@@ -439,6 +501,14 @@ window._modalCancel = () => closeModal();
 
 // Modal closes on Escape only (not backdrop click — too easy to lose form data)
 document.getElementById('modal-x').addEventListener('click', closeModal);
+
+// Ctrl+S in any open modal clicks its primary (Save) button instead of triggering browser save.
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return;
+  if (!document.getElementById('modal-overlay').classList.contains('open')) return;
+  e.preventDefault();
+  document.querySelector('#modal-body .btn-primary, #modal-box .btn-primary')?.click();
+});
 
 // ── Context menu ─────────────────────────────────────────────────────────────
 const _ctxMenu = document.getElementById('ctx-menu');
@@ -470,7 +540,10 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { hideContextMenu(); closeModal(); }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); _searchEl.focus(); _searchEl.select(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    if (document.getElementById('modal-overlay').classList.contains('open')) return;
+    e.preventDefault(); _searchEl.focus(); _searchEl.select();
+  }
   // Prevent browser built-in shortcuts that shouldn't work in a desktop app
   if (e.ctrlKey || e.metaKey) {
     const blocked = ['f', 'g', 'h', 'u', 'p', 'j', 'r'];

@@ -47,6 +47,9 @@ pub struct SsScript {
     pub enabled: bool,
     #[serde(rename = "inProfiles")]
     pub in_profiles: Vec<i64>,
+    pub interactive: bool,
+    #[serde(rename = "inMaster")]
+    pub in_master: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -73,6 +76,7 @@ pub struct SsScriptData {
     pub content: Option<String>,
     #[serde(rename = "runAsAdmin")]
     pub run_as_admin: Option<bool>,
+    pub interactive: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -124,7 +128,7 @@ fn query_ss_scripts(db: &rusqlite::Connection, profile_id: Option<i64>) -> Resul
         let sql = format!(
             "SELECT s.id,s.name,COALESCE(s.description,''),COALESCE(s.script_type,'ps1'),s.content,
              COALESCE(s.run_as_admin,0),s.last_run,COALESCE(s.last_status,'never'),s.last_error,
-             sp.sort_order, CASE WHEN sp.disabled=0 THEN 1 ELSE 0 END, {ip_sub}
+             sp.sort_order, CASE WHEN sp.disabled=0 THEN 1 ELSE 0 END, {ip_sub}, COALESCE(s.interactive,0), COALESCE(s.in_master,1)
              FROM scripts s
              JOIN ss_script_profile sp ON sp.script_id=s.id AND sp.profile_id=?1
              ORDER BY sp.sort_order, s.name"
@@ -140,16 +144,19 @@ fn query_ss_scripts(db: &rusqlite::Connection, profile_id: Option<i64>) -> Resul
                 order: r.get(9)?,
                 enabled: r.get::<_,i64>(10)? != 0,
                 in_profiles: parse_in_profiles(in_p),
+                interactive: r.get::<_,i64>(12)? != 0,
+                in_master: r.get::<_,i64>(13)? != 0,
             })
         }).map_err(|e| e.to_string())?;
         Ok(rows.filter_map(|r| r.ok()).collect())
     } else {
-        // Master: all scripts
+        // Master: scripts with in_master=1 — Master is a real toggleable profile now
         let sql = format!(
             "SELECT s.id,s.name,COALESCE(s.description,''),COALESCE(s.script_type,'ps1'),s.content,
              COALESCE(s.run_as_admin,0),s.last_run,COALESCE(s.last_status,'never'),s.last_error,
-             COALESCE(s.master_order,9999), CASE WHEN COALESCE(s.master_disabled,0)=0 THEN 1 ELSE 0 END, {ip_sub}
+             COALESCE(s.master_order,9999), CASE WHEN COALESCE(s.master_disabled,0)=0 THEN 1 ELSE 0 END, {ip_sub}, COALESCE(s.interactive,0), COALESCE(s.in_master,1)
              FROM scripts s
+             WHERE COALESCE(s.in_master,1)=1
              ORDER BY COALESCE(s.master_order,9999), s.name"
         );
         let mut stmt = db.prepare(&sql).map_err(|e| e.to_string())?;
@@ -163,6 +170,8 @@ fn query_ss_scripts(db: &rusqlite::Connection, profile_id: Option<i64>) -> Resul
                 order: r.get(9)?,
                 enabled: r.get::<_,i64>(10)? != 0,
                 in_profiles: parse_in_profiles(in_p),
+                interactive: r.get::<_,i64>(12)? != 0,
+                in_master: r.get::<_,i64>(13)? != 0,
             })
         }).map_err(|e| e.to_string())?;
         Ok(rows.filter_map(|r| r.ok()).collect())
@@ -185,13 +194,6 @@ fn query_profiles(db: &rusqlite::Connection) -> Result<Vec<SsProfile>, String> {
         id: r.get(0)?, name: r.get(1)?, script_count: r.get(2)?
     })).map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
-}
-
-fn gc_orphaned_scripts(db: &rusqlite::Connection) {
-    let _ = db.execute(
-        "DELETE FROM scripts WHERE id NOT IN (SELECT DISTINCT script_id FROM ss_script_profile)",
-        []
-    );
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────────
@@ -224,7 +226,6 @@ pub fn ss_remove_profile(state: State<AppState>, id: i64) -> Result<bool, String
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute("DELETE FROM ss_script_profile WHERE profile_id=?1", params![id]).map_err(|e| e.to_string())?;
     db.execute("DELETE FROM ss_profiles WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
-    gc_orphaned_scripts(&db);
     Ok(true)
 }
 
@@ -251,10 +252,14 @@ pub fn ss_add_script(state: State<AppState>, profile_id: Option<i64>, data: SsSc
     let stype = data.script_type.unwrap_or_else(|| "ps1".into());
     let content = data.content.unwrap_or_default();
     let admin = data.run_as_admin.unwrap_or(false);
+    let pause = data.interactive.unwrap_or(false);
+    // Created directly on Master → in Master. Created on a named profile → that
+    // profile only, not auto-added to Master (Master is a toggleable membership).
+    let in_master = profile_id.is_none();
     let max_mo: i64 = db.query_row("SELECT COALESCE(MAX(master_order)+1, 0) FROM scripts", [], |r| r.get(0)).unwrap_or(0);
     db.execute(
-        "INSERT INTO scripts (name,description,script_type,content,run_as_admin,master_order,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,'','')",
-        params![data.name, desc, stype, content, admin as i64, max_mo]
+        "INSERT INTO scripts (name,description,script_type,content,run_as_admin,interactive,in_master,master_order,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'','')",
+        params![data.name, desc, stype, content, admin as i64, pause as i64, in_master as i64, max_mo]
     ).map_err(|e| e.to_string())?;
     let script_id = db.last_insert_rowid();
 
@@ -275,6 +280,8 @@ pub fn ss_add_script(state: State<AppState>, profile_id: Option<i64>, data: SsSc
         last_run: None, last_status: "never".into(), last_error: None,
         order: max_mo, enabled: true,
         in_profiles: profile_id.map(|p| vec![p]).unwrap_or_default(),
+        interactive: pause,
+        in_master,
     })
 }
 
@@ -282,12 +289,13 @@ pub fn ss_add_script(state: State<AppState>, profile_id: Option<i64>, data: SsSc
 pub fn ss_edit_script(state: State<AppState>, script_id: i64, data: SsScriptData) -> Result<bool, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "UPDATE scripts SET name=?1,description=?2,script_type=?3,content=?4,run_as_admin=?5 WHERE id=?6",
+        "UPDATE scripts SET name=?1,description=?2,script_type=?3,content=?4,run_as_admin=?5,interactive=?6 WHERE id=?7",
         params![
             data.name, data.description.unwrap_or_default(),
             data.script_type.unwrap_or_else(|| "ps1".into()),
             data.content.unwrap_or_default(),
             data.run_as_admin.unwrap_or(false) as i64,
+            data.interactive.unwrap_or(false) as i64,
             script_id
         ]
     ).map_err(|e| e.to_string())?;
@@ -307,7 +315,7 @@ pub fn ss_remove_scripts(state: State<AppState>, profile_id: Option<i64>, ids: V
             db.execute("DELETE FROM ss_script_profile WHERE script_id=?1 AND profile_id=?2", params![sid, pid]).map_err(|e| e.to_string())?;
         }
     }
-    if profile_id.is_some() { gc_orphaned_scripts(&db); }
+    // Removing from a named profile does not orphan — script stays in Master
     Ok(true)
 }
 
@@ -360,9 +368,9 @@ pub fn ss_duplicate_script(state: State<AppState>, profile_id: Option<i64>, scri
     let db = state.0.lock().map_err(|e| e.to_string())?;
     // Fetch original
     let src = db.query_row(
-        "SELECT name,description,script_type,content,run_as_admin,master_order FROM scripts WHERE id=?1",
+        "SELECT name,description,script_type,content,run_as_admin,master_order,COALESCE(interactive,0),COALESCE(in_master,1) FROM scripts WHERE id=?1",
         params![script_id],
-        |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,String>(2)?, r.get::<_,Option<String>>(3)?, r.get::<_,i64>(4)? != 0, r.get::<_,i64>(5)?))
+        |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?, r.get::<_,String>(2)?, r.get::<_,Option<String>>(3)?, r.get::<_,i64>(4)? != 0, r.get::<_,i64>(5)?, r.get::<_,i64>(6)? != 0, r.get::<_,i64>(7)? != 0))
     ).map_err(|e| e.to_string())?;
 
     let new_name = format!("{} (copy)", src.0);
@@ -371,8 +379,8 @@ pub fn ss_duplicate_script(state: State<AppState>, profile_id: Option<i64>, scri
     let _ = db.execute("UPDATE scripts SET master_order=master_order+1 WHERE master_order>?1", params![src.5]);
 
     db.execute(
-        "INSERT INTO scripts (name,description,script_type,content,run_as_admin,master_order,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,'','')",
-        params![new_name, src.1, src.2, src.3.clone().unwrap_or_default(), src.4 as i64, new_mo]
+        "INSERT INTO scripts (name,description,script_type,content,run_as_admin,interactive,in_master,master_order,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'','')",
+        params![new_name, src.1, src.2, src.3.clone().unwrap_or_default(), src.4 as i64, src.6 as i64, src.7 as i64, new_mo]
     ).map_err(|e| e.to_string())?;
     let new_id = db.last_insert_rowid();
 
@@ -395,12 +403,15 @@ pub fn ss_duplicate_script(state: State<AppState>, profile_id: Option<i64>, scri
         last_run: None, last_status: "never".into(), last_error: None,
         order: new_mo, enabled: true,
         in_profiles: profile_id.map(|p| vec![p]).unwrap_or_default(),
+        interactive: src.6,
+        in_master: src.7,
     }))
 }
 
 #[tauri::command]
-pub fn ss_set_script_profiles(state: State<AppState>, script_id: i64, profile_ids: Vec<i64>) -> Result<bool, String> {
+pub fn ss_set_script_profiles(state: State<AppState>, script_id: i64, profile_ids: Vec<i64>, in_master: bool) -> Result<bool, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute("UPDATE scripts SET in_master=?1 WHERE id=?2", params![in_master as i64, script_id]).map_err(|e| e.to_string())?;
     let target: std::collections::HashSet<i64> = profile_ids.iter().copied().collect();
 
     // Get current profiles for this script
@@ -774,27 +785,13 @@ pub async fn ss_run_embedded(
     }
 }
 
-/// Open SS script content in the user's text editor (writes temp file).
+/// Open SS script content in the user's text editor (writes temp file) and
+/// watch that file for changes, syncing edits back into the DB — same temp
+/// path + watcher as the regular Scripts page's open_script_editor/watch_script_edit.
 #[tauri::command]
-pub fn ss_open_in_editor(state: State<AppState>, script_id: i64) -> Result<bool, String> {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-    let (content, stype) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        db.query_row(
-            "SELECT COALESCE(content,''), COALESCE(script_type,'ps1') FROM scripts WHERE id=?1",
-            params![script_id], |r| Ok((r.get::<_,String>(0)?, r.get::<_,String>(1)?))
-        ).map_err(|e| e.to_string())?
-    };
-    let n = tmp_counter();
-    let tmp_path = std::env::temp_dir().join(format!("ctrl_ss_edit_{n}.{stype}"));
-    fs::write(&tmp_path, &content).map_err(|e| e.to_string())?;
-    let editor = crate::commands::scripts::find_editor();
-    std::process::Command::new(&editor)
-        .arg(&tmp_path)
-        .creation_flags(CREATE_NO_WINDOW)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+pub async fn ss_open_in_editor(app: tauri::AppHandle, state: State<'_, AppState>, script_id: i64) -> Result<bool, String> {
+    crate::commands::scripts::open_script_editor(app.clone(), state.clone(), script_id).await?;
+    crate::commands::scripts::watch_script_edit(app, state, script_id).await?;
     Ok(true)
 }
 
