@@ -584,7 +584,12 @@ _searchEl.addEventListener('keydown', e => {
   let idx = items.indexOf(cur);
   if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % items.length; }
   else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + items.length) % items.length; }
-  else if (e.key === 'Enter' && cur) { cur.click(); return; }
+  else if (e.key === 'Enter' && cur) {
+    // Ctrl+Enter runs directly (same as the ▶ button) instead of navigating.
+    const runBtn = (e.ctrlKey || e.metaKey) && cur.querySelector('.sr-run-btn');
+    if (runBtn) runBtn.click(); else cur.click();
+    return;
+  }
   else return;
   items.forEach(i => i.classList.remove('sr-active'));
   items[idx].classList.add('sr-active');
@@ -604,13 +609,42 @@ async function doSearch(q) {
 const _searchSections = [
   { key: 'quick_launch', label: 'Quick Launch', icon: 'ti-rocket',       pane: 'tools', launch: 'ql' },
   { key: 'apps',         label: 'Apps',          icon: 'ti-device-desktop', pane: 'tools', launch: 'app' },
-  { key: 'tools',        label: 'Tools',         icon: 'ti-tool',          pane: 'tools' },
-  { key: 'scripts',      label: 'Scripts',       icon: 'ti-code',          pane: 'scripts' },
-  { key: 'fixes',        label: 'Fixes',         icon: 'ti-bolt',          pane: 'fixes' },
+  { key: 'tools',        label: 'Tools',         icon: 'ti-tool',          pane: 'tools',     runnable: true },
+  { key: 'scripts',      label: 'Scripts',       icon: 'ti-code',          pane: 'scripts',   runnable: true },
+  { key: 'fixes',        label: 'Fixes',         icon: 'ti-bolt',          pane: 'fixes',     runnable: true },
   { key: 'projects',     label: 'Projects',      icon: 'ti-archive',       pane: 'projects' },
-  { key: 'workflows',    label: 'Workflows',     icon: 'ti-player-play',   pane: 'workflows' },
+  { key: 'workflows',    label: 'Workflows',     icon: 'ti-player-play',   pane: 'workflows', runnable: true },
   { key: 'snippets',     label: 'Snippets',      icon: 'ti-blockquote',    pane: 'snippets' },
 ];
+
+// Command palette: Enter/click on a row navigates to it (safe default, lets you
+// see it first); the ▶ button runs it immediately without leaving search — the
+// "type a name, hit run, done" flow that makes this an actual command palette
+// instead of just a jump-to-pane search.
+const _paletteRun = {
+  tools:     id => invoke('launch_tool', { id }),
+  scripts:   id => invoke('run_script', { id }),
+  fixes:     id => invoke('run_fix', { id }),
+  workflows: id => invoke('run_workflow', { id }),
+};
+
+async function _runFromPalette(key, id, name) {
+  await acquireRun();
+  toast(`Running: ${name}`, 'info');
+  try {
+    const r = await _paletteRun[key](id);
+    if (key === 'workflows') {
+      const allOk = r.every(x => x.success);
+      showOutput(r.map((x, i) => `[${i+1}/${r.length}] ${x.success?'✓':'✗'} ${x.label}\n${x.output.trim()||'(no output)'}`).join('\n' + '─'.repeat(36) + '\n'), allOk);
+      toast(allOk ? `${name} complete` : `${name} had failures`, allOk ? 'ok' : 'err');
+    } else if (r && typeof r === 'object' && 'success' in r) {
+      showOutput(r.output, r.success);
+      toast(r.success ? 'Done' : `${name} failed`, r.success ? 'ok' : 'err');
+    } else {
+      toast('Launched', 'ok');
+    }
+  } catch (e) { toast(String(e), 'err'); } finally { releaseRun(); }
+}
 
 function renderSearch(data) {
   let html = '';
@@ -622,16 +656,26 @@ function renderSearch(data) {
     html += `<div class="sr-section">${s.label}</div>`;
     for (const item of items) {
       const launchAttr = s.launch ? ` data-launch="${s.launch}" data-launch-meta="${esc(item.meta)}"` : '';
+      const runBtn = s.runnable ? `<button class="sr-run-btn" data-run-key="${s.key}" data-run-id="${item.id}" data-run-name="${esc(item.name)}" title="Run now"><i class="ti ti-player-play"></i></button>` : '';
       html += `<div class="sr-item" data-pane="${s.pane}"${launchAttr}>
         <i class="ti ${s.icon}" style="color:var(--text3);font-size:14px;flex-shrink:0"></i>
         <span class="sr-item-name">${esc(item.name)}</span>
         <span class="sr-item-meta">${esc(item.meta)}</span>
+        ${runBtn}
       </div>`;
     }
   }
   if (!total) html = `<div class="sr-empty">No results</div>`;
   _searchRes.innerHTML = html;
   _searchRes.classList.add('open');
+  _searchRes.querySelectorAll('.sr-run-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      _searchRes.classList.remove('open');
+      _searchEl.value = '';
+      _runFromPalette(btn.dataset.runKey, parseInt(btn.dataset.runId), btn.dataset.runName);
+    });
+  });
   _searchRes.querySelectorAll('.sr-item').forEach(el => {
     el.addEventListener('click', async () => {
       const q = _searchEl.value.trim();

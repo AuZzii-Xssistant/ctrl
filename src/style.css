@@ -388,6 +388,14 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .sr-item:hover { background: var(--border); }
 .sr-item-name { font-size: 12px; color: var(--text); flex: 1; }
 .sr-item-meta { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+.sr-run-btn {
+  background: none; border: none; color: var(--text3); font-size: 12px;
+  width: 22px; height: 22px; opacity: 0; cursor: pointer; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+  flex-shrink: 0; transition: opacity 0.1s, color 0.1s;
+}
+.sr-item:hover .sr-run-btn { opacity: 1; }
+.sr-run-btn:hover { color: var(--amber) !important; background: rgba(245,158,11,.12) !important; }
 .sr-empty { padding: 16px 12px; text-align: center; color: var(--text3); font-size: 12px; }
 
 /* ── EMPTY STATE ── */

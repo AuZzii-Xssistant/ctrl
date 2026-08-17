@@ -59,6 +59,7 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 | `Escape` | Close modal / clear search |
 | `↑ ↓` | Navigate search results |
 | `Enter` | Open highlighted search result |
+| `Ctrl+Enter` (in search) | Run the highlighted result directly — tools, scripts, fixes, and workflows run immediately without leaving search |
 | Right-click | Context menu on any card or row |
 
 ---
