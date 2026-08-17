@@ -81,12 +81,19 @@ pub(crate) struct PtySession {
 
 pub struct TermState(pub Mutex<HashMap<u32, PtySession>>);
 
+/// Recover from a poisoned lock instead of panicking. A panic in one PTY
+/// operation while the lock is held would otherwise brick every terminal
+/// command for the rest of the app's lifetime.
+fn lock_terms(state: &TermState) -> std::sync::MutexGuard<'_, HashMap<u32, PtySession>> {
+    state.0.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 #[tauri::command]
 pub fn pty_open(app: AppHandle, tab_id: u32, shell: String, args: Vec<String>, cols: u16, rows: u16) -> Result<(), String> {
     // Close any existing session for this tab
     {
         let state: State<TermState> = app.state();
-        let old = state.0.lock().unwrap().remove(&tab_id);
+        let old = lock_terms(&state).remove(&tab_id);
         drop(state);
         if let Some(mut s) = old { let _ = s.child.kill(); }
     }
@@ -124,7 +131,7 @@ pub fn pty_open(app: AppHandle, tab_id: u32, shell: String, args: Vec<String>, c
     });
 
     let state: State<TermState> = app.state();
-    state.0.lock().unwrap().insert(tab_id, PtySession {
+    lock_terms(&state).insert(tab_id, PtySession {
         writer: Box::new(writer),
         master: pair.master,
         child,
@@ -136,7 +143,7 @@ pub fn pty_open(app: AppHandle, tab_id: u32, shell: String, args: Vec<String>, c
 #[tauri::command]
 pub fn pty_write(app: AppHandle, tab_id: u32, data: String) -> Result<(), String> {
     let state: State<TermState> = app.state();
-    let mut lock = state.0.lock().unwrap();
+    let mut lock = lock_terms(&state);
     if let Some(ref mut s) = lock.get_mut(&tab_id) {
         s.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
     }
@@ -146,7 +153,7 @@ pub fn pty_write(app: AppHandle, tab_id: u32, data: String) -> Result<(), String
 #[tauri::command]
 pub fn pty_resize(app: AppHandle, tab_id: u32, cols: u16, rows: u16) -> Result<(), String> {
     let state: State<TermState> = app.state();
-    let lock = state.0.lock().unwrap();
+    let lock = lock_terms(&state);
     if let Some(ref s) = lock.get(&tab_id) {
         let _ = s.master.resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 });
     }
@@ -156,7 +163,7 @@ pub fn pty_resize(app: AppHandle, tab_id: u32, cols: u16, rows: u16) -> Result<(
 #[tauri::command]
 pub fn pty_close(app: AppHandle, tab_id: u32) -> Result<(), String> {
     let state: State<TermState> = app.state();
-    if let Some(mut s) = state.0.lock().unwrap().remove(&tab_id) {
+    if let Some(mut s) = lock_terms(&state).remove(&tab_id) {
         let _ = s.child.kill();
     }
     let _ = app.emit(&format!("pty-exit-{}", tab_id), ());

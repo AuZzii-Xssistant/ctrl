@@ -74,9 +74,19 @@ impl Shell {
     }
 }
 
+/// Per-call counter folded into every temp filename. Without it, two runs sharing
+/// the same label (e.g. two "exec" runs in different terminal tabs, which
+/// acquireRun() on the JS side explicitly allows concurrently) would collide on
+/// the same script/wrapper/sentinel files and corrupt each other mid-run.
+fn tmp_call_id() -> u64 {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+}
+
 fn tmp(label: &str, suffix: &str, ext: &str) -> PathBuf {
     let pid = std::process::id();
-    std::env::temp_dir().join(format!("ctrl_{label}_{pid}_{suffix}.{ext}"))
+    let n = tmp_call_id();
+    std::env::temp_dir().join(format!("ctrl_{label}_{pid}_{n}_{suffix}.{ext}"))
 }
 
 fn esc_ps_path(p: &PathBuf) -> String {

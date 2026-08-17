@@ -164,7 +164,11 @@ pub fn build_script(_app: tauri::AppHandle, action_ids: Vec<String>, output_type
 
 #[tauri::command]
 pub async fn run_built_script(app: tauri::AppHandle, code: String, script_type: String) -> Result<RunResult, String> {
-    let tmp = std::env::temp_dir().join(format!("ctrl_built.{}", script_type));
+    // Unique per call — a fixed filename let a second "Run" click before the first
+    // finished overwrite the script file the first run was actively executing from.
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let tmp = std::env::temp_dir().join(format!("ctrl_built_{}_{}.{}", std::process::id(), n, script_type));
     std::fs::write(&tmp, &code).map_err(|e| e.to_string())?;
     let path = tmp.to_string_lossy().to_string();
     let (program, args): (&str, Vec<String>) = match script_type.as_str() {

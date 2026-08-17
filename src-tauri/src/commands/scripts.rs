@@ -233,7 +233,7 @@ pub async fn launch_shortcut(app: tauri::AppHandle, cmd: String) -> Result<(), S
 #[tauri::command]
 pub async fn watch_script_edit(app: tauri::AppHandle, state: tauri::State<'_, AppState>, id: i64) -> Result<(), String> {
     {
-        let mut ids = watch_ids().lock().unwrap();
+        let mut ids = watch_ids().lock().unwrap_or_else(|e| e.into_inner());
         if ids.contains(&id) { return Ok(()); }
         ids.insert(id);
     }
@@ -264,7 +264,7 @@ pub async fn watch_script_edit(app: tauri::AppHandle, state: tauri::State<'_, Ap
                 }
             }
         }
-        watch_ids().lock().unwrap().remove(&id);
+        watch_ids().lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
     });
     Ok(())
 }
