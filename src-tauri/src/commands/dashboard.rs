@@ -26,10 +26,21 @@ pub fn get_pinned(state: State<AppState>) -> Result<Vec<PinnedItem>, String> {
     }).map_err(|e| e.to_string())?;
 
     let mut items = Vec::new();
+    let mut dangling = Vec::new();
     for row in rows.filter_map(|r| r.ok()) {
         let (id, item_type, item_id, group_name, sort_order) = row;
         let (name, icon, meta) = resolve_item(&db, &item_type, item_id);
+        if name.is_empty() {
+            // Underlying tool/fix/workflow/project/script was deleted — drop the stale pin.
+            dangling.push(id);
+            continue;
+        }
         items.push(PinnedItem { id, item_type, item_id, item_name: name, item_icon: icon, item_meta: meta, group_name, sort_order });
+    }
+    if !dangling.is_empty() {
+        for id in dangling {
+            let _ = db.execute("DELETE FROM pinned WHERE id=?1", params![id]);
+        }
     }
     Ok(items)
 }

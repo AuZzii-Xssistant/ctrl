@@ -1,5 +1,9 @@
 # CTRL Changelog
 
+## 2026-08-18 — dangling-pin bug fix
+
+- Fixed: deleting a pinned tool/fix/workflow/project/script left a dangling `pinned` row that rendered as a blank entry on the Dashboard (`resolve_item`'s fallback returned an empty name, nothing filtered it out). `get_pinned` now skips and lazily deletes pins that no longer resolve. Documented in `docs/known-issues.md` and `docs/api.md`.
+
 ## 2026-08-17 — ScriptStash hardening, Master profile, drag-drop, dead code removal
 
 **Scripts pane — reliability**
