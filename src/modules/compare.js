@@ -2,8 +2,14 @@
 
 let _lines   = [];   // [{cls, lHtml, rHtml}] built once after diff
 let _syncH   = false;
+let _bound   = false;
 
 export function load() {
+  // These elements live in static index.html, not module-generated HTML — load()
+  // re-runs on every pane visit, so guard against stacking duplicate listeners.
+  if (_bound) return;
+  _bound = true;
+
   document.getElementById('compare-run')?.addEventListener('click', _runDiff);
   document.getElementById('compare-clear')?.addEventListener('click', _clear);
   document.getElementById('compare-edit-btn')?.addEventListener('click', _backToEdit);
