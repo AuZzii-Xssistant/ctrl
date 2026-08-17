@@ -1,0 +1,4 @@
+# Vendored third-party libraries — bundled, not maintained by us.
+# Their minified internals (single-letter identifiers) drown out CTRL's
+# own code in god-node/community analysis without adding any real signal.
+src/assets/
