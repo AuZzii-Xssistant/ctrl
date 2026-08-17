@@ -1,5 +1,46 @@
 # CTRL Changelog
 
+## 2026-08-17 — ScriptStash hardening, Master profile, drag-drop, dead code removal
+
+**Scripts pane — reliability**
+- "Pause Script" toggle (renamed from "Interactive") was never actually persisted — added the missing `interactive` fields to `SsScriptData`/`SsScript`. Runs through the embedded PTY with a pause line appended (PowerShell `Read-Host`/cmd `pause`) instead of spawning a separate console
+- `run_script` now routes through the same PTY path as Quick Fixes (`exec::run`/`run_elevated`) instead of `spawn_streaming` — fixes PSReadLine cursor corruption
+- `last_run`/`last_status` now actually update after a run (was write-only to `run_log`, never back to the `scripts` row)
+- Deleting a profile no longer deletes Master-only scripts — removed the `gc_orphaned_scripts` function, which misunderstood Master as "orphaned" when a script has no named-profile membership
+- Real Stop button — `stop_current_run` cancel flag (checked every poll tick instead of waiting up to 10 minutes for a sentinel that would never come), PTY kill/respawn for the internal case, `taskkill` for an external elevated console
+- "Open in Editor" now syncs edits back to the DB (`ss_open_in_editor` was writing to a temp file nothing ever watched) and no longer crashes with os error 193 (VS Code's `.cmd` launcher needs `cmd /c`, can't be spawned directly)
+- Drag-to-reorder actually works — `dragDropEnabled:false` in `tauri.conf.json` (WebView2's native OS file-drop intercept was blocking all in-page HTML5 DnD), `setData()` in `dragstart`, and nearest-row/tile fallback so dropping above/below/left/right of the list still resolves correctly
+- Sorting no longer destroys custom order (was string-sorting the numeric `#` column — "10" < "2")
+
+**Master is now a real profile**
+- Added `scripts.in_master` column — Master used to mean "every script unconditionally"; now it's a toggleable membership like any named profile
+- Manage Profiles modal shows Master as a checkbox alongside named profiles; blocks save if nothing's checked
+- Scripts created on a named profile no longer auto-join Master
+- Script Builder's Save now asks which profile(s) to save into (Master checked by default) instead of always Master
+
+**Dashboard**
+- Pins are drag-reorderable (2D nearest-tile fallback, same robustness as Scripts)
+- Compact mode — icon + name only, extra details on hover
+- Add Tool/Add Project got a "Pin to Dashboard" checkbox (checked by default) as the low-friction alternative to OS drag-and-drop, which was evaluated and rejected — WebView2 can't do native file-drop and in-page reorder-DnD at the same time
+
+**App-wide**
+- Overlays no longer trap the title bar — window controls (min/max/close) now sit above every modal/toast/context-menu via z-index, and Ctrl+K is disabled while a modal is open
+- Ctrl+S saves in modals (a comment claimed this worked; it never did)
+- Replaced the last native `prompt()` (Workflows' Notify/Wait step forms) with inline panels — the app has only one modal instance, so nesting one inside the workflow editor would have destroyed the in-progress form
+- Fixed duplicate event-listener stacking on every pane revisit in `compare.js` (DOM listeners) and `workflows.js` (Tauri `wf-step`/`wf-done` listeners — the worse of the two, since `wf-done`'s own handler called `load()` again, compounding on every workflow completion)
+
+**Backend reliability**
+- Fixed mutex-poisoning risk: `terminal.rs`'s PTY commands and `scripts.rs`'s editor-watcher used `.lock().unwrap()` — one panic while held would brick every terminal command for the rest of the app's session. Now recovers the lock instead
+- Fixed temp-file collisions between concurrently running scripts (the app explicitly allows a second terminal tab to run while the first is busy) — filenames now include a per-call counter, not just the process id
+
+**Dead code removed** (confirmed via grep across `src/`, zero frontend callers)
+- 17 commands from before the ScriptStash port: `add_script`/`update_script`/`delete_script`, the entire non-SS Profiles system (`get_profiles`/`add_profile`/`add_to_profile`/etc. — turned out to be a near-duplicate of `ss_*` on the same tables), `open_script_location`, `browse_for_script`, `read_text_file`
+- A second, earlier run-queue implementation (`do_run`/`ss_start_run`/`ss_run_now`/`ss_stop_run`/`ss_run_embedded`) — the original spawn-external-console approach, superseded by this session's PTY rewrite; its `ss-run-state`/`ss-log`/etc. events were never actually firing despite `scripts.js` still listening for them
+- Tools page's redundant "Apps" section (Add Tool already covers it with more fields)
+
+**Docs**
+- `docs/api.md`, `docs/db-schema.md`, `README.md`, `docs/known-issues.md` all reconciled against current code — were badly stale (missing the entire ScriptStash command set, ~9 real columns on `scripts`, 5 whole tables, 2 whole nav modules)
+
 ## 2026-08-14 — Bug fixes + Environment PATH + Sandbox
 
 **Bug fixes**
