@@ -33,7 +33,7 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 |---|---|---|---|
 | Dashboard | `ti-home` | ✅ Built | Pinned launchpad — one-click access to tools, scripts, fixes |
 | Quick Fixes | `ti-bolt` | ✅ Built | One-click commands (flush DNS, clear temp, restart service…) |
-| Scripts | `ti-code` | ✅ Built | Register and run .ps1 / .py / .bat / .cmd scripts |
+| Scripts | `ti-code` | ✅ Built | Run .ps1 / .py / .bat / .cmd / .vbs / .ahk scripts; organize into named profiles plus a Master view, drag-reorder, per-script admin/pause flags |
 | Builder | `ti-wand` | ✅ Built | Toggle-based script generator; imports from WinScript via `tools/winscript-converter.js`; supports app install (winget/choco), presets |
 | Tools | `ti-tool` | ✅ Built | Register and launch executables, with optional Run As Admin |
 | Projects | `ti-archive` | ✅ Built | Track projects by status (idea → stable → deprecated) |
@@ -43,7 +43,9 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 | Tweaks | `ti-adjustments` | ✅ Built | Built-in Windows tweaks + user-defined custom tweaks (full CRUD) |
 | Environment | `ti-list-details` | ✅ Built | User environment variables (add/edit/delete) + system vars (UAC elevation to edit) |
 | Snippets | `ti-blockquote` | ✅ Built | Reusable text/command snippets — one-click copy, categories, tags |
+| Compare | `ti-arrows-diff` | ✅ Built | Side-by-side text diff with synced scroll |
 | Recent Activity | `ti-history` | ✅ Built | Last 50 run events (fixes, scripts, workflows) with success/fail status |
+| Changelog | `ti-notes` | ✅ Built | In-app changelog viewer |
 
 > Status: ✅ Built · ⚙️ In Progress · 🕐 Stub (nav present, UI planned)
 
@@ -70,9 +72,9 @@ CTRL/
   ctrl.db        ← all your data (SQLite)
   data/
     builder/     ← action JSON files (add your own)
-    scripts/     ← script storage
-    backups/     ← future: backup sets
 ```
+
+Scripts live in `ctrl.db` (the `content` column), not as loose files on disk — no `data/scripts/` folder.
 
 Copy the entire `CTRL/` folder to a USB drive. Run `ctrl.exe` on any Windows 10/11 PC — no install, no dependencies.
 
