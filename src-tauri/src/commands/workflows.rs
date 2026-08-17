@@ -225,7 +225,12 @@ $xml.GetElementsByTagName('text').Item(1).InnerText='{body}';
 
 async fn run_step_wait(step: &Step) -> Result<(bool, String), String> {
     let secs = step.seconds.unwrap_or(1).min(300);
-    std::thread::sleep(std::time::Duration::from_secs(secs));
+    // Off the async worker thread onto tokio's blocking pool — std::thread::sleep
+    // directly in an async fn would otherwise block that worker for the whole
+    // wait, starving other concurrent Tauri commands sharing the same runtime.
+    let _ = tauri::async_runtime::spawn_blocking(move || {
+        std::thread::sleep(std::time::Duration::from_secs(secs));
+    }).await;
     Ok((true, format!("Waited {}s", secs)))
 }
 
