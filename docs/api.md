@@ -15,7 +15,7 @@ A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort 
 ## Dashboard
 | Command | Payload | Returns |
 |---|---|---|
-| `get_pinned` | — | `PinnedItem[]` |
+| `get_pinned` | — | `PinnedItem[]` — silently drops (and deletes) any pin whose underlying tool/fix/workflow/project/script no longer exists |
 | `pin_item` | `{item_type, item_id, group_name?}` | `i64` (new id) |
 | `unpin_item` | `{id}` | void |
 | `reorder_pins` | `{orders: [{id, sort_order}]}` | void |

@@ -21,9 +21,9 @@ fn fetch_pinned(app: &AppHandle) -> Vec<(String, i64, String)> {
     let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)));
     let Ok(rows) = rows else { return vec![] };
     rows.filter_map(|r| r.ok())
-        .map(|(item_type, item_id)| {
+        .filter_map(|(item_type, item_id)| {
             let name = crate::commands::dashboard::resolve_item_name(&db, &item_type, item_id);
-            (item_type, item_id, name)
+            if name.is_empty() { None } else { Some((item_type, item_id, name)) }
         })
         .collect()
 }

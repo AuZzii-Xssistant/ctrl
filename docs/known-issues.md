@@ -19,6 +19,9 @@ Builder selections now saved to `localStorage` under key `ctrl_builder_selected`
 ### ~~Tools — icon always shows generic app-window icon~~ ✅ Resolved
 Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.ps1` → terminal-2, `.bat/.cmd` → terminal, `.py` → brand-python, `.ahk` → keyboard.
 
+### ~~Dashboard/tray — dangling pins after deleting the pinned item~~ ✅ Resolved (2026-08-17)
+`pin_item` never validated the target still exists, and deleting a pinned tool/fix/workflow/project/script left the `pinned` row behind — `resolve_item`'s `unwrap_or_default()` returned an empty name, so it rendered as a blank row on the dashboard and a blank entry in the tray menu instead of disappearing. `get_pinned` (dashboard.rs) and `fetch_pinned` (tray.rs) now both skip and lazily delete any pin whose name resolves empty.
+
 ### Global search — max 5 results per category
 `global_search` hard-caps at 5 results per table (tools/scripts/fixes/projects). Enough for quick nav; not a full search engine. Expected behaviour.
 
@@ -35,7 +38,7 @@ When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Ve
 If `data/builder/` JSON files are modified and action IDs change, the saved selection in localStorage may reference non-existent IDs. Workaround: click Clear in the Builder to reset. Low priority — action files rarely change.
 
 ### Workflows — step item deleted after workflow created
-If a script or fix that is a workflow step is deleted, `run_workflow` will error on that step. No validation at delete time. Planned: cascade-check before delete.
+If a script or fix that is a workflow step is deleted, that step's DB lookup fails and it's recorded as a failed `StepResult` — the workflow doesn't crash, remaining steps still run, and the run is logged with `last_run_ok=false`. So it degrades gracefully, but there's still no proactive warning at delete time and no way to fix/remove the dangling step from the UI. No validation at delete time. Planned: cascade-check before delete.
 
 ### Workflows — schedule trigger can miss its minute under drift
 `fire_matching` polls every 60s and fires when `trigger_config.time` string-matches the current `HH:MM` exactly. If a poll cycle ever lands even one second past the scheduled minute (system sleep/wake, a slow prior workflow run, general scheduling jitter), that day's trigger is silently skipped — no error, no retry, it just doesn't fire until the next matching minute (tomorrow, for a daily schedule). No double-fire risk in the normal case since each minute is checked once. Low severity, but no state tracks "did this fire today" — a more robust design would check `time <= now` with a last-fired-date guard per workflow instead of exact string equality. Not fixed this session — flagged during a code-read pass, not because it visibly broke; deliberately not attempting a fix without being able to verify it against the un-runnable-headlessly live app.
