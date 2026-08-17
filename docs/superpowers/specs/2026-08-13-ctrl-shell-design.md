@@ -3,6 +3,9 @@
 **Sub-project:** 1 of N — Shell, Navigation, Dashboard, Core Modules  
 **Status:** Approved for planning
 
+> **This is the original v1 planning spec — a historical record of intent, not a live status doc.**
+> Several things below are now out of date: Workflows/Backup/Tweaks shipped as full modules (not stubs), the Scripts module was rebuilt on the ScriptStash port (profiles, Master, drag-reorder), and Environment/Snippets/Compare/Recent Activity/Changelog were added after this spec was written. For current, accurate state, see [`docs/api.md`](../../api.md), [`docs/db-schema.md`](../../db-schema.md), and the module table in the repo [`README.md`](../../../README.md) — kept in sync with the code, unlike this spec.
+
 ---
 
 ## What is CTRL?
