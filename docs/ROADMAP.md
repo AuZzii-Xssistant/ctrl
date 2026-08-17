@@ -11,16 +11,16 @@ Proposed on `feature/power-user-upgrades`, branched from `main` at commit `82fc6
 
 Files touched: `src/app.js` (`_paletteRun`, `_runFromPalette`, `renderSearch`), `src/style.css` (`.sr-run-btn`), `README.md`.
 
-## 2. Global hotkey + system tray (not started)
+## ✅ 2. Global hotkey + system tray (done, this branch)
 
-The palette above only helps once the window is open. The highest-leverage next step is making CTRL reachable without opening it at all:
-- Add `tauri-plugin-global-shortcut` (already a first-party Tauri v2 plugin, no new external dependency philosophy violated).
-- Register a configurable hotkey (default suggestion: `Ctrl+Space`, avoid clashing with common OS/app hotkeys — make it changeable in Settings).
-- On press: if minimized/hidden, show + focus the window and focus `#global-search` directly (reuse existing `_searchEl.focus()`).
-- Add a system tray icon (`tauri-plugin-tray` or the core tray API) with a right-click menu listing pinned Dashboard items — clicking one calls the same launch/run commands the palette now uses.
-- Closing the window (`X` button) should minimize to tray instead of quitting, with an explicit "Quit" in the tray menu — otherwise the hotkey has nothing to summon.
+- `Ctrl+Shift+Space` (registered at startup, best-effort — silently no-ops if another app owns it) shows+focuses the window and focuses global search from anywhere.
+- Tray icon with a menu: Show CTRL, up to 10 pinned items (clicking one runs it directly via the same dispatch dashboard.js uses, in native Rust so it works even with the window hidden), Quit CTRL.
+- Tray menu is rebuilt from the `pinned` table every time `pin_item`/`unpin_item` run — never goes stale.
+- Closing the window (X button, Alt+F4) now hides to tray instead of quitting. `exit_app` is the real exit, wired to the tray's "Quit CTRL".
 
-**Scope**: 1 new Cargo dependency, changes to `src-tauri/src/lib.rs` (tray setup, window hide-instead-of-close), a Settings toggle for the hotkey, `docs/api.md` additions if any new commands are exposed.
+Files touched: `src-tauri/src/commands/tray.rs` (new), `src-tauri/src/commands/dashboard.rs` (`pin_item`/`unpin_item` now rebuild the tray, added `launch_pinned_from_tray`/`resolve_item_name`), `src-tauri/src/commands/window.rs` (`close_window` hides, added `exit_app`), `src-tauri/src/lib.rs` (plugin registration, hotkey, close-to-tray), `src/app.js` (`hotkey-summon` listener), `Cargo.toml`/`capabilities/default.json`.
+
+**Not done**: the hotkey combo isn't user-configurable yet (hardcoded `Ctrl+Shift+Space`) — a Settings toggle for this is a small follow-up, not blocking anything else on this roadmap.
 
 ## 3. System Profiles (spec already exists, never built)
 

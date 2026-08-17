@@ -14,6 +14,7 @@ Drop the folder on a USB drive. Copy it to a new PC. Run it anywhere. No install
 - Track projects, manage environment variables, run backup jobs
 - Chain scripts into automated workflows
 - Store and copy reusable code snippets
+- Lives in the system tray — summon it from anywhere with `Ctrl+Shift+Space`, launch pinned items straight from the tray menu without opening the window
 
 Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database travels with the app.
 
@@ -55,6 +56,7 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 
 | Key | Action |
 |---|---|
+| `Ctrl+Shift+Space` (global, works anywhere) | Show CTRL and focus search — even if it's minimized/hidden to tray |
 | `Ctrl+K` | Focus global search |
 | `Escape` | Close modal / clear search |
 | `↑ ↓` | Navigate search results |

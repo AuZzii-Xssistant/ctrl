@@ -8,6 +8,14 @@ const appWindow = getCurrentWindow();
 // ── Window controls ─────────────────────────────────────────────────────────
 document.getElementById('btn-close').addEventListener('click', () => invoke('close_window'));
 document.getElementById('btn-min').addEventListener('click',   () => invoke('minimize_window'));
+
+// Global hotkey (Ctrl+Shift+Space, registered in Rust) summons the window from
+// anywhere — jump straight into search since that's why you hit the hotkey.
+window.__TAURI__.event.listen('hotkey-summon', () => {
+  const el = document.getElementById('global-search');
+  el?.focus();
+  el?.select();
+});
 document.getElementById('btn-max').addEventListener('click',   () => invoke('toggle_maximize'));
 document.getElementById('btn-bug')?.addEventListener('click',   () => invoke('open_path', { path: 'https://github.com/AuZzii-Xssistant/ctrl/issues' }));
 document.getElementById('btn-heart')?.addEventListener('click', () => invoke('open_path', { path: 'https://ko-fi.com' }));

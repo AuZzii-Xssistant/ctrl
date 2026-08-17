@@ -5,9 +5,12 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 ## Window
 | Command | Payload | Returns |
 |---|---|---|
-| `close_window` | — | void |
+| `close_window` | — | void — hides to the system tray, does not quit (also triggered by Alt+F4/native close) |
 | `minimize_window` | — | void |
 | `toggle_maximize` | — | void |
+| `exit_app` | — | void — actually quits. Only real exit path besides the tray menu's "Quit CTRL" |
+
+A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort — silently no-ops if another app already owns it) shows+focuses the window and focuses global search from anywhere, emitting a `hotkey-summon` event the frontend listens for. The tray icon's menu lists up to 10 pinned items (rebuilt whenever `pin_item`/`unpin_item` run, so it never drifts) plus Show/Quit.
 
 ## Dashboard
 | Command | Payload | Returns |

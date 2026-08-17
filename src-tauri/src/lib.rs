@@ -3,15 +3,51 @@ mod commands;
 
 use std::sync::Mutex;
 use rusqlite::Connection;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 pub struct AppState(pub Mutex<Connection>);
+
+const GLOBAL_HOTKEY: &str = "CommandOrControl+Shift+Space";
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    use tauri_plugin_global_shortcut::ShortcutState;
+                    if event.state() == ShortcutState::Pressed
+                        && shortcut.matches(
+                            tauri_plugin_global_shortcut::Modifiers::CONTROL | tauri_plugin_global_shortcut::Modifiers::SHIFT,
+                            tauri_plugin_global_shortcut::Code::Space,
+                        )
+                    {
+                        commands::tray::show_main_window(app);
+                        let _ = app.emit("hotkey-summon", ());
+                    }
+                })
+                .build(),
+        )
         .setup(|app| {
+            // Global hotkey summons the window from anywhere — best-effort: another
+            // app may already own this combo, in which case CTRL just runs without it.
+            {
+                use tauri_plugin_global_shortcut::GlobalShortcutExt;
+                if let Err(e) = app.global_shortcut().register(GLOBAL_HOTKEY) {
+                    eprintln!("[CTRL] could not register global hotkey {GLOBAL_HOTKEY}: {e}");
+                }
+            }
+            // Window close (X button) hides to tray instead of quitting.
+            if let Some(win) = app.get_webview_window("main") {
+                let win2 = win.clone();
+                win.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = win2.hide();
+                    }
+                });
+            }
             // DB lives next to the exe (portable)
             let exe_dir = std::env::current_exe().ok()
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()))
@@ -24,6 +60,9 @@ pub fn run() {
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
             app.manage(commands::terminal::TermState(std::sync::Mutex::new(std::collections::HashMap::new())));
+            if let Err(e) = commands::tray::build_tray(&app.handle().clone()) {
+                eprintln!("[CTRL] tray icon setup failed: {e}");
+            }
             // Start workflow scheduler (startup triggers + schedule polling)
             commands::workflows::start_workflow_scheduler(app.handle().clone());
             // Clean up stale temp files from previous sessions
@@ -84,6 +123,7 @@ pub fn run() {
             commands::window::close_window,
             commands::window::minimize_window,
             commands::window::toggle_maximize,
+            commands::window::exit_app,
             commands::workflows::get_workflows,
             commands::workflows::add_workflow,
             commands::workflows::update_workflow,

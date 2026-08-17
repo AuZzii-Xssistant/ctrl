@@ -1,7 +1,7 @@
 use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{Manager, State};
 
 #[derive(Serialize)]
 pub struct PinnedItem {
@@ -63,28 +63,71 @@ fn script_icon(t: &str) -> String {
     }.into()
 }
 
-#[tauri::command]
-pub fn pin_item(state: State<AppState>, item_type: String, item_id: i64, group_name: Option<String>) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    // idempotent — return existing id if already pinned
-    let existing: Option<i64> = db.query_row(
-        "SELECT id FROM pinned WHERE item_type=?1 AND item_id=?2",
-        params![item_type, item_id], |r| r.get(0)
-    ).ok();
-    if let Some(id) = existing { return Ok(id); }
-    let group = group_name.unwrap_or_else(|| "Pinned".into());
-    let max_order: i64 = db.query_row("SELECT COALESCE(MAX(sort_order),0) FROM pinned WHERE group_name=?1", params![group], |r| r.get(0)).unwrap_or(0);
-    db.execute(
-        "INSERT INTO pinned (item_type,item_id,group_name,sort_order) VALUES (?1,?2,?3,?4)",
-        params![item_type, item_id, group, max_order + 1],
-    ).map_err(|e| e.to_string())?;
-    Ok(db.last_insert_rowid())
+/// Just the display name — used by the tray menu, which doesn't need icon/meta.
+pub fn resolve_item_name(db: &rusqlite::Connection, item_type: &str, item_id: i64) -> String {
+    resolve_item(db, item_type, item_id).0
+}
+
+/// Launch a pinned item from the tray menu (native Rust call, not a JS invoke —
+/// the frontend may not even be visible when this fires). Mirrors dashboard.js's
+/// _runPin() dispatch table.
+pub fn launch_pinned_from_tray(app: &tauri::AppHandle, item_type: &str, item_id: i64) {
+    use tauri_plugin_shell::ShellExt;
+    let app2 = app.clone();
+    let item_type = item_type.to_string();
+    tauri::async_runtime::spawn(async move {
+        let Some(state) = app2.try_state::<AppState>() else { return };
+        match item_type.as_str() {
+            "tool" => { let _ = crate::commands::tools::launch_tool(app2.clone(), state, item_id).await; }
+            "script" => { let _ = crate::commands::scripts::run_script(app2.clone(), state, item_id, None).await; }
+            "fix" => { let _ = crate::commands::fixes::run_fix(app2.clone(), state, item_id).await; }
+            "workflow" => { let _ = crate::commands::workflows::run_workflow(app2.clone(), state, item_id).await; }
+            "project" => { let _ = crate::commands::projects::open_project_path(app2.clone(), state, item_id).await; }
+            "ql" => {
+                let db = state.0.lock().ok();
+                let cmd: Option<String> = db.and_then(|d| d.query_row("SELECT cmd FROM ql_items WHERE id=?1", params![item_id], |r| r.get(0)).ok());
+                if let Some(cmd) = cmd { let _ = app2.shell().command("cmd").args(["/c", "start", "", &cmd]).spawn(); }
+            }
+            "app" => {
+                let db = state.0.lock().ok();
+                let path: Option<String> = db.and_then(|d| d.query_row("SELECT path FROM external_apps WHERE id=?1", params![item_id], |r| r.get(0)).ok());
+                if let Some(path) = path { let _ = app2.shell().command("cmd").args(["/c", "start", "", &path]).spawn(); }
+            }
+            _ => {}
+        }
+    });
 }
 
 #[tauri::command]
-pub fn unpin_item(state: State<AppState>, id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM pinned WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+pub fn pin_item(app: tauri::AppHandle, state: State<AppState>, item_type: String, item_id: i64, group_name: Option<String>) -> Result<i64, String> {
+    let id = {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        // idempotent — return existing id if already pinned
+        let existing: Option<i64> = db.query_row(
+            "SELECT id FROM pinned WHERE item_type=?1 AND item_id=?2",
+            params![item_type, item_id], |r| r.get(0)
+        ).ok();
+        if let Some(id) = existing { id } else {
+            let group = group_name.unwrap_or_else(|| "Pinned".into());
+            let max_order: i64 = db.query_row("SELECT COALESCE(MAX(sort_order),0) FROM pinned WHERE group_name=?1", params![group], |r| r.get(0)).unwrap_or(0);
+            db.execute(
+                "INSERT INTO pinned (item_type,item_id,group_name,sort_order) VALUES (?1,?2,?3,?4)",
+                params![item_type, item_id, group, max_order + 1],
+            ).map_err(|e| e.to_string())?;
+            db.last_insert_rowid()
+        }
+    };
+    let _ = crate::commands::tray::build_tray(&app);
+    Ok(id)
+}
+
+#[tauri::command]
+pub fn unpin_item(app: tauri::AppHandle, state: State<AppState>, id: i64) -> Result<(), String> {
+    {
+        let db = state.0.lock().map_err(|e| e.to_string())?;
+        db.execute("DELETE FROM pinned WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+    }
+    let _ = crate::commands::tray::build_tray(&app);
     Ok(())
 }
 
