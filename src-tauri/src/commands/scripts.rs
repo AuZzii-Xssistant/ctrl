@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State};
-use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_shell::ShellExt;
 
 // Track active editor watchers so we don't double-spawn them
@@ -63,49 +62,6 @@ pub struct Script {
     pub disabled: bool,
 }
 
-#[derive(Deserialize)]
-pub struct ScriptData {
-    pub name: String,
-    pub description: Option<String>,
-    pub category: Option<String>,
-    pub file_path: Option<String>,
-    pub script_type: Option<String>,
-    pub tags: Option<String>,
-    pub status: Option<String>,
-    pub run_as_admin: Option<bool>,
-    pub interactive: Option<bool>,
-    pub content: Option<String>,
-    pub icon: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct Profile {
-    pub id: i64,
-    pub name: String,
-    pub sort_order: i64,
-    pub script_count: i64,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ProfileExport {
-    name: String,
-    scripts: Vec<ScriptExport>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ScriptExport {
-    name: String,
-    description: String,
-    script_type: String,
-    content: Option<String>,
-    file_path: String,
-    run_as_admin: bool,
-    interactive: bool,
-    tags: String,
-    sort_order: i64,
-    disabled: bool,
-}
-
 #[derive(Serialize)]
 pub struct RunResult {
     pub success: bool,
@@ -139,209 +95,12 @@ pub fn get_scripts(state: State<AppState>, search: Option<String>) -> Result<Vec
     query_scripts(&db, &search.unwrap_or_default().to_lowercase())
 }
 
-#[tauri::command]
-pub fn add_script(state: State<AppState>, data: ScriptData) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute(
-        "INSERT INTO scripts (name,description,category,file_path,script_type,tags,status,run_as_admin,interactive,content,icon) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
-        params![data.name, data.description.unwrap_or_default(), data.category.unwrap_or_else(|| "General".into()),
-                data.file_path.unwrap_or_default(), data.script_type.unwrap_or_else(|| "ps1".into()), data.tags.unwrap_or_default(),
-                data.status.unwrap_or_else(|| "active".into()), data.run_as_admin.unwrap_or(false) as i64,
-                data.interactive.unwrap_or(false) as i64,
-                data.content, data.icon.unwrap_or_default()],
-    ).map_err(|e| e.to_string())?;
-    Ok(db.last_insert_rowid())
-}
-
-#[tauri::command]
-pub fn update_script(state: State<AppState>, id: i64, data: ScriptData) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute(
-        "UPDATE scripts SET name=?1,description=?2,category=?3,file_path=?4,script_type=?5,tags=?6,status=?7,run_as_admin=?8,interactive=?9,content=?10,icon=?11 WHERE id=?12",
-        params![data.name, data.description.unwrap_or_default(), data.category.unwrap_or_else(|| "General".into()),
-                data.file_path.unwrap_or_default(), data.script_type.unwrap_or_else(|| "ps1".into()), data.tags.unwrap_or_default(),
-                data.status.unwrap_or_else(|| "active".into()), data.run_as_admin.unwrap_or(false) as i64,
-                data.interactive.unwrap_or(false) as i64,
-                data.content, data.icon.unwrap_or_default(), id],
-    ).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-// ── Profile commands ──────────────────────────────────────────────────────────
-
-#[tauri::command]
-pub fn get_profiles(state: State<AppState>) -> Result<Vec<Profile>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = db.prepare(
-        "SELECT p.id,p.name,p.sort_order,COUNT(sp.script_id) FROM ss_profiles p
-         LEFT JOIN ss_script_profile sp ON sp.profile_id=p.id
-         GROUP BY p.id ORDER BY p.sort_order, p.name"
-    ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |r| Ok(Profile {
-        id: r.get(0)?, name: r.get(1)?, sort_order: r.get(2)?, script_count: r.get(3)?
-    })).map_err(|e| e.to_string())?;
-    Ok(rows.filter_map(|r| r.ok()).collect())
-}
-
-#[tauri::command]
-pub fn add_profile(state: State<AppState>, name: String) -> Result<i64, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("INSERT INTO ss_profiles (name) VALUES (?1)", params![name]).map_err(|e| e.to_string())?;
-    Ok(db.last_insert_rowid())
-}
-
-#[tauri::command]
-pub fn rename_profile(state: State<AppState>, id: i64, name: String) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("UPDATE ss_profiles SET name=?1 WHERE id=?2", params![name, id]).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn remove_profile(state: State<AppState>, id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM ss_profiles WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn get_profile_scripts(state: State<AppState>, profile_id: Option<i64>) -> Result<Vec<Script>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    if let Some(pid) = profile_id {
-        let mut stmt = db.prepare(
-            "SELECT s.id,s.name,s.description,s.category,s.file_path,s.script_type,s.tags,s.status,
-             COALESCE(s.run_as_admin,0),COALESCE(s.interactive,0),s.content,COALESCE(s.icon,''),
-             sp.sort_order,sp.disabled
-             FROM scripts s
-             JOIN ss_script_profile sp ON sp.script_id=s.id AND sp.profile_id=?1
-             ORDER BY sp.sort_order, s.name"
-        ).map_err(|e| e.to_string())?;
-        let rows = stmt.query_map(params![pid], |r| Ok(Script {
-            id: r.get(0)?, name: r.get(1)?, description: r.get(2)?,
-            category: r.get(3)?, file_path: r.get(4)?, script_type: r.get(5)?,
-            tags: r.get(6)?, status: r.get(7)?,
-            run_as_admin: r.get::<_,i64>(8)? != 0,
-            interactive: r.get::<_,i64>(9)? != 0,
-            content: r.get(10)?, icon: r.get(11)?,
-            sort_order: r.get(12)?, disabled: r.get::<_,i64>(13)? != 0,
-        })).map_err(|e| e.to_string())?;
-        Ok(rows.filter_map(|r| r.ok()).collect())
-    } else {
-        let mut stmt = db.prepare(
-            "SELECT id,name,description,category,file_path,script_type,tags,status,
-             COALESCE(run_as_admin,0),COALESCE(interactive,0),content,COALESCE(icon,'')
-             FROM scripts ORDER BY name"
-        ).map_err(|e| e.to_string())?;
-        let rows = stmt.query_map([], |r| Ok(Script {
-            id: r.get(0)?, name: r.get(1)?, description: r.get(2)?,
-            category: r.get(3)?, file_path: r.get(4)?, script_type: r.get(5)?,
-            tags: r.get(6)?, status: r.get(7)?,
-            run_as_admin: r.get::<_,i64>(8)? != 0,
-            interactive: r.get::<_,i64>(9)? != 0,
-            content: r.get(10)?, icon: r.get(11)?,
-            sort_order: 0, disabled: false,
-        })).map_err(|e| e.to_string())?;
-        Ok(rows.filter_map(|r| r.ok()).collect())
-    }
-}
-
-#[tauri::command]
-pub fn add_to_profile(state: State<AppState>, profile_id: i64, script_id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let max_order: i64 = db.query_row(
-        "SELECT COALESCE(MAX(sort_order)+1,0) FROM ss_script_profile WHERE profile_id=?1",
-        params![profile_id], |r| r.get(0)
-    ).unwrap_or(0);
-    db.execute(
-        "INSERT OR IGNORE INTO ss_script_profile (script_id,profile_id,sort_order) VALUES (?1,?2,?3)",
-        params![script_id, profile_id, max_order]
-    ).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn remove_from_profile(state: State<AppState>, profile_id: i64, script_id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute(
-        "DELETE FROM ss_script_profile WHERE script_id=?1 AND profile_id=?2",
-        params![script_id, profile_id]
-    ).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn set_script_disabled(state: State<AppState>, profile_id: i64, script_id: i64, disabled: bool) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute(
-        "UPDATE ss_script_profile SET disabled=?1 WHERE script_id=?2 AND profile_id=?3",
-        params![disabled as i64, script_id, profile_id]
-    ).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn reorder_profile_scripts(state: State<AppState>, profile_id: i64, script_ids: Vec<i64>) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    for (i, sid) in script_ids.iter().enumerate() {
-        let _ = db.execute(
-            "UPDATE ss_script_profile SET sort_order=?1 WHERE script_id=?2 AND profile_id=?3",
-            params![i as i64, sid, profile_id]
-        );
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub fn export_profile(state: State<AppState>, profile_id: i64) -> Result<String, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let name: String = db.query_row("SELECT name FROM ss_profiles WHERE id=?1", params![profile_id], |r| r.get(0))
-        .map_err(|e| e.to_string())?;
-    let mut stmt = db.prepare(
-        "SELECT s.name,s.description,s.script_type,s.content,COALESCE(s.file_path,''),
-         COALESCE(s.run_as_admin,0),COALESCE(s.interactive,0),COALESCE(s.tags,''),sp.sort_order,sp.disabled
-         FROM scripts s JOIN ss_script_profile sp ON sp.script_id=s.id AND sp.profile_id=?1
-         ORDER BY sp.sort_order"
-    ).map_err(|e| e.to_string())?;
-    let scripts: Vec<ScriptExport> = stmt.query_map(params![profile_id], |r| Ok(ScriptExport {
-        name: r.get(0)?, description: r.get(1)?, script_type: r.get(2)?,
-        content: r.get(3)?, file_path: r.get(4)?,
-        run_as_admin: r.get::<_,i64>(5)? != 0, interactive: r.get::<_,i64>(6)? != 0,
-        tags: r.get(7)?, sort_order: r.get(8)?, disabled: r.get::<_,i64>(9)? != 0,
-    })).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
-    serde_json::to_string_pretty(&ProfileExport { name, scripts }).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn import_profile(state: State<AppState>, json: String) -> Result<i64, String> {
-    let export: ProfileExport = serde_json::from_str(&json).map_err(|e| e.to_string())?;
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("INSERT INTO ss_profiles (name) VALUES (?1)", params![export.name]).map_err(|e| e.to_string())?;
-    let profile_id = db.last_insert_rowid();
-    for (i, s) in export.scripts.iter().enumerate() {
-        db.execute(
-            "INSERT INTO scripts (name,description,script_type,content,file_path,run_as_admin,interactive,tags,status) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'active')",
-            params![s.name, s.description, s.script_type, s.content, s.file_path, s.run_as_admin as i64, s.interactive as i64, s.tags]
-        ).map_err(|e| e.to_string())?;
-        let script_id = db.last_insert_rowid();
-        db.execute(
-            "INSERT INTO ss_script_profile (script_id,profile_id,sort_order,disabled) VALUES (?1,?2,?3,?4)",
-            params![script_id, profile_id, i as i64, s.disabled as i64]
-        ).map_err(|e| e.to_string())?;
-    }
-    Ok(profile_id)
-}
-
-#[tauri::command]
-pub fn delete_script(state: State<AppState>, id: i64) -> Result<(), String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM scripts WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-pub fn read_text_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| format!("{}: {}", path, e))
-}
+// NOTE: add_script/update_script/delete_script/get_profiles/add_profile/rename_profile/
+// remove_profile/get_profile_scripts/add_to_profile/remove_from_profile/set_script_disabled/
+// reorder_profile_scripts/export_profile/import_profile/read_text_file were removed 2026-08-17
+// — dead code with zero frontend callers, fully superseded by the ScriptStash port's ss_*
+// equivalents in scriptstash.rs (which operate on the same ss_profiles/ss_script_profile
+// tables). Confirmed via grep across src/ before removal.
 
 #[tauri::command]
 pub async fn run_script(app: tauri::AppHandle, state: State<'_, AppState>, id: i64, force_admin: Option<bool>) -> Result<RunResult, String> {
@@ -462,35 +221,11 @@ pub async fn open_script_editor(app: tauri::AppHandle, state: State<'_, AppState
     Ok(())
 }
 
-#[tauri::command]
-pub async fn open_script_location(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<(), String> {
-    let (path, content): (String, Option<String>) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        db.query_row("SELECT file_path,content FROM scripts WHERE id=?1", params![id],
-            |r| Ok((r.get(0)?, r.get(1)?))
-        ).map_err(|e| e.to_string())?
-    };
-    if content.is_some() || path.is_empty() {
-        return Err("Script is stored in the database (no file location to open)".to_string());
-    }
-    let dir = std::path::Path::new(&path).parent().map(|p| p.to_string_lossy().to_string()).unwrap_or(path);
-    app.shell().command("explorer").args([&dir]).spawn().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 /// Open a Windows shortcut (ms-settings:, devmgmt.msc, etc.)
 #[tauri::command]
 pub async fn launch_shortcut(app: tauri::AppHandle, cmd: String) -> Result<(), String> {
     app.shell().command("cmd").args(["/c", "start", "", &cmd]).spawn().map_err(|e| e.to_string())?;
     Ok(())
-}
-
-#[tauri::command]
-pub async fn browse_for_script(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    let path = app.dialog().file()
-        .add_filter("Scripts", &["ps1", "bat", "cmd", "py", "ahk", "vbs", "rb", "sh"])
-        .blocking_pick_file();
-    Ok(path.map(|p| p.to_string()))
 }
 
 /// Start watching the temp edit file for a DB-backed script.

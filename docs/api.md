@@ -29,20 +29,13 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 
 ## Scripts
 
-The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptStash port** (`ss_*` commands) below — not the commands in this section. `get_scripts` and `run_script` are the only ones from the original pre-port API still in active use (dashboard pin picker, Workflow item picker, and script execution respectively).
+The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptStash port** (`ss_*` commands) below. Only three commands remain from the original pre-port API — everything else in that surface (`add_script`/`update_script`/`delete_script`/`get_profiles`/`add_profile`/`rename_profile`/`remove_profile`/`get_profile_scripts`/`add_to_profile`/`remove_from_profile`/`set_script_disabled`/`reorder_profile_scripts`/`export_profile`/`import_profile`/`open_script_location`/`browse_for_script`/`read_text_file`) was removed 2026-08-17 as dead code with zero frontend callers, fully superseded by `ss_*` equivalents operating on the same tables.
 
-`add_script`, `update_script`, `delete_script`, `open_script_location`, `browse_for_script` are still registered but have **no frontend caller anywhere** — dead code left over from before the ScriptStash port. Not removed yet; flagged for a future cleanup pass.
-
-| Command | Payload | Returns | Status |
-|---|---|---|---|
-| `get_scripts` | `{search?}` | `Script[]` | live — dashboard pin picker, workflow item picker |
-| `run_script` | `{id, forceAdmin?: bool}` | `RunResult` | live — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
-| `open_script_editor` | `{id}` | void | live — called internally by `ss_open_in_editor`, not directly from JS |
-| `add_script` | `{data: ScriptData}` | `i64` | **dead — no caller** |
-| `update_script` | `{id, data: ScriptData}` | void | **dead — no caller** |
-| `delete_script` | `{id}` | void | **dead — no caller** |
-| `open_script_location` | `{id}` | void | **dead — no caller** |
-| `browse_for_script` | — | `string\|null` | **dead — no caller** |
+| Command | Payload | Returns |
+|---|---|---|
+| `get_scripts` | `{search?}` | `Script[]` — dashboard pin picker, workflow item picker |
+| `run_script` | `{id, forceAdmin?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
+| `open_script_editor` | `{id}` | void — called internally by `ss_open_in_editor`, not directly from JS |
 
 ## ScriptStash (Scripts pane — profiles, Master, drag-reorder)
 | Command | Payload | Returns |
