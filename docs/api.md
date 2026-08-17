@@ -156,9 +156,11 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 |---|---|---|
 | `get_last_runs` | `{item_type: "script"\|"fix"\|"tool"}` | `LastRun[]` |
 | `get_run_history` | `{item_type, item_id, limit?}` | `RunHistoryEntry[]` |
+| `get_run_history_filtered` | `{itemType?, success?, dateFrom?, dateTo?, text?, limit?}` | `RunHistoryFullEntry[]` |
 
 `get_last_runs` returns the most recent run per item of that type.  
 `get_run_history` returns the last N runs (default 10) for a single item with full captured output.
+`get_run_history_filtered` powers the History page — all filters optional/AND-combined: `itemType` (script/fix/workflow/tool/backup), `success` (bool), `dateFrom`/`dateTo` (`"YYYY-MM-DD HH:MM:SS"` strings, inclusive), `text` (substring match on `item_name`, case-insensitive), `limit` (default 500). Returns full `output` per row for the click-to-view drawer.
 
 ## Environment Variables
 | Command | Payload | Returns |
@@ -184,6 +186,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `global_search` | `{query}` | `SearchResults` |
 | `open_data_folder` | — | void |
 | `open_path` | `{path}` | void |
+| `export_text_file` | `{text, suggested}` | `bool` — native save-file dialog (`.txt` filter); `false` if the user cancels. Generic, reused by the History page's Export button. |
 
 ## Types
 

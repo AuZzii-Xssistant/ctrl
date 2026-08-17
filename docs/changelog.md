@@ -1,5 +1,11 @@
 # CTRL Changelog
 
+## 2026-08-18 — real History page (roadmap item 5)
+
+- New History nav page (`src/modules/history.js`): filters `run_log` by module (script/fix/workflow/tool/backup), success/fail, date range, and text search over `item_name`; click a row to see full output in the existing terminal-drawer `showOutput` view; Export button writes filtered rows to a `.txt` file via a native save dialog
+- Backend: new `get_run_history_filtered` command (dynamic AND-combined filters), new generic `export_text_file` command (reused by any future plain-text export) — no schema change, both reuse the existing `run_log` table and dialog-plugin pattern already used by ScriptStash's export
+- `docs/ROADMAP.md` item 5 marked done
+
 ## 2026-08-17 — dangling-pin bug fix
 
 - Fixed: deleting a pinned tool/fix/workflow/project/script left a dangling `pinned` row that rendered as a blank entry on the Dashboard and in the tray menu (`resolve_item`'s fallback returned an empty name, nothing filtered it out). `get_pinned`/`fetch_pinned` now skip and lazily delete pins that no longer resolve. Documented in `docs/known-issues.md` and `docs/api.md`.

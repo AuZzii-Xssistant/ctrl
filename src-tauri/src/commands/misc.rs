@@ -130,6 +130,61 @@ pub fn get_run_history(state: State<AppState>, item_type: String, item_id: i64, 
 }
 
 #[derive(Serialize)]
+pub struct RunHistoryFullEntry {
+    pub id: i64,
+    pub item_type: String,
+    pub item_id: i64,
+    pub item_name: String,
+    pub success: bool,
+    pub ran_at: String,
+    pub output: String,
+}
+
+/// History page: run_log filtered by module/success/date range/text search over item_name.
+#[tauri::command]
+pub fn get_run_history_filtered(
+    state: State<AppState>,
+    item_type: Option<String>,
+    success: Option<bool>,
+    date_from: Option<String>,
+    date_to: Option<String>,
+    text: Option<String>,
+    limit: Option<i64>,
+) -> Result<Vec<RunHistoryFullEntry>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let mut sql = "SELECT id,item_type,item_id,COALESCE(item_name,'(unknown)'),(exit_code=0),ran_at,COALESCE(output,'') FROM run_log WHERE 1=1".to_string();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![];
+    if let Some(t) = &item_type { sql.push_str(" AND item_type=?"); params.push(Box::new(t.clone())); }
+    if let Some(s) = success { sql.push_str(" AND (exit_code=0)=?"); params.push(Box::new(s)); }
+    if let Some(d) = &date_from { sql.push_str(" AND ran_at>=?"); params.push(Box::new(d.clone())); }
+    if let Some(d) = &date_to { sql.push_str(" AND ran_at<=?"); params.push(Box::new(d.clone())); }
+    if let Some(q) = &text { if !q.is_empty() { sql.push_str(" AND lower(item_name) LIKE ?"); params.push(Box::new(format!("%{}%", q.to_lowercase()))); } }
+    sql.push_str(" ORDER BY ran_at DESC LIMIT ?");
+    params.push(Box::new(limit.unwrap_or(500)));
+
+    let mut stmt = db.prepare(&sql).map_err(|e| e.to_string())?;
+    let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let rows = stmt.query_map(param_refs.as_slice(), |row| {
+        Ok(RunHistoryFullEntry {
+            id: row.get(0)?, item_type: row.get(1)?, item_id: row.get(2)?, item_name: row.get(3)?,
+            success: row.get::<_, i64>(4)? != 0, ran_at: row.get(5)?, output: row.get(6)?,
+        })
+    }).map_err(|e| e.to_string())?;
+    Ok(rows.filter_map(|r| r.ok()).collect())
+}
+
+/// Generic save-as-text-file dialog. Reused by History export (and any future plain-text export).
+#[tauri::command]
+pub async fn export_text_file(app: tauri::AppHandle, text: String, suggested: String) -> Result<bool, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let path = app.dialog().file().add_filter("Text", &["txt"]).set_file_name(&suggested).blocking_save_file();
+    match path {
+        Some(p) => { std::fs::write(p.to_string(), text).map_err(|e| e.to_string())?; Ok(true) }
+        None => Ok(false),
+    }
+}
+
+#[derive(Serialize)]
 pub struct SysInfo {
     pub hostname: String,
     pub username: String,

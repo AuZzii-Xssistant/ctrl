@@ -38,14 +38,14 @@ Workflows already has a `notify` step, but nothing observes system state and tri
 
 **Scope**: depends on item 2 (needs a way to show a notification). New table, new `commands/watchers.rs`, new page. Start with the 3 condition types above — resist the urge to build a generic rule engine on day one.
 
-## 5. Real history page (not started)
+## ✅ 5. Real history page (done, this branch)
 
-`run_log` already captures every run with full output — currently only exposed as "last 50" on Recent Activity. A dedicated History page turns that into something you'd actually search:
-- Filters: by module (script/fix/workflow/tool), success/fail, date range, text search over `item_name`.
-- Click a row → same output view the run itself used (`showOutput`-style).
-- Export filtered results to a text file (`open_path`/file-save pattern already exists elsewhere).
+`run_log` already captured every run with full output but was only exposed as "last 50" on Recent Activity. New History nav page:
+- Filters: module (script/fix/workflow/tool/backup), success/fail, date range (native `<input type="date">`), text search over `item_name` — all AND-combined, debounced.
+- Click a row → same `showOutput` terminal-drawer view a live run uses.
+- Export button writes the filtered rows to a `.txt` file via a native save dialog.
 
-**Scope**: mostly frontend — one new Rust command (`get_run_history_filtered` or extend `get_recent_activity` with filter params), a new page reusing the existing `run_log` table (no schema change). This is the cheapest item on the list relative to its payoff — good candidate to do in parallel with anything else.
+Files touched: `src-tauri/src/commands/misc.rs` (new `get_run_history_filtered`, new generic `export_text_file`), `src-tauri/src/lib.rs` (command registration), `src/modules/history.js` (new), `src/index.html` (nav button + pane), `src/app.js` (pane loader wiring), `docs/api.md`, `README.md`.
 
 ## 6. Macro recorder for Workflows (not started, lower priority)
 
