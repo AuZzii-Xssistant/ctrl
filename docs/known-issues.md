@@ -26,6 +26,9 @@ If `data/builder/` JSON files are modified and action IDs change, the saved sele
 ### Workflows — step item deleted after workflow created
 If a script or fix that is a workflow step is deleted, `run_workflow` will error on that step. No validation at delete time. Planned: cascade-check before delete.
 
+### Workflows — schedule trigger can miss its minute under drift
+`fire_matching` polls every 60s and fires when `trigger_config.time` string-matches the current `HH:MM` exactly. If a poll cycle ever lands even one second past the scheduled minute (system sleep/wake, a slow prior workflow run, general scheduling jitter), that day's trigger is silently skipped — no error, no retry, it just doesn't fire until the next matching minute (tomorrow, for a daily schedule). No double-fire risk in the normal case since each minute is checked once. Low severity, but no state tracks "did this fire today" — a more robust design would check `time <= now` with a last-fired-date guard per workflow instead of exact string equality. Not fixed this session — flagged during a code-read pass, not because it visibly broke; deliberately not attempting a fix without being able to verify it against the un-runnable-headlessly live app.
+
 ## Planned Features
 
 ### System Profiles (Context Switching)
