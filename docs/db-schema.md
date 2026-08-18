@@ -3,9 +3,18 @@
 SQLite database at `ctrl.db` (next to the exe, portable).
 WAL mode enabled. All tables use `INTEGER PRIMARY KEY` autoincrement IDs unless noted.
 
-This file reflects `src-tauri/src/db.rs` as of 2026-08-17 (`create_tables()` + all `migrate_*`/`ALTER TABLE` calls run at startup, each independently idempotent).
+This file reflects `src-tauri/src/db.rs` as of 2026-08-18 (`create_tables()` + all `migrate_*`/`ALTER TABLE` calls run at startup, each independently idempotent).
 
 ---
+
+## `app_meta`
+
+Generic key/value table. Currently used only to track which pre-shipped default batches have been seeded at least once — `ql_items_seeded`, `fixes_seeded` — independent of current row count, so a user who deletes every seeded row doesn't get them silently recreated on the next launch. See `db::was_seeded`/`db::mark_seeded`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `key` | TEXT PK | e.g. `ql_items_seeded` |
+| `value` | TEXT | always `'1'` currently — presence of the row is what matters, not the value |
 
 ## `tools`
 
@@ -76,7 +85,7 @@ Script ↔ named-profile membership (many-to-many). Composite PK — a script ca
 
 ## `fixes`
 
-Quick one-click commands.
+Quick one-click commands. Seeded once ever (tracked via `app_meta`, not row count) — deleting them all doesn't bring them back.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -198,7 +207,7 @@ Simple name+path launch targets, used by the Dashboard pin picker's "App" type. 
 
 ## `ql_items`
 
-Quick Launch — Windows shell shortcuts (`ms-settings:`, `.cpl` files, etc). Seeded with ~23 built-ins on first run.
+Quick Launch — Windows shell shortcuts (`ms-settings:`, `.cpl` files, etc). Seeded with ~23 built-ins once ever (tracked via `app_meta`, not row count — deleting them all doesn't bring them back). Deletable via `delete_ql_item`, right-click a pill or its hover ✕.
 
 | Column | Type | Notes |
 |---|---|---|
