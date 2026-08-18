@@ -1,5 +1,5 @@
 'use strict';
-import { esc, emptyState, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, timeAgo, acquireRun, releaseRun } from '../app.js';
+import { esc, emptyState, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, timeAgo, acquireRun, releaseRun, isRecording, recordedStepCount, startRecording, stopRecording } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -14,6 +14,7 @@ let _eventsBound = false;
 export async function load() {
   const el = document.getElementById('workflows-scroll');
   el.innerHTML = paneHeader('ti-player-play', 'Workflows', 'New Workflow', 'window._showWorkflowModal(null)', 'wf-filter')
+    + _recRowHtml()
     + `<div id="wf-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(4)}</div></div>`;
 
   const wfs = await inv('get_workflows');
@@ -45,6 +46,36 @@ export async function load() {
     });
   }, 0);
 }
+
+// ── Macro recorder ───────────────────────────────────────────────────────────
+// Records every script/fix run through the normal UI (via acquireRun's meta
+// arg) while active. "Stop & Save" hands the accumulated steps straight to
+// the existing New Workflow modal, prefilled — reuses add_workflow, no new
+// backend command.
+function _recRowHtml() {
+  if (isRecording()) {
+    return `<div class="wf-rec-row">
+      <span class="rec-dot"></span> Recording… ${recordedStepCount()} step${recordedStepCount() === 1 ? '' : 's'}
+      <button type="button" class="action-btn btn-secondary" style="font-size:10px;padding:3px 10px;margin-left:auto" onclick="window._toggleRecording()">Stop &amp; Save as Workflow</button>
+    </div>`;
+  }
+  return `<div class="wf-rec-row wf-rec-row-idle">
+    <button type="button" class="action-btn btn-ghost" style="font-size:10px;padding:3px 10px" onclick="window._toggleRecording()"><i class="ti ti-circle-filled" style="color:var(--red)"></i> Record</button>
+  </div>`;
+}
+
+window._toggleRecording = () => {
+  if (isRecording()) {
+    const steps = stopRecording();
+    if (!steps.length) { toast('No script/fix runs recorded', 'err'); load(); return; }
+    window._showWorkflowModal({ steps: JSON.stringify(steps) });
+  } else {
+    startRecording();
+    toast('Recording started — run scripts/fixes as normal', 'info');
+  }
+  const row = document.querySelector('.wf-rec-row');
+  if (row) row.outerHTML = _recRowHtml();
+};
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

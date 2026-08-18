@@ -57,11 +57,17 @@ Files touched: `src-tauri/src/db.rs` (`watchers` table), `src-tauri/src/commands
 
 Files touched: `src-tauri/src/commands/misc.rs` (new `get_run_history_filtered`, new generic `export_text_file`), `src-tauri/src/lib.rs` (command registration), `src/modules/history.js` (new), `src/index.html` (nav button + pane), `src/app.js` (pane loader wiring), `docs/api.md`, `README.md`.
 
-## 6. Macro recorder for Workflows (not started, lower priority)
+## ✅ 6. Macro recorder for Workflows (done, this branch)
 
-Hand-writing workflow steps via the JSON-step UI has real friction. A "record" mode: while active, every script/fix run through the normal UI gets appended to a pending steps list; "Stop & Save as Workflow" turns that into a real workflow.
+Hand-writing workflow steps via the JSON-step UI had real friction. A Record toggle on the Workflows page header: while active, every script/fix run through the normal UI (scripts pane, fixes pane, command palette ▶) gets appended to a pending steps list via `acquireRun`'s new optional `meta` arg. "Stop & Save as Workflow" hands the accumulated steps straight to the existing New Workflow modal, prefilled — reuses `add_workflow`, no new backend command, no schema change.
 
-**Scope**: mostly frontend state (a recording flag + step accumulator in `app.js`'s `acquireRun`/`releaseRun` path, since that's the single choke point every run already passes through), one new "Save as Workflow" action reusing `add_workflow`. No schema change. Do this last — it's a UX nicety, not a capability gap like the others.
+- Pulsing red-dot badge + live step count while recording (`.wf-rec-row`/`.rec-dot`, reuses the existing `out-pulse` keyframe from the output drawer's new-activity dot).
+- Only `script`/`fix` type runs are recorded, matching what `run_workflow`'s `Step` struct actually executes — no `notify`/`wait` steps get synthesized.
+- Workflow runs, tweak runs, and script/fix **queue** runs (`_runQueue` in `scripts.js`, one `acquireRun` call wrapping N items) are not individually captured — documented limitation, not a bug.
+
+Files touched: `src/app.js` (`acquireRun` optional `meta` arg, `isRecording`/`startRecording`/`stopRecording`/`recordedStepCount`), `src/modules/workflows.js` (`_recRowHtml`, `window._toggleRecording`), `src/modules/scripts.js` (`_runOne` passes `meta`), `src/modules/fixes.js` (`_run` passes `meta`), `src/style.css` (`.wf-rec-row`, `.rec-dot`), `README.md`.
+
+This completes the power-user roadmap — all 6 items done.
 
 ---
 

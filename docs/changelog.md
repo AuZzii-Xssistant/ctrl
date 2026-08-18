@@ -1,5 +1,18 @@
 # CTRL Changelog
 
+## 2026-08-18 — Workflow macro recorder (roadmap item 6, final)
+
+Closes the "hand-writing workflow steps is friction" gap. Record toggle on the Workflows page.
+
+- `src/app.js`: `acquireRun` takes an optional `meta` ({type,id,label}) arg; when a module-level `_recording` flag is on and `meta.type` is `script`/`fix`, the step gets pushed to `_recordedSteps`. New exports: `isRecording`/`startRecording`/`stopRecording`/`recordedStepCount`.
+- `src/modules/workflows.js`: Record/Stop & Save row above the workflow list (`_recRowHtml`, `window._toggleRecording`). Stop & Save hands the recorded steps straight to the existing `_showWorkflowModal` (prefilled `steps`), so saving reuses `add_workflow` — no new backend command, no schema change.
+- `src/modules/scripts.js` (`_runOne`) and `src/modules/fixes.js` (`_run`) now pass `{type,id,label}` into `acquireRun` so single script/fix runs get captured. Command-palette script/fix runs (`app.js::_runFromPalette`) do too.
+- `src/style.css`: `.wf-rec-row`/`.rec-dot` — pulsing red dot, reuses the existing `out-pulse` keyframe from the output drawer's new-activity dot.
+- Not captured: workflow runs, tweak runs, and the scripts-pane multi-select run queue (one `acquireRun` wraps N items) — documented limitation, not a bug.
+- This is the last item on `docs/ROADMAP.md` — roadmap complete.
+- Frontend-only change, no Rust touched — no `cargo check`/`clippy` needed.
+- **Not verified**: this session can't run the Tauri dev server or a browser — JS logic was traced by hand against the existing `acquireRun`/`_showWorkflowModal` code paths but never exercised live.
+
 ## 2026-08-18 — Watchers → real alerting (roadmap item 4)
 
 Closes the "everything is manual or time-scheduled" gap — a small watcher primitive that observes system state on its own.

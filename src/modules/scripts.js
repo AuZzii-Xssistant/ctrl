@@ -598,7 +598,7 @@ async function _duplicateScript(id) {
 let _stopQueue = false;
 
 async function _runOne(id, forceAdmin) {
-  await acquireRun();
+  await acquireRun({ type: 'script', id, label: S.scripts.find(s => s.id === id)?.name || 'Script' });
   toast('Running…', 'info');
   try {
     const r = await inv('run_script', { id, forceAdmin: forceAdmin || false });

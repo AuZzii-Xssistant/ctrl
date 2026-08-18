@@ -249,8 +249,19 @@ async function _loadShells() {
   await _spawnTab(_shells[0]);
 }
 
+// ── Workflow macro recorder ────────────────────────────────────────────────
+// While active, every script/fix run through acquireRun() gets appended here.
+let _recording = false;
+let _recordedSteps = [];
+export function isRecording() { return _recording; }
+export function recordedStepCount() { return _recordedSteps.length; }
+export function startRecording() { _recording = true; _recordedSteps = []; }
+export function stopRecording() { const s = _recordedSteps; _recording = false; _recordedSteps = []; return s; }
+
 // ── Run queue — per-tab locking, spawns new tab if active is busy ─────────────
-export async function acquireRun() {
+// meta = { type: 'script'|'fix', id, label } — optional, only used to append to
+// the macro recorder's step list when recording is active.
+export async function acquireRun(meta) {
   let tab = _activeTab();
   if (!tab || tab.runLock) {
     const shell = tab?.shell || _shells[0] || { name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] };
@@ -260,6 +271,9 @@ export async function acquireRun() {
   tab.runLock = true;
   _runTargetTabId = tab.id;
   _renderTabBar();
+  if (_recording && meta && (meta.type === 'script' || meta.type === 'fix')) {
+    _recordedSteps.push({ step_type: meta.type, item_id: meta.id, label: meta.label });
+  }
   return true;
 }
 
@@ -640,7 +654,7 @@ const _paletteRun = {
 };
 
 async function _runFromPalette(key, id, name) {
-  await acquireRun();
+  await acquireRun(key === 'scripts' ? { type: 'script', id, label: name } : key === 'fixes' ? { type: 'fix', id, label: name } : undefined);
   toast(`Running: ${name}`, 'info');
   try {
     const r = await _paletteRun[key](id);

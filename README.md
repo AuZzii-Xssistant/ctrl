@@ -40,7 +40,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 | Dashboard | `ti-home` | 🟡 Functional | Pinned launchpad — one-click access to tools/scripts/fixes, drag-reorder, compact mode |
 | Tools | `ti-tool` | 🟡 Functional | Register and launch executables, with optional Run As Admin |
 | Projects | `ti-archive` | 🟡 Functional | Track projects by status (idea → stable → deprecated) |
-| Workflows | `ti-player-play` | 🟡 Functional | Chain scripts and fixes into ordered sequences, with manual/startup/scheduled triggers |
+| Workflows | `ti-player-play` | 🟡 Functional | Chain scripts and fixes into ordered sequences, with manual/startup/scheduled triggers. Macro recorder: hit Record, run scripts/fixes as normal, Stop & Save turns the run history into a workflow |
 | Backup | `ti-device-floppy` | 🟡 Functional | Folder→folder backup jobs using robocopy (incremental) |
 | Tweaks | `ti-adjustments` | 🟡 Functional | Built-in Windows tweaks + user-defined custom tweaks |
 | Environment | `ti-list-details` | 🟡 Functional | User environment variables (add/edit/delete) + system vars (UAC elevation to edit) |

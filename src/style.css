@@ -318,6 +318,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   flex-shrink: 0; animation: out-pulse 1.2s ease-in-out infinite;
 }
 @keyframes out-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+/* Workflow macro recorder */
+.wf-rec-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 11px; color: var(--text2); }
+.wf-rec-row-idle { padding: 4px 14px; }
+.rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex-shrink: 0; animation: out-pulse 1.2s ease-in-out infinite; }
 .output-title { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
 #output-ts { font-family: var(--mono); font-size: 10px; color: var(--text3); }
 #output-copy { font-size: 10px; font-family: var(--mono); background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text3); padding: 2px 7px; cursor: pointer; transition: color 0.1s, border-color 0.1s; }
