@@ -121,6 +121,50 @@ fn migrate(conn: &Connection) -> Result<()> {
         admin       INTEGER NOT NULL DEFAULT 0,
         sort_order  INTEGER NOT NULL DEFAULT 0
     )", []);
+    // System Profiles (Roadmap item 3) — named machine-state snapshots.
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS profiles (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        icon        TEXT NOT NULL DEFAULT 'ti-user-cog',
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )", []);
+    // One row per setting type per profile. `value` format depends on item_type:
+    //   power_plan   -> powercfg plan GUID or name substring
+    //   kill_apps    -> newline-separated process names (Stop-Process -Name)
+    //   start_apps   -> newline-separated paths/commands (Start-Process)
+    //   dns          -> 'dhcp' or comma-separated DNS server IPs
+    //   audio        -> playback device name substring (best-effort, needs AudioDeviceCmdlets)
+    //   refresh_rate -> target Hz (best-effort, via P/Invoke ChangeDisplaySettingsEx)
+    //   script       -> raw custom PowerShell block
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS profile_items (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        item_type  TEXT NOT NULL,
+        value      TEXT NOT NULL DEFAULT '',
+        enabled    INTEGER NOT NULL DEFAULT 1
+    )", []);
+    // Pre-activation state, captured fresh every activate_profile call, so
+    // restore_previous always reverts to what was actually running before —
+    // never a stale snapshot from an earlier activation.
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS profile_snapshots (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id     INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        power_plan     TEXT NOT NULL DEFAULT '',
+        dns_interface  TEXT NOT NULL DEFAULT '',
+        dns_servers    TEXT NOT NULL DEFAULT '',
+        audio_device   TEXT NOT NULL DEFAULT '',
+        started_apps   TEXT NOT NULL DEFAULT '',
+        captured_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )", []);
+    // Single-row table tracking which profile is currently active, for the
+    // header chip and restore_previous. Survives restart (portable folder).
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS profile_state (
+        id                INTEGER PRIMARY KEY CHECK (id = 1),
+        active_profile_id INTEGER,
+        active_since      TEXT
+    )", []);
+    let _ = conn.execute("INSERT OR IGNORE INTO profile_state (id, active_profile_id) VALUES (1, NULL)", []);
     Ok(())
 }
 

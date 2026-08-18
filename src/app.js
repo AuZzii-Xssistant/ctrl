@@ -36,6 +36,7 @@ const _paneLoaders = {
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
   compare:   ()  => import('./modules/compare.js').then(m => m.load()),
+  profiles:  ()  => import('./modules/profiles.js').then(m => m.load()),
   history:   ()  => import('./modules/history.js').then(m => m.load()),
   activity:  ()  => import('./modules/activity.js').then(m => m.load()),
   changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
@@ -758,5 +759,17 @@ export function paneHeader(icon, title, btnLabel, btnFn, searchId, note) {
   return `<div class="pane-header${note ? ' pane-header-sticky' : ''}"><div class="pane-header-row"><div class="pane-header-title"><i class="ti ${esc(icon)}"></i>${esc(title)}</div>${srch}${btn}</div>${noteHtml}</div><div class="pane-divider"></div>`;
 }
 
+// ── Active System Profile chip ──────────────────────────────────────────────
+window._refreshActiveProfileChip = async () => {
+  const chip = document.getElementById('active-profile-chip');
+  const name = document.getElementById('active-profile-name');
+  if (!chip || !name) return;
+  const active = await invoke('get_active_profile').catch(() => null);
+  if (active) { name.textContent = active.name; chip.style.display = 'flex'; }
+  else { chip.style.display = 'none'; }
+};
+document.getElementById('active-profile-chip')?.addEventListener('click', () => goPane('profiles'));
+
 // ── Init ────────────────────────────────────────────────────────────────────
 _paneLoaders['dash']();
+window._refreshActiveProfileChip();

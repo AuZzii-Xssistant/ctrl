@@ -13,6 +13,15 @@
 
 ## Active
 
+### Profiles — audio endpoint switching needs a third-party PowerShell module
+Windows has no built-in cmdlet to change the default playback device. The `audio` profile item shells out to `Set-AudioDevice` from the community `AudioDeviceCmdlets` module — if it isn't installed, the item fails with a PowerShell warning in the activation output and the rest of the profile still applies. Not a bug, not fixable without bundling a third-party module (or shipping a signed native helper), which is out of scope for this pass. Workaround: `Install-Module AudioDeviceCmdlets` once, manually, if you want this item to work.
+
+### Profiles — refresh rate switching is unverified and best-effort
+No built-in PowerShell cmdlet changes display refresh rate either. The `refresh_rate` item uses an inline `Add-Type` P/Invoke call to `ChangeDisplaySettings`, wrapped in try/catch so a failure can't break the rest of activation — but this was written and reviewed, never run against real display hardware (this dev environment can't run the Tauri app or touch a real Windows session). Treat it as experimental until confirmed working on a real machine.
+
+### Profiles — killed apps aren't relaunched on Restore Previous
+The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing.
+
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
 Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.
 
@@ -48,17 +57,7 @@ If a script or fix that is a workflow step is deleted, that step's DB lookup fai
 
 ## Planned Features
 
-### System Profiles (Context Switching)
-A named machine-state system. Each Profile is a collection of settings that activates together: power plan, background apps to kill/start, DNS server, audio endpoint, display refresh rate, and an optional custom PowerShell block. Activating a profile snapshots the current values first so "restore previous" is always safe.
-
-**Why:** One click switches the machine between Work / Gaming / Streaming / Presentation modes. No scripting needed — the profile editor is a checklist. Each setting is stored in SQLite and travels with the portable folder.
-
-**Implementation notes:**
-- Profiles stored in `profiles` and `profile_items` tables (SQLite)
-- Activation runs Rust commands: `powercfg /setactive`, `sc stop/start`, `netsh`, registry writes
-- Pre-activation snapshot saved to `profile_snapshots` for safe revert
-- Tray icon or header chip shows active profile name
-- Builds on top of existing Tweaks/Fixes infrastructure
+(none currently — see `docs/ROADMAP.md` items 4 and 6 for what's next)
 
 ## Resolved
 

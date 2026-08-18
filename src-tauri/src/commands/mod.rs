@@ -16,3 +16,4 @@ pub mod terminal;
 pub mod external_apps;
 pub mod scriptstash;
 pub mod tray;
+pub mod profiles;

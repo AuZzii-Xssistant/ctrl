@@ -22,11 +22,18 @@ Files touched: `src-tauri/src/commands/tray.rs` (new), `src-tauri/src/commands/d
 
 **Not done**: the hotkey combo isn't user-configurable yet (hardcoded `Ctrl+Shift+Space`) — a Settings toggle for this is a small follow-up, not blocking anything else on this roadmap.
 
-## 3. System Profiles (spec already exists, never built)
+## ✅ 3. System Profiles (done, this branch)
 
-Already fully designed in `docs/known-issues.md` under "Planned Features" — a named machine-state system (Work/Gaming/Streaming/Presentation): power plan, background apps to kill/start, DNS, audio endpoint, refresh rate, optional custom PowerShell block. Snapshots current values before activating so "restore previous" is always safe.
+Named machine-state presets (Work/Gaming/Streaming/Presentation): power plan, background apps to kill/start, DNS server, audio endpoint, display refresh rate, optional custom PowerShell block. Activating snapshots current values first (fresh every time, never reused stale) so Restore Previous is always safe.
 
-**Scope**: new `profiles`/`profile_items`/`profile_snapshots` SQLite tables, a new `commands/profiles.rs`, a new nav module + page, a header chip or tray-menu entry showing the active profile. This is the single biggest genuinely new feature on this list — do it after the hotkey/tray plumbing exists, since "switch profile from the tray without opening the window" is the natural payoff.
+- One combined elevated PowerShell run per activation: snapshot markers first, then each enabled item applied in order, then a report of which apps it started (so restore can stop just those).
+- Topbar chip (`active-profile-chip`) and a disabled tray line ("Profile: X") both show the active profile, rebuilt after every activate/restore — same pattern `pin_item`/`unpin_item` already use for the tray.
+- Audio-endpoint and refresh-rate changes are best-effort: no built-in PowerShell cmdlet exists for either on stock Windows. Audio needs the third-party `AudioDeviceCmdlets` module (not bundled); refresh rate uses an inline P/Invoke `ChangeDisplaySettings` call. Both wrapped in try/catch so a failure can't break the rest of activation — see `docs/known-issues.md`.
+- Killed apps are not relaunched on restore (no stored launch path) — only apps the profile itself *started* get stopped on revert. Documented trade-off, not a bug.
+
+Files touched: `src-tauri/src/db.rs` (`profiles`/`profile_items`/`profile_snapshots`/`profile_state` tables), `src-tauri/src/commands/profiles.rs` (new), `src-tauri/src/commands/mod.rs`, `src-tauri/src/commands/tray.rs` (active-profile tray line), `src-tauri/src/lib.rs` (command registration), `src/modules/profiles.js` (new), `src/index.html` (nav button + pane + topbar chip), `src/app.js` (pane loader wiring, `window._refreshActiveProfileChip`), `src/style.css` (chip styling), `docs/api.md`, `docs/db-schema.md`, `README.md`.
+
+**Not verified**: this session cannot run the Tauri dev server or a real Windows session, so the `powercfg`/`netsh`/`Get-DnsClientServerAddress`/P-Invoke refresh-rate/`AudioDeviceCmdlets` PowerShell was written against documented behavior and reviewed carefully, but never executed against a live machine. Compiles clean, `cargo clippy` clean — the untested part is the PowerShell content itself, not the Rust wiring around it.
 
 ## 4. Watchers → real alerting (not started)
 

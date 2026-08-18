@@ -1,5 +1,17 @@
 # CTRL Changelog
 
+## 2026-08-18 — System Profiles (roadmap item 3)
+
+Named machine-state presets — the biggest genuinely new feature on the roadmap.
+
+- New `profiles`/`profile_items`/`profile_snapshots`/`profile_state` SQLite tables (`src-tauri/src/db.rs`). `profile_items` holds one row per setting type (`power_plan`/`kill_apps`/`start_apps`/`dns`/`audio`/`refresh_rate`/`script`); `profile_snapshots` captures pre-activation state fresh on every activate (never reused stale); `profile_state` is a single-row table tracking which profile is active, so it survives restart in the portable folder
+- New `src-tauri/src/commands/profiles.rs`: `get_profiles`/`add_profile`/`update_profile`/`delete_profile`/`get_active_profile`/`activate_profile`/`restore_previous`. Activation builds one combined elevated PowerShell script (single UAC prompt): snapshot markers first (parsed back out of stdout via `CTRL_SNAP:` lines), then each enabled item applied in order, mirroring the `exec.rs::run_elevated` PTY-wrapper pattern already used by Tweaks/Fixes
+- New Profiles nav page (`src/modules/profiles.js`): list, create/edit (checklist-style item form with per-item enable toggle), Activate button, Restore Previous banner shown whenever a profile is active
+- Topbar chip (`#active-profile-chip`) and a disabled tray menu line ("Profile: X") both show the active profile name, rebuilt after every activate/restore the same way `pin_item`/`unpin_item` already rebuild the tray
+- **Best-effort / documented limitations** (see `docs/known-issues.md`): audio-endpoint switching needs the third-party `AudioDeviceCmdlets` module (not bundled); refresh-rate switching uses an inline P/Invoke `ChangeDisplaySettings` call with no built-in cmdlet equivalent, written and reviewed but **not verified on real hardware** — this dev environment can't run the Tauri app or touch a live Windows session; killed apps are not relaunched on restore (no stored launch path), only apps the profile itself started get stopped on revert
+- `cargo check`/`cargo clippy --quiet` both clean
+- `docs/ROADMAP.md` item 3 marked done, `docs/api.md`/`docs/db-schema.md`/`README.md` updated, `docs/known-issues.md`'s "Planned Features" entry replaced with three "Active" limitation entries
+
 ## 2026-08-18 — real History page (roadmap item 5)
 
 - New History nav page (`src/modules/history.js`): filters `run_log` by module (script/fix/workflow/tool/backup), success/fail, date range, and text search over `item_name`; click a row to see full output in the existing terminal-drawer `showOutput` view; Export button writes filtered rows to a `.txt` file via a native save dialog

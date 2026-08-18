@@ -181,6 +181,13 @@ pub fn run() {
             commands::scriptstash::ss_import_pick_file,
             commands::scriptstash::ss_export_pick_file,
             commands::scriptstash::ss_open_in_editor,
+            commands::profiles::get_profiles,
+            commands::profiles::add_profile,
+            commands::profiles::update_profile,
+            commands::profiles::delete_profile,
+            commands::profiles::get_active_profile,
+            commands::profiles::activate_profile,
+            commands::profiles::restore_previous,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");

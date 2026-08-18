@@ -151,6 +151,26 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `run_backup` | `{id}` | `RunResult` |
 | `browse_for_folder` | — | `string\|null` |
 
+## System Profiles
+| Command | Payload | Returns |
+|---|---|---|
+| `get_profiles` | — | `Profile[]` (each with its `items`) |
+| `add_profile` | `{data: ProfileData}` | `i64` |
+| `update_profile` | `{id, data: ProfileData}` | void — replaces all items |
+| `delete_profile` | `{id}` | void — also clears `profile_state` if it was active |
+| `get_active_profile` | — | `{id, name}\|null` |
+| `activate_profile` | `{id}` | `RunResult` — snapshots current state, then applies every enabled item, elevated (single UAC prompt) |
+| `restore_previous` | — | `RunResult` — reverts from the most recent snapshot of the active profile, clears active state |
+
+`ProfileData = {name, description?, icon?, items: [{item_type, value, enabled?}]}`. `item_type` is one of `power_plan` / `kill_apps` / `start_apps` / `dns` / `audio` / `refresh_rate` / `script`; empty-value items are dropped on save. `kill_apps`/`start_apps` values are newline-separated lists; `dns` is `"dhcp"` or comma-separated IPs.
+
+`activate_profile` builds one combined elevated PowerShell script: captures snapshot markers (`CTRL_SNAP:*` lines parsed back out of stdout) for power plan / DNS / audio device, then applies each enabled item in order (power plan → kill apps → start apps → DNS → audio → refresh rate → custom script), then reports which apps it started (for revert). The tray menu and the topbar chip (`active-profile-chip` in `index.html`, refreshed via `window._refreshActiveProfileChip()`) both rebuild after activate/restore.
+
+**Best-effort, unverified on real hardware** (documented in `docs/known-issues.md`):
+- `audio` requires the third-party `AudioDeviceCmdlets` PowerShell module — not bundled, not installed by CTRL. Fails silently (a PowerShell warning in the output) if missing.
+- `refresh_rate` uses an inline P/Invoke call to `ChangeDisplaySettings` — no built-in cmdlet exists. Wrapped in try/catch so a failure can't break the rest of activation.
+- `kill_apps`/`start_apps` revert is best-effort: killed apps are not relaunched (no stored launch path), only apps *started* by the profile get stopped on restore.
+
 ## Run Log
 | Command | Payload | Returns |
 |---|---|---|

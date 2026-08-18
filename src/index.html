@@ -20,6 +20,7 @@
       <div id="search-results"></div>
     </div>
     <div class="win-controls">
+      <button class="win-btn ghost" id="active-profile-chip" title="Active System Profile" style="display:none;gap:5px;font-size:11px;color:var(--amber)"><i class="ti ti-user-cog"></i><span id="active-profile-name"></span></button>
       <button class="win-btn ghost" id="btn-bug"   title="Report a bug"><i class="ti ti-bug"></i></button>
       <button class="win-btn ghost" id="btn-heart" title="Support CTRL"><i class="ti ti-heart"></i></button>
       <button class="win-btn" id="btn-min"   title="Minimise"><i class="ti ti-minus"></i></button>
@@ -44,6 +45,7 @@
       <button class="nav-btn"        data-pane="env">    <i class="ti ti-list-details"></i>     <span class="tip">Environment</span></button>
       <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
       <button class="nav-btn"        data-pane="compare"> <i class="ti ti-arrows-diff"></i>          <span class="tip">Compare</span></button>
+      <button class="nav-btn"        data-pane="profiles"><i class="ti ti-user-cog"></i>          <span class="tip">Profiles</span></button>
       <div class="nav-spacer"></div>
       <button class="nav-btn"        data-pane="history">   <i class="ti ti-list-search"></i>     <span class="tip">History</span></button>
       <button class="nav-btn"        data-pane="activity">  <i class="ti ti-history"></i>         <span class="tip">Recent Activity</span></button>
@@ -197,6 +199,11 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- SYSTEM PROFILES -->
+      <div class="pane" id="profiles-pane">
+        <div class="pane-scroll" id="profiles-scroll"></div>
       </div>
 
       <!-- HISTORY -->

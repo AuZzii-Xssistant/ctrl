@@ -72,6 +72,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .win-btn.close:hover { background: var(--red); color: #fff; }
 .win-btn.ghost { color: var(--text3); opacity: 0.6; }
 .win-btn.ghost:hover { opacity: 1; color: var(--amber); background: transparent; }
+#active-profile-chip { width: auto; padding: 0 8px; opacity: 1; }
+#active-profile-chip:hover { color: var(--amber); background: var(--border); }
 
 /* ── BODY ── */
 #body { display: flex; flex: 1; min-height: 0; }

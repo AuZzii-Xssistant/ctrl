@@ -28,11 +28,27 @@ fn fetch_pinned(app: &AppHandle) -> Vec<(String, i64, String)> {
         .collect()
 }
 
+/// Name of the active System Profile, if any (see commands::profiles).
+fn fetch_active_profile(app: &AppHandle) -> Option<String> {
+    let state = app.try_state::<AppState>()?;
+    let db = state.0.lock().ok()?;
+    db.query_row(
+        "SELECT p.name FROM profile_state s JOIN profiles p ON p.id=s.active_profile_id WHERE s.id=1",
+        [],
+        |r| r.get::<_, String>(0),
+    ).ok()
+}
+
 /// (Re)build the tray icon and its menu. Safe to call repeatedly — replaces
 /// any existing tray icon rather than stacking a second one.
 pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "tray_show", "Show CTRL", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
+
+    let active_profile = fetch_active_profile(app)
+        .map(|name| MenuItem::with_id(app, "tray_active_profile", format!("Profile: {name}"), false, None::<&str>))
+        .transpose()?;
+    let sep_profile = if active_profile.is_some() { Some(PredefinedMenuItem::separator(app)?) } else { None };
 
     let pins = fetch_pinned(app);
     let mut pin_items: Vec<MenuItem<tauri::Wry>> = Vec::new();
@@ -48,6 +64,10 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, "tray_quit", "Quit CTRL", true, None::<&str>)?;
 
     let mut builder_items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = vec![&show, &sep1];
+    if let Some(ap) = &active_profile {
+        builder_items.push(ap);
+        builder_items.push(sep_profile.as_ref().unwrap());
+    }
     for item in &pin_items {
         builder_items.push(item);
     }
