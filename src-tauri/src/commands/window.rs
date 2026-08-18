@@ -26,6 +26,10 @@ pub fn minimize_window(app: AppHandle) {
 pub fn toggle_maximize(app: AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         let maximized = win.is_maximized().unwrap_or(false);
-        if maximized { let _ = win.unmaximize(); } else { let _ = win.maximize(); }
+        if maximized {
+            let _ = win.unmaximize();
+        } else {
+            let _ = win.maximize();
+        }
     }
 }

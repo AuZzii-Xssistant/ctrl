@@ -13,17 +13,27 @@ use crate::AppState;
 
 /// (item_type, item_id, name) for each pinned item, in dashboard sort order.
 fn fetch_pinned(app: &AppHandle) -> Vec<(String, i64, String)> {
-    let Some(state) = app.try_state::<AppState>() else { return vec![] };
-    let Ok(db) = state.0.lock() else { return vec![] };
-    let Ok(mut stmt) = db.prepare(
-        "SELECT item_type, item_id FROM pinned ORDER BY group_name, sort_order LIMIT 10"
-    ) else { return vec![] };
+    let Some(state) = app.try_state::<AppState>() else {
+        return vec![];
+    };
+    let Ok(db) = state.0.lock() else {
+        return vec![];
+    };
+    let Ok(mut stmt) = db
+        .prepare("SELECT item_type, item_id FROM pinned ORDER BY group_name, sort_order LIMIT 10")
+    else {
+        return vec![];
+    };
     let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)));
     let Ok(rows) = rows else { return vec![] };
     rows.filter_map(|r| r.ok())
         .filter_map(|(item_type, item_id)| {
             let name = crate::commands::dashboard::resolve_item_name(&db, &item_type, item_id);
-            if name.is_empty() { None } else { Some((item_type, item_id, name)) }
+            if name.is_empty() {
+                None
+            } else {
+                Some((item_type, item_id, name))
+            }
         })
         .collect()
 }
@@ -46,14 +56,32 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let sep1 = PredefinedMenuItem::separator(app)?;
 
     let active_profile = fetch_active_profile(app)
-        .map(|name| MenuItem::with_id(app, "tray_active_profile", format!("Profile: {name}"), false, None::<&str>))
+        .map(|name| {
+            MenuItem::with_id(
+                app,
+                "tray_active_profile",
+                format!("Profile: {name}"),
+                false,
+                None::<&str>,
+            )
+        })
         .transpose()?;
-    let sep_profile = if active_profile.is_some() { Some(PredefinedMenuItem::separator(app)?) } else { None };
+    let sep_profile = if active_profile.is_some() {
+        Some(PredefinedMenuItem::separator(app)?)
+    } else {
+        None
+    };
 
     let pins = fetch_pinned(app);
     let mut pin_items: Vec<MenuItem<tauri::Wry>> = Vec::new();
     if pins.is_empty() {
-        pin_items.push(MenuItem::with_id(app, "tray_no_pins", "No pinned items", false, None::<&str>)?);
+        pin_items.push(MenuItem::with_id(
+            app,
+            "tray_no_pins",
+            "No pinned items",
+            false,
+            None::<&str>,
+        )?);
     } else {
         for (item_type, item_id, name) in &pins {
             let id = format!("tray_launch:{item_type}:{item_id}");
@@ -85,7 +113,11 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .tooltip("CTRL")
-        .icon(app.default_window_icon().cloned().ok_or(tauri::Error::AssetNotFound("icon".into()))?)
+        .icon(
+            app.default_window_icon()
+                .cloned()
+                .ok_or(tauri::Error::AssetNotFound("icon".into()))?,
+        )
         .on_menu_event(move |app, event| {
             let id = event.id().as_ref();
             if id == "tray_show" {
@@ -95,7 +127,9 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             } else if let Some(rest) = id.strip_prefix("tray_launch:") {
                 if let Some((item_type, item_id)) = rest.split_once(':') {
                     if let Ok(item_id) = item_id.parse::<i64>() {
-                        crate::commands::dashboard::launch_pinned_from_tray(app, item_type, item_id);
+                        crate::commands::dashboard::launch_pinned_from_tray(
+                            app, item_type, item_id,
+                        );
                     }
                 }
             }

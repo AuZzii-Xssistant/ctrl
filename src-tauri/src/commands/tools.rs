@@ -35,20 +35,28 @@ pub fn get_tools(state: State<AppState>, search: Option<String>) -> Result<Vec<T
     let mut stmt = db.prepare(
         "SELECT id,name,category,path,args,tags,notes,run_as_admin FROM tools ORDER BY category,name"
     ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |row| {
-        Ok(Tool {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            category: row.get(2)?,
-            path: row.get(3)?,
-            args: row.get(4)?,
-            tags: row.get(5)?,
-            notes: row.get(6)?,
-            run_as_admin: row.get::<_, i64>(7)? != 0,
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(Tool {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                category: row.get(2)?,
+                path: row.get(3)?,
+                args: row.get(4)?,
+                tags: row.get(5)?,
+                notes: row.get(6)?,
+                run_as_admin: row.get::<_, i64>(7)? != 0,
+            })
         })
-    }).map_err(|e| e.to_string())?;
-    let tools: Vec<Tool> = rows.filter_map(|r| r.ok())
-        .filter(|t| q.is_empty() || t.name.to_lowercase().contains(&q) || t.category.to_lowercase().contains(&q) || t.tags.to_lowercase().contains(&q))
+        .map_err(|e| e.to_string())?;
+    let tools: Vec<Tool> = rows
+        .filter_map(|r| r.ok())
+        .filter(|t| {
+            q.is_empty()
+                || t.name.to_lowercase().contains(&q)
+                || t.category.to_lowercase().contains(&q)
+                || t.tags.to_lowercase().contains(&q)
+        })
         .collect();
     Ok(tools)
 }
@@ -93,24 +101,38 @@ pub fn update_tool(state: State<AppState>, id: i64, data: ToolData) -> Result<()
 #[tauri::command]
 pub fn delete_tool(state: State<AppState>, id: i64) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM tools WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM tools WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn launch_tool(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<(), String> {
+pub async fn launch_tool(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> Result<(), String> {
     let (path, args, run_as_admin) = {
         let db = state.0.lock().map_err(|e| e.to_string())?;
-        let mut stmt = db.prepare("SELECT path,args,run_as_admin FROM tools WHERE id=?1").map_err(|e| e.to_string())?;
+        let mut stmt = db
+            .prepare("SELECT path,args,run_as_admin FROM tools WHERE id=?1")
+            .map_err(|e| e.to_string())?;
         stmt.query_row(params![id], |row| {
-            Ok((row.get::<_,String>(0)?, row.get::<_,String>(1)?, row.get::<_,i64>(2)? != 0))
-        }).map_err(|e| e.to_string())?
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)? != 0,
+            ))
+        })
+        .map_err(|e| e.to_string())?
     };
 
     if run_as_admin {
-        app.shell().command("powershell")
+        app.shell()
+            .command("powershell")
             .args(["-Command", &format!("Start-Process '{}' -Verb RunAs", path)])
-            .spawn().map_err(|e| e.to_string())?;
+            .spawn()
+            .map_err(|e| e.to_string())?;
     } else {
         let mut cmd = app.shell().command(&path);
         if !args.is_empty() {
@@ -123,7 +145,9 @@ pub async fn launch_tool(app: tauri::AppHandle, state: State<'_, AppState>, id: 
 
 #[tauri::command]
 pub async fn browse_for_exe(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    let path = app.dialog().file()
+    let path = app
+        .dialog()
+        .file()
         .add_filter("Executables", &["exe", "cmd", "bat", "ps1", "lnk"])
         .blocking_pick_file();
     Ok(path.map(|p| p.to_string()))

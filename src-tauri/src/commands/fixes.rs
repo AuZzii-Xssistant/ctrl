@@ -1,9 +1,9 @@
+use crate::commands::exec::{run as exec_run, run_elevated as exec_elevated, Shell};
+use crate::commands::scripts::RunResult;
 use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::commands::scripts::RunResult;
-use crate::commands::exec::{Shell, run as exec_run, run_elevated as exec_elevated};
 
 #[derive(Serialize, Deserialize)]
 pub struct Fix {
@@ -37,16 +37,28 @@ pub fn get_fixes(state: State<AppState>, search: Option<String>) -> Result<Vec<F
     let mut stmt = db.prepare(
         "SELECT id,name,description,category,shell_type,command,tags,confirm_required,COALESCE(run_as_admin,0) FROM fixes ORDER BY category,name"
     ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |row| {
-        Ok(Fix {
-            id: row.get(0)?, name: row.get(1)?, description: row.get(2)?,
-            category: row.get(3)?, shell_type: row.get(4)?, command: row.get(5)?,
-            tags: row.get(6)?, confirm_required: row.get::<_,i64>(7)? != 0,
-            run_as_admin: row.get::<_,i64>(8)? != 0,
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(Fix {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                category: row.get(3)?,
+                shell_type: row.get(4)?,
+                command: row.get(5)?,
+                tags: row.get(6)?,
+                confirm_required: row.get::<_, i64>(7)? != 0,
+                run_as_admin: row.get::<_, i64>(8)? != 0,
+            })
         })
-    }).map_err(|e| e.to_string())?;
-    Ok(rows.filter_map(|r| r.ok())
-        .filter(|f| q.is_empty() || f.name.to_lowercase().contains(&q) || f.category.to_lowercase().contains(&q))
+        .map_err(|e| e.to_string())?;
+    Ok(rows
+        .filter_map(|r| r.ok())
+        .filter(|f| {
+            q.is_empty()
+                || f.name.to_lowercase().contains(&q)
+                || f.category.to_lowercase().contains(&q)
+        })
         .collect())
 }
 
@@ -77,23 +89,39 @@ pub fn update_fix(state: State<AppState>, id: i64, data: FixData) -> Result<(), 
 #[tauri::command]
 pub fn delete_fix(state: State<AppState>, id: i64) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM fixes WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM fixes WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64) -> Result<RunResult, String> {
+pub async fn run_fix(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    id: i64,
+) -> Result<RunResult, String> {
     let (command, shell_type, name, run_as_admin) = {
         let db = state.0.lock().map_err(|e| e.to_string())?;
         db.query_row(
             "SELECT command,shell_type,name,COALESCE(run_as_admin,0) FROM fixes WHERE id=?1",
-            params![id], |row| {
-            Ok((row.get::<_,String>(0)?, row.get::<_,String>(1)?, row.get::<_,String>(2)?, row.get::<_,i64>(3)? != 0))
-        }).map_err(|e| e.to_string())?
+            params![id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, i64>(3)? != 0,
+                ))
+            },
+        )
+        .map_err(|e| e.to_string())?
     };
 
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
-        return Ok(RunResult { success: true, output: format!("SANDBOX: would run fix \"{name}\":\n{command}") });
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would run fix \"{name}\":\n{command}"),
+        });
     }
 
     let shell = Shell::from_str(&shell_type);
@@ -112,5 +140,8 @@ pub async fn run_fix(app: tauri::AppHandle, state: State<'_, AppState>, id: i64)
         params![id, name, code, result.output],
     );
     // Output always streamed via events; return empty
-    Ok(RunResult { success: result.success, output: String::new() })
+    Ok(RunResult {
+        success: result.success,
+        output: String::new(),
+    })
 }

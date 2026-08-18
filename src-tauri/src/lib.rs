@@ -1,8 +1,8 @@
-mod db;
 mod commands;
+mod db;
 
-use std::sync::Mutex;
 use rusqlite::Connection;
+use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 
 pub struct AppState(pub Mutex<Connection>);
@@ -19,7 +19,8 @@ pub fn run() {
                     use tauri_plugin_global_shortcut::ShortcutState;
                     if event.state() == ShortcutState::Pressed
                         && shortcut.matches(
-                            tauri_plugin_global_shortcut::Modifiers::CONTROL | tauri_plugin_global_shortcut::Modifiers::SHIFT,
+                            tauri_plugin_global_shortcut::Modifiers::CONTROL
+                                | tauri_plugin_global_shortcut::Modifiers::SHIFT,
                             tauri_plugin_global_shortcut::Code::Space,
                         )
                     {
@@ -49,17 +50,19 @@ pub fn run() {
                 });
             }
             // DB lives next to the exe (portable)
-            let exe_dir = std::env::current_exe().ok()
+            let exe_dir = std::env::current_exe()
+                .ok()
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()))
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
             let db_path = std::env::var("CTRL_DB")
                 .map(std::path::PathBuf::from)
                 .unwrap_or_else(|_| exe_dir.join("ctrl.db"));
-            let conn = Connection::open(&db_path)
-                .expect("failed to open ctrl.db");
+            let conn = Connection::open(&db_path).expect("failed to open ctrl.db");
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
-            app.manage(commands::terminal::TermState(std::sync::Mutex::new(std::collections::HashMap::new())));
+            app.manage(commands::terminal::TermState(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )));
             if let Err(e) = commands::tray::build_tray(&app.handle().clone()) {
                 eprintln!("[CTRL] tray icon setup failed: {e}");
             }
@@ -72,7 +75,10 @@ pub fn run() {
                 for entry in tmp.flatten() {
                     let name = entry.file_name();
                     let name = name.to_string_lossy();
-                    if name.starts_with("ctrl_") || name == "ctrl_built.ps1" || name == "ctrl_built.bat" {
+                    if name.starts_with("ctrl_")
+                        || name == "ctrl_built.ps1"
+                        || name == "ctrl_built.bat"
+                    {
                         let _ = std::fs::remove_file(entry.path());
                     }
                 }
