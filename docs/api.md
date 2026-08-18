@@ -1,4 +1,4 @@
-# CTRL — Tauri Command API
+# >_ CTRL — Tauri Command API
 
 All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 
@@ -8,7 +8,7 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `close_window` | — | void — hides to the system tray, does not quit (also triggered by Alt+F4/native close) |
 | `minimize_window` | — | void |
 | `toggle_maximize` | — | void |
-| `exit_app` | — | void — actually quits. Only real exit path besides the tray menu's "Quit CTRL" |
+| `exit_app` | — | void — actually quits. Only real exit path besides the tray menu's "Quit >_ CTRL" |
 
 A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort — silently no-ops if another app already owns it) shows+focuses the window and focuses global search from anywhere, emitting a `hotkey-summon` event the frontend listens for. The tray icon's menu lists up to 10 pinned items (rebuilt whenever `pin_item`/`unpin_item` run, so it never drifts) plus Show/Quit.
 
@@ -21,7 +21,6 @@ A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort 
 | `reorder_pins` | `{orders: [{id, sort_order}]}` | void |
 | `get_sys_info` | — | `SysInfo` — hostname/username/OS/RAM/CPU/boot time, via a PowerShell CIM query |
 | `get_perf_stats` | — | `PerfStats` — live CPU/RAM/network/drive usage, polled every 1.5s by the dashboard perf panel |
-| `get_recent_activity` | `{limit?}` (default 12) | `ActivityEntry[]` — most recent `run_log` rows |
 
 ## Terminal / PTY
 | Command | Payload | Returns |
@@ -167,7 +166,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 `activate_profile` uses two PowerShell steps: (1) a non-elevated call reads current state (power plan via `powercfg`, DNS via `Get-DnsClientServerAddress`, audio via `Get-AudioDevice`) and returns `CTRL_SNAP:*` lines directly to Rust -- no UAC, stdout reliably captured; (2) an elevated fire-and-forget call applies each enabled item in order (power plan → kill apps → start apps → DNS → audio → refresh rate → custom script). Apps started by the profile are recorded by deriving process names from the `start_apps` item paths. The tray menu and topbar chip (`active-profile-chip` in `index.html`, refreshed via `window._refreshActiveProfileChip()`) both rebuild after activate/restore.
 
 **Best-effort, unverified on real hardware** (documented in `docs/known-issues.md`):
-- `audio` requires the third-party `AudioDeviceCmdlets` PowerShell module — not bundled, not installed by CTRL. Fails silently (a PowerShell warning in the output) if missing.
+- `audio` requires the third-party `AudioDeviceCmdlets` PowerShell module — not bundled, not installed by >_ CTRL. Fails silently (a PowerShell warning in the output) if missing.
 - `refresh_rate` uses an inline P/Invoke call to `ChangeDisplaySettings` — no built-in cmdlet exists. Wrapped in try/catch so a failure can't break the rest of activation.
 - `kill_apps`/`start_apps` revert is best-effort: killed apps are not relaunched (no stored launch path), only apps *started* by the profile get stopped on restore.
 
@@ -258,7 +257,6 @@ WorkflowData = { name, steps: string (JSON), description?, trigger_type?, trigge
 StepResult   = { label: string, success: boolean, output: string }
 BackupJob    = { id, name, source, dest, last_run?: string, created_at: string }
 BackupData   = { name, source, dest: string }
-ActivityEntry= { item_type, item_name, success: boolean, ran_at: string }
 SysInfo      = { hostname, username, os, ram_gb, cpu: string, boot_epoch_ms: number }
 PerfStats    = { cpu_pct: number, ram_used_gb, ram_total_gb: number, net_name: string, net_recv_bytes, net_sent_bytes: number, drives: DriveInfo[] }
 DriveInfo    = { name: string, used_gb, total_gb: number }

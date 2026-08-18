@@ -1,6 +1,6 @@
-# CTRL — Power-User Roadmap
+# >_ CTRL — Power-User Roadmap
 
-Proposed on `feature/power-user-upgrades`, branched from `main` at commit `82fc6c4`. The goal: turn CTRL from "a utility you open occasionally" into "the thing you reach for by reflex." Ranked by leverage — do the top one first.
+Proposed on `feature/power-user-upgrades`, branched from `main` at commit `82fc6c4`. The goal: turn >_ CTRL from "a utility you open occasionally" into "the thing you reach for by reflex." Ranked by leverage — do the top one first.
 
 ## ✅ 1. Command palette (done, this branch)
 
@@ -14,9 +14,9 @@ Files touched: `src/app.js` (`_paletteRun`, `_runFromPalette`, `renderSearch`), 
 ## ✅ 2. Global hotkey + system tray (done, this branch)
 
 - `Ctrl+Shift+Space` (registered at startup, best-effort — silently no-ops if another app owns it) shows+focuses the window and focuses global search from anywhere.
-- Tray icon with a menu: Show CTRL, up to 10 pinned items (clicking one runs it directly via the same dispatch dashboard.js uses, in native Rust so it works even with the window hidden), Quit CTRL.
+- Tray icon with a menu: Show >_ CTRL, up to 10 pinned items (clicking one runs it directly via the same dispatch dashboard.js uses, in native Rust so it works even with the window hidden), Quit >_ CTRL.
 - Tray menu is rebuilt from the `pinned` table every time `pin_item`/`unpin_item` run — never goes stale.
-- Closing the window (X button, Alt+F4) now hides to tray instead of quitting. `exit_app` is the real exit, wired to the tray's "Quit CTRL".
+- Closing the window (X button, Alt+F4) now hides to tray instead of quitting. `exit_app` is the real exit, wired to the tray's "Quit >_ CTRL".
 
 Files touched: `src-tauri/src/commands/tray.rs` (new), `src-tauri/src/commands/dashboard.rs` (`pin_item`/`unpin_item` now rebuild the tray, added `launch_pinned_from_tray`/`resolve_item_name`), `src-tauri/src/commands/window.rs` (`close_window` hides, added `exit_app`), `src-tauri/src/lib.rs` (plugin registration, hotkey, close-to-tray), `src/app.js` (`hotkey-summon` listener), `Cargo.toml`/`capabilities/default.json`.
 

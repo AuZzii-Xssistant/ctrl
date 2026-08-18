@@ -118,7 +118,6 @@ pub fn run() {
             commands::misc::get_stats,
             commands::misc::get_sys_info,
             commands::misc::get_last_runs,
-            commands::misc::get_recent_activity,
             commands::misc::get_run_history,
             commands::misc::get_run_history_filtered,
             commands::misc::export_text_file,

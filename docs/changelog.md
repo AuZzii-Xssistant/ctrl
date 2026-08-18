@@ -1,4 +1,10 @@
-# CTRL Changelog
+# >_ CTRL Changelog
+
+## 2026-08-18 — Rebrand to ">_ CTRL", record button moved into header, Recent Activity removed
+
+- Rebranded display name from "CTRL" to ">_ CTRL" everywhere it's prose/UI text (window title, in-app strings, README, docs) — matches the in-app logo convention that already used it. Left untouched: the built `ctrl.exe`/`ctrl-cli.exe` filenames, the Cargo package name, the GitHub repo name, `tauri.conf.json`'s `productName` (Windows disallows `>` in install paths/registry keys derived from that field — only the window-title string was changed, not the field that drives the installer/bundle identity), `CTRL_SANDBOX`/`CTRL_DB` env var names, and the `CTRL_SNAP:` internal marker prefix.
+- Workflows: the macro-recorder's Record/Stop & Save control moved from its own row below the header into the pane header itself, next to "New Workflow".
+- Removed the "Recent Activity" nav page (`activity.js`, `get_recent_activity` command, `ActivityEntry` type) — it was a strict subset of the new History page (last 50, no filters, no click-to-view-output, no export) with zero unique capability. History's nav icon changed to `ti-history` (freed up from Recent Activity). Added a "Clear Filters" button to History.
 
 ## 2026-08-18 — Workflow steps now actually elevate (real bug, found via testing)
 
@@ -232,7 +238,7 @@ Named machine-state presets — the biggest genuinely new feature on the roadmap
 - Tauri v2 camelCase param mismatch fixed across all invoke calls
 - Admin script/fix output now captured via temp PS1 + Out-File bridge
 - Modal scroll: `max-height:85vh`, scrollable body prevents off-screen overflow
-- Project status `active` not in STATUS_ORDER — CTRL project corrected to `working`
+- Project status `active` not in STATUS_ORDER — >_ CTRL project corrected to `working`
 - `default-run = "ctrl"` in Cargo.toml fixes `dev.bat`/`build.bat` after ctrl-cli was added
 
 ### Major Upgrade 5 — Admin elevation, Recent Activity pane, output drawer redesign, UX fixes

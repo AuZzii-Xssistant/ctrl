@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "CTRL",
+        "title": ">_ CTRL",
         "width": 1280,
         "height": 800,
         "minWidth": 900,

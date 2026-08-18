@@ -14,8 +14,8 @@ let _eventsBound = false;
 export async function load() {
   const el = document.getElementById('workflows-scroll');
   el.innerHTML = paneHeader('ti-player-play', 'Workflows', 'New Workflow', 'window._showWorkflowModal(null)', 'wf-filter')
-    + _recRowHtml()
     + `<div id="wf-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(4)}</div></div>`;
+  document.querySelector('#workflows-scroll .pane-header-row')?.insertAdjacentHTML('beforeend', _recRowHtml());
 
   const wfs = await inv('get_workflows');
   _render(wfs);
@@ -211,7 +211,7 @@ window._showWorkflowModal = async (wf) => {
         <button type="button" class="action-btn btn-ghost" onclick="window._wfTogglePanel('wait')"><i class="ti ti-clock-pause"></i> Wait</button>
       </div>
       <div id="wf-notify-panel" style="display:none;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <input class="form-input" id="wf-notify-title" placeholder="Notification title" value="CTRL" style="flex:1;min-width:120px">
+        <input class="form-input" id="wf-notify-title" placeholder="Notification title" value="&gt;_ CTRL" style="flex:1;min-width:120px">
         <input class="form-input" id="wf-notify-body" placeholder="Notification message" style="flex:2;min-width:160px">
         <button type="button" class="action-btn btn-primary" onclick="window._wfAdd('notify')">Add</button>
       </div>
@@ -253,7 +253,7 @@ window._showWorkflowModal = async (wf) => {
       const [stype, itemId, ...rest] = picker.value.split(':');
       window._wfSteps.push({ step_type: stype, item_id: +itemId, label: rest.join(':') });
     } else if (type === 'notify') {
-      const title = document.getElementById('wf-notify-title').value.trim() || 'CTRL';
+      const title = document.getElementById('wf-notify-title').value.trim() || '>_ CTRL';
       const body  = document.getElementById('wf-notify-body').value.trim();
       window._wfSteps.push({ step_type: 'notify', label: `Notify: ${title}`, title, body });
       document.getElementById('wf-notify-panel').style.display = 'none';

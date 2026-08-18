@@ -1,4 +1,4 @@
-# CTRL — Database Schema
+# >_ CTRL — Database Schema
 
 SQLite database at `ctrl.db` (next to the exe, portable).
 WAL mode enabled. All tables use `INTEGER PRIMARY KEY` autoincrement IDs unless noted.

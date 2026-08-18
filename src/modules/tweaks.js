@@ -112,7 +112,7 @@ let _customTweaks = [];
 
 export async function load() {
   const el = document.getElementById('tweaks-scroll');
-  const note = `<div class="tweaks-note-inner"><i class="ti ti-shield-lock"></i> Tweaks marked <span class="badge-admin" style="vertical-align:middle"><i class="ti ti-shield"></i> admin</span> require CTRL to be run as Administrator.</div>`;
+  const note = `<div class="tweaks-note-inner"><i class="ti ti-shield-lock"></i> Tweaks marked <span class="badge-admin" style="vertical-align:middle"><i class="ti ti-shield"></i> admin</span> require &gt;_ CTRL to be run as Administrator.</div>`;
   el.innerHTML = paneHeader('ti-adjustments', 'System Tweaks', 'Custom Tweak', 'window._showCustomTweakModal(null)', 'tweaks-filter', note)
     + `<div id="tweaks-body"></div>`;
 

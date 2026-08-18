@@ -2,7 +2,7 @@
 
 **Your personal Windows control centre. Portable. Local. No BS.**
 
-CTRL replaces the scattered mess of scripts, shortcuts, batch files, and AutoHotkey hacks that every power user accumulates — and puts everything in one dark, fast, offline-capable desktop app.
+>_ CTRL replaces the scattered mess of scripts, shortcuts, batch files, and AutoHotkey hacks that every power user accumulates — and puts everything in one dark, fast, offline-capable desktop app.
 
 Drop the folder on a USB drive. Copy it to a new PC. Run it anywhere. No installer. No admin rights needed. No internet. No telemetry. Everything local, everything yours.
 
@@ -22,9 +22,9 @@ Built with **Tauri v2** (Rust + WebView2) and vanilla JS/CSS. SQLite database tr
 
 ---
 
-> **⚠️ Beta** — CTRL is functional and actively used, but maturity varies a lot module to module (see the table below — this isn't boilerplate, read it before relying on something). Expect rough edges and breaking changes between releases. Back up your `ctrl.db` before upgrading.
+> **⚠️ Beta** — >_ CTRL is functional and actively used, but maturity varies a lot module to module (see the table below — this isn't boilerplate, read it before relying on something). Expect rough edges and breaking changes between releases. Back up your `ctrl.db` before upgrading.
 
-> **🤖 Vibe Coded** — CTRL is a vibe-coded project, built entirely through AI-assisted development (Claude). The code works, but it's been grown organically rather than architected from scratch. Contributions and issues welcome.
+> **🤖 Vibe Coded** — >_ CTRL is a vibe-coded project, built entirely through AI-assisted development (Claude). The code works, but it's been grown organically rather than architected from scratch. Contributions and issues welcome.
 
 ---
 
@@ -36,7 +36,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 |---|---|---|---|
 | Quick Fixes | `ti-bolt` | 🟢 Solid | One-click commands (flush DNS, clear temp, restart service…) — the most-used, most battle-tested part of the app |
 | Scripts | `ti-code` | 🟢 Solid | ScriptStash port — named profiles + a Master view, drag-reorder, per-script admin/pause flags. Heavily reworked and hardened; the module I trust most after Quick Fixes |
-| Builder | `ti-wand` | 🟡 Functional (ported) | Toggle-based script generator, imported from the separate [WinScript](https://github.com/flick9000/winscript) project rather than designed for CTRL from scratch. Works, but carries someone else's design decisions and hasn't had the same scrutiny as Scripts/Fixes |
+| Builder | `ti-wand` | 🟡 Functional (ported) | Toggle-based script generator, imported from the separate [WinScript](https://github.com/flick9000/winscript) project rather than designed for >_ CTRL from scratch. Works, but carries someone else's design decisions and hasn't had the same scrutiny as Scripts/Fixes |
 | Dashboard | `ti-home` | 🟡 Functional | Pinned launchpad — one-click access to tools/scripts/fixes, drag-reorder, compact mode |
 | Tools | `ti-tool` | 🟡 Functional | Register and launch executables, with optional Run As Admin |
 | Projects | `ti-archive` | 🟡 Functional | Track projects by status (idea → stable → deprecated) |
@@ -48,8 +48,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 | Compare | `ti-arrows-diff` | 🟡 Functional | Side-by-side text diff with synced scroll |
 | Profiles | `ti-user-cog` | 🟡 Functional | Named machine-state presets (power plan / apps to kill-start / DNS / audio / refresh rate / custom script). Activate snapshots current state first; Restore Previous reverts. Audio-endpoint and refresh-rate changes are best-effort (see Known Issues) |
 | Watchers | `ti-eye` | 🟡 Functional | Polls disk space / a named process / sustained CPU every ~30s, notifies (tray toast) or runs a workflow on alert |
-| History | `ti-list-search` | 🟡 Functional | Full searchable `run_log`: filter by module/success/date range/text, click a row for full output, export filtered results to a text file |
-| Recent Activity | `ti-history` | 🟡 Functional | Last 50 run events (fixes, scripts, workflows) with success/fail status |
+| History | `ti-history` | 🟡 Functional | Full searchable `run_log`: filter by module/success/date range/text, click a row for full output, export filtered results to a text file, Clear Filters button |
 | Settings | `ti-settings` | 🟡 Functional | App info, keyboard shortcuts, data folder access |
 | Changelog | `ti-notes` | 🟡 Functional | In-app changelog viewer |
 
@@ -61,7 +60,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 
 | Key | Action |
 |---|---|
-| `Ctrl+Shift+Space` (global, works anywhere) | Show CTRL and focus search — even if it's minimized/hidden to tray |
+| `Ctrl+Shift+Space` (global, works anywhere) | Show >_ CTRL and focus search — even if it's minimized/hidden to tray |
 | `Ctrl+K` | Focus global search |
 | `Escape` | Close modal / clear search |
 | `↑ ↓` | Navigate search results |
@@ -90,7 +89,7 @@ Copy the entire `CTRL/` folder to a USB drive. Run `ctrl.exe` on any Windows 10/
 
 ## CLI
 
-`ctrl-cli.exe` lets you add data to your CTRL instance from a terminal without opening the GUI.
+`ctrl-cli.exe` lets you add data to your >_ CTRL instance from a terminal without opening the GUI.
 
 The DB is auto-detected next to the binary (`ctrl.db`). Override with `--db PATH`.
 
@@ -175,7 +174,7 @@ Produces release binaries for both the app and the CLI:
 - `src-tauri\target\release\ctrl.exe` — the GUI app
 - `src-tauri\target\release\ctrl-cli.exe` — the CLI tool
 
-Copy both to your portable CTRL folder alongside `ctrl.db`.
+Copy both to your portable >_ CTRL folder alongside `ctrl.db`.
 
 ---
 

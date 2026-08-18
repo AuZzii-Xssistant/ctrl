@@ -6,7 +6,7 @@ const S = { itemType: '', success: '', dateFrom: '', dateTo: '', text: '', rows:
 
 export async function load() {
   const el = document.getElementById('history-scroll');
-  el.innerHTML = paneHeader('ti-list-search', 'History', null, null, null)
+  el.innerHTML = paneHeader('ti-history', 'History', null, null, null)
     + `<div class="sc-filter-bar" id="hist-filter-bar"></div>
        <div id="hist-body"><div class="row-list">${'<div class="skel-row skeleton"></div>'.repeat(6)}</div></div>`;
   _renderFilterBar();
@@ -29,6 +29,7 @@ function _renderFilterBar() {
 </select>
 <input class="form-input" type="date" id="hist-from" value="${esc(S.dateFrom)}" title="From date">
 <input class="form-input" type="date" id="hist-to" value="${esc(S.dateTo)}" title="To date">
+<button class="action-btn btn-ghost" id="hist-clear" style="font-size:10px;padding:3px 10px"><i class="ti ti-filter-x"></i> Clear Filters</button>
 <button class="action-btn btn-ghost" id="hist-export" style="font-size:10px;padding:3px 10px"><i class="ti ti-download"></i> Export</button>
 <span class="sc-count" id="hist-count"></span>`;
 
@@ -38,6 +39,11 @@ function _renderFilterBar() {
   document.getElementById('hist-from').onchange    = e => { S.dateFrom = e.target.value; _reload(); };
   document.getElementById('hist-to').onchange      = e => { S.dateTo = e.target.value; _reload(); };
   document.getElementById('hist-export').onclick   = _exportFiltered;
+  document.getElementById('hist-clear').onclick    = () => {
+    S.itemType = ''; S.success = ''; S.dateFrom = ''; S.dateTo = ''; S.text = '';
+    _renderFilterBar();
+    _reload();
+  };
 }
 
 let _reloadTimer = null;

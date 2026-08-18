@@ -591,7 +591,7 @@ async function _duplicateScript(id) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
-// All runs go through run_script — CTRL's existing runner.
+// All runs go through run_script — the app's existing runner.
 // forceAdmin=true overrides the script's own run_as_admin setting.
 // "Pause Script" scripts run in the same embedded terminal but hold at the end for a keypress.
 
