@@ -243,6 +243,10 @@ pub async fn run_built_script(
         _ => ("cmd", vec!["/c".into(), path]),
     };
     let result = crate::commands::exec::spawn_streaming(&app, program, args).await?;
+    // spawn_streaming fully awaits process completion before returning, so the
+    // script is no longer needed — this was never deleted, leaking one temp
+    // file per Run click (not just on cancel, on every normal run too).
+    let _ = std::fs::remove_file(&tmp);
     // Output was streamed via events; return empty so JS doesn't double-write
     Ok(RunResult {
         success: result.success,

@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed temp-file leak on every single Builder Run click
+
+`run_built_script` never deleted its temp script file — unlike the elevated-cancel leak (previous entry), this hit on *every* Run click, not just cancellations. Fixed by removing it right after `spawn_streaming` (which fully awaits completion) returns.
+
 ## 2026-08-18 — Fixed temp-file leak on cancelling an elevated run
 
 `exec.rs::run_elevated` writes 6 temp files per run; 5 self-delete via `Remove-Item` in the PTY wrapper script on a normal finish, but hitting Stop kills the elevated console before it gets there. Only `sentinel`/`pid` were cleaned up on the cancel path — `cmd`/`elevwrap`/`exit`/`ptywrap` leaked until the next app restart's startup sweep. Given the app now stays in the tray for extended sessions, this could accumulate real clutter. Fixed: the cancel path removes all 4 now.

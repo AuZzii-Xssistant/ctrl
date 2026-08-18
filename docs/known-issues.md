@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Builder's Run button leaked a temp file on every single run~~ ✅ Resolved (2026-08-18)
+`run_built_script` (builder.rs) writes the combined script to a temp file, runs it via `spawn_streaming` (which fully awaits process completion), then returns — but never deleted the file. Unlike the elevated-cancel leak below, this happened on *every* Run click, not just cancellations. Fixed: removed right after `spawn_streaming` returns. One narrow residual gap left deliberately unaddressed: if `spawn_streaming`'s own process-spawn fails (not the script failing — the OS failing to launch `powershell`/`cmd` at all, extremely rare), the `?` returns before cleanup runs and the file leaks — same as before, just for a much narrower case; the startup sweep still catches it eventually.
+
 ### ~~Cancelling an elevated run leaked 4 temp files every time~~ ✅ Resolved (2026-08-18)
 `exec.rs::run_elevated` writes 6 temp files per run; the PTY wrapper script self-deletes 5 of them (`cmd`/`elevwrap`/`exit`/`pid`/`ptywrap`) on a normal finish, but hitting Stop kills the elevated console via `taskkill` before it ever reaches those `Remove-Item` lines — only `sentinel` and `pid` were cleaned up Rust-side on the cancel path, leaving `cmd`/`elevwrap`/`exit`/`ptywrap` behind. They do get swept eventually (the startup cleanup in `lib.rs` deletes anything named `ctrl_*` from the temp dir), but only on the *next app restart* — during a single long-running session (this app now lives in the tray for extended periods), every cancelled elevated run added 4 permanent leftover files until then. Fixed: the cancel path now removes all 4.
 
