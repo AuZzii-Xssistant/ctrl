@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed temp-file leak on cancelling an elevated run
+
+`exec.rs::run_elevated` writes 6 temp files per run; 5 self-delete via `Remove-Item` in the PTY wrapper script on a normal finish, but hitting Stop kills the elevated console before it gets there. Only `sentinel`/`pid` were cleaned up on the cancel path — `cmd`/`elevwrap`/`exit`/`ptywrap` leaked until the next app restart's startup sweep. Given the app now stays in the tray for extended sessions, this could accumulate real clutter. Fixed: the cancel path removes all 4 now.
+
 ## 2026-08-18 — Fixed Wait step label lying about its actual duration
 
 `run_step_wait` hard-caps at 300s, but the form's number input had no `max` and the label-building JS didn't clamp — a step could show "Wait 10000s" while actually only waiting 5 minutes, with no indication anywhere of the mismatch. Added `max="300"` to the input and clamped the label logic to match.

@@ -351,7 +351,14 @@ pub async fn run_elevated(
                 return ec == 0;
             }
             if RUN_CANCELLED.swap(false, Ordering::SeqCst) {
+                // The PTY wrapper script self-deletes these on a normal finish, but a
+                // Stop-button cancel kills the elevated console before it gets there —
+                // without this, every cancelled elevated run leaked 4 temp files.
                 let _ = fs::remove_file(&pid_file2);
+                let _ = fs::remove_file(&cmd_file);
+                let _ = fs::remove_file(&elev_wrap);
+                let _ = fs::remove_file(&exit_file);
+                let _ = fs::remove_file(&pty_wrap);
                 return false;
             }
             if std::time::Instant::now() > deadline {
