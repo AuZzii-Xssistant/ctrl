@@ -26,7 +26,7 @@ The consecutive-over-threshold counter behind `cpu_sustained` is in-memory only 
 Same limitation as System Profiles: this dev environment can't run the Tauri app or a live Windows session. `cargo check`/`cargo clippy` are clean and the poll loop/PowerShell follow the exact patterns of the already-shipped, presumably-working workflow scheduler and notify step — but the watcher scheduler, the toast firing, and `Get-Process`-based `process_down` detection were never executed against a real machine.
 
 ### Profiles — killed apps aren't relaunched on Restore Previous
-The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing.
+The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing. Process names are derived from `start_apps` item file paths (executable stem) rather than from `Start-Process -PassThru` output, since the apply step runs elevated and its stdout is not captured back into Rust.
 
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
 Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.

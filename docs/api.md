@@ -159,12 +159,12 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `update_profile` | `{id, data: ProfileData}` | void — replaces all items |
 | `delete_profile` | `{id}` | void — also clears `profile_state` if it was active |
 | `get_active_profile` | — | `{id, name}\|null` |
-| `activate_profile` | `{id}` | `RunResult` — snapshots current state, then applies every enabled item, elevated (single UAC prompt) |
+| ``activate_profile` | `{id}` | `RunResult` — two-phase: (1) non-elevated PS captures snapshot, (2) elevated PS applies each enabled item |
 | `restore_previous` | — | `RunResult` — reverts from the most recent snapshot of the active profile, clears active state |
 
 `ProfileData = {name, description?, icon?, items: [{item_type, value, enabled?}]}`. `item_type` is one of `power_plan` / `kill_apps` / `start_apps` / `dns` / `audio` / `refresh_rate` / `script`; empty-value items are dropped on save. `kill_apps`/`start_apps` values are newline-separated lists; `dns` is `"dhcp"` or comma-separated IPs.
 
-`activate_profile` builds one combined elevated PowerShell script: captures snapshot markers (`CTRL_SNAP:*` lines parsed back out of stdout) for power plan / DNS / audio device, then applies each enabled item in order (power plan → kill apps → start apps → DNS → audio → refresh rate → custom script), then reports which apps it started (for revert). The tray menu and the topbar chip (`active-profile-chip` in `index.html`, refreshed via `window._refreshActiveProfileChip()`) both rebuild after activate/restore.
+`activate_profile` uses two PowerShell steps: (1) a non-elevated call reads current state (power plan via `powercfg`, DNS via `Get-DnsClientServerAddress`, audio via `Get-AudioDevice`) and returns `CTRL_SNAP:*` lines directly to Rust -- no UAC, stdout reliably captured; (2) an elevated fire-and-forget call applies each enabled item in order (power plan → kill apps → start apps → DNS → audio → refresh rate → custom script). Apps started by the profile are recorded by deriving process names from the `start_apps` item paths. The tray menu and topbar chip (`active-profile-chip` in `index.html`, refreshed via `window._refreshActiveProfileChip()`) both rebuild after activate/restore.
 
 **Best-effort, unverified on real hardware** (documented in `docs/known-issues.md`):
 - `audio` requires the third-party `AudioDeviceCmdlets` PowerShell module — not bundled, not installed by CTRL. Fails silently (a PowerShell warning in the output) if missing.
