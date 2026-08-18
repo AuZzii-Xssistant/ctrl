@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Workflow "Wait" step could show a step label that lied about its actual duration~~ ✅ Resolved (2026-08-18)
+`run_step_wait` (workflows.rs) hard-caps at 300s, but the Wait step form's number input had no `max` and the JS building the step label didn't clamp — entering e.g. 10000 created a step labeled "Wait 10000s" that would actually only wait 5 minutes, with no indication anywhere of the mismatch. Added `max="300"` to the input and clamped the label-building logic to match.
+
 ### ~~Settings' "Open DB location" button was byte-identical to "Open data folder"~~ ✅ Resolved (2026-08-18)
 Both buttons called `open_data_folder`, which only ever opens the exe's own folder — it never accounted for `CTRL_DB`, the env var `sandbox.bat` sets to redirect the database elsewhere. "Open DB location" was silently wrong whenever `CTRL_DB` pointed away from the exe's directory. Added `db::resolve_path()` (the same `CTRL_DB`-aware logic already used at startup, now shared instead of duplicated) and a new `open_db_folder` command that opens the DB's actual parent folder.
 

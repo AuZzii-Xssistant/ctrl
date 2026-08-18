@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed Wait step label lying about its actual duration
+
+`run_step_wait` hard-caps at 300s, but the form's number input had no `max` and the label-building JS didn't clamp — a step could show "Wait 10000s" while actually only waiting 5 minutes, with no indication anywhere of the mismatch. Added `max="300"` to the input and clamped the label logic to match.
+
 ## 2026-08-18 — Documented a CLI arg-parsing edge case (not fixed)
 
 `ctrl-cli`'s `parse_flags()` distinguishes `--flag value` from boolean-only flags (`--admin`, `--pause`) by peeking at whether the next token starts with `--`. A value that itself starts with `--` (e.g. a `--cmd` containing another tool's own double-dash flags) misparses. Documented in `docs/known-issues.md` rather than rewritten — narrow edge case, and no way to test the CLI live in this environment to verify a fix.

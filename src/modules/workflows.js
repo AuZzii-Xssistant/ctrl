@@ -216,7 +216,7 @@ window._showWorkflowModal = async (wf) => {
         <button type="button" class="action-btn btn-primary" onclick="window._wfAdd('notify')">Add</button>
       </div>
       <div id="wf-wait-panel" style="display:none;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <input class="form-input" id="wf-wait-secs" type="number" min="1" placeholder="Seconds" value="5" style="width:100px">
+        <input class="form-input" id="wf-wait-secs" type="number" min="1" max="300" placeholder="Seconds (max 300)" value="5" style="width:100px">
         <button type="button" class="action-btn btn-primary" onclick="window._wfAdd('wait')">Add</button>
       </div>
     </div>
@@ -258,7 +258,9 @@ window._showWorkflowModal = async (wf) => {
       window._wfSteps.push({ step_type: 'notify', label: `Notify: ${title}`, title, body });
       document.getElementById('wf-notify-panel').style.display = 'none';
     } else if (type === 'wait') {
-      const s = parseInt(document.getElementById('wf-wait-secs').value, 10) || 5;
+      // run_step_wait (workflows.rs) hard-caps at 300s — clamp here too so the
+      // step label shown never lies about what will actually happen.
+      const s = Math.min(parseInt(document.getElementById('wf-wait-secs').value, 10) || 5, 300);
       window._wfSteps.push({ step_type: 'wait', label: `Wait ${s}s`, seconds: s });
       document.getElementById('wf-wait-panel').style.display = 'none';
     }
