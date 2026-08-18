@@ -1,4 +1,20 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{params, Connection, Result};
+
+/// Has this seed batch already run at least once (ever, including on a version
+/// that predates app_meta — see the two call sites for the upgrade-safe check)?
+fn was_seeded(conn: &Connection, key: &str) -> bool {
+    conn.query_row("SELECT 1 FROM app_meta WHERE key=?1", params![key], |_| {
+        Ok(())
+    })
+    .is_ok()
+}
+
+fn mark_seeded(conn: &Connection, key: &str) {
+    let _ = conn.execute(
+        "INSERT OR REPLACE INTO app_meta (key,value) VALUES (?1,'1')",
+        params![key],
+    );
+}
 
 pub fn init(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -97,13 +113,17 @@ fn migrate(conn: &Connection) -> Result<()> {
     )",
         [],
     );
-    // Seed QL items if empty
-    let ql_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM ql_items", [], |r| r.get(0))
-        .unwrap_or(0);
-    if ql_count == 0 {
-        let _ = conn.execute_batch(
-            "
+    // Seed QL items once ever — not "if empty", so a user who deletes every
+    // seeded item doesn't get them silently recreated on next launch.
+    if !was_seeded(conn, "ql_items_seeded") {
+        let ql_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM ql_items", [], |r| r.get(0))
+            .unwrap_or(0);
+        // Upgrading from a pre-app_meta version already has rows — don't
+        // duplicate them, just record that seeding has "happened."
+        if ql_count == 0 {
+            let _ = conn.execute_batch(
+                "
             INSERT INTO ql_items (label,icon,cmd) VALUES
             ('Windows Settings','ti-settings','ms-settings:'),
             ('Control Panel','ti-layout-grid','control'),
@@ -129,7 +149,9 @@ fn migrate(conn: &Connection) -> Result<()> {
             ('System Restore','ti-history','rstrui.exe'),
             ('Windows Update','ti-refresh','ms-settings:windowsupdate');
         ",
-        );
+            );
+        }
+        mark_seeded(conn, "ql_items_seeded");
     }
     // Scripts: interactive flag (opens visible terminal window, ScriptStash port)
     let _ = conn.execute(
@@ -255,6 +277,14 @@ fn migrate(conn: &Connection) -> Result<()> {
 fn create_tables(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "
+        -- Tracks which pre-shipped defaults have been seeded, so a user who
+        -- deletes every seeded row (ql_items, fixes) doesn't get them silently
+        -- recreated on next launch. See was_seeded()/mark_seeded() below.
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key   TEXT PRIMARY KEY,
+            value TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS tools (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             name        TEXT NOT NULL,
@@ -343,9 +373,15 @@ fn create_tables(conn: &Connection) -> Result<()> {
 }
 
 fn seed_defaults(conn: &Connection) -> Result<()> {
-    // Only seed if fixes table is empty (fresh install)
+    // Seed once ever, not "if empty" — a user who deletes every seeded fix
+    // shouldn't get them silently recreated on next launch.
+    if was_seeded(conn, "fixes_seeded") {
+        return Ok(());
+    }
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM fixes", [], |r| r.get(0))?;
     if count > 0 {
+        // Upgrading from a pre-app_meta version — already has rows, just record it.
+        mark_seeded(conn, "fixes_seeded");
         return Ok(());
     }
 
@@ -367,7 +403,9 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         ('Clear Event Log (System)','Clear the Windows System event log','Maintenance','powershell','Clear-EventLog -LogName System','eventlog,logs',1,1),
         ('Set High Performance Power','Switch to High Performance power plan','Performance','powershell','powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c','power,performance',0,1),
         ('Set Balanced Power','Switch back to Balanced power plan','Performance','powershell','powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e','power,balanced',0,1);
-    ")
+    ")?;
+    mark_seeded(conn, "fixes_seeded");
+    Ok(())
 }
 
 // ScriptStash state columns on scripts (added ScriptStash port v2)

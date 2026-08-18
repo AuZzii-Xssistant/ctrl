@@ -32,6 +32,14 @@ pub fn get_ql_items(state: State<AppState>) -> Result<Vec<QlItem>, String> {
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
+#[tauri::command]
+pub fn delete_ql_item(state: State<AppState>, id: i64) -> Result<(), String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM ql_items WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[derive(Serialize, Clone)]
 pub struct ExternalApp {
     pub id: i64,

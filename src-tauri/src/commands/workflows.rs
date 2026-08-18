@@ -212,9 +212,8 @@ async fn run_step_script(
     step: &Step,
 ) -> Result<(bool, String), String> {
     let id = step.item_id.ok_or("missing item_id")?;
-    let r =
-        crate::commands::scripts::run_script(app.clone(), state.clone(), id, None, Some(true))
-            .await?;
+    let r = crate::commands::scripts::run_script(app.clone(), state.clone(), id, None, Some(true))
+        .await?;
     Ok((r.success, r.output))
 }
 

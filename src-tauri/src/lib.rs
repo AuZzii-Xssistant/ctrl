@@ -167,6 +167,7 @@ pub fn run() {
             commands::exec::stop_current_run,
             commands::exec::kill_process,
             commands::external_apps::get_ql_items,
+            commands::external_apps::delete_ql_item,
             commands::external_apps::list_external_apps,
             commands::external_apps::add_external_app,
             commands::external_apps::remove_external_app,

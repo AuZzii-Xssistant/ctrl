@@ -13,6 +13,12 @@
 
 ## Active
 
+### ~~Deleting all seeded Quick Launch items / Quick Fixes brought them back on next launch~~ ✅ Resolved (2026-08-18)
+Both seed blocks checked `COUNT(*) == 0` to decide whether to (re)insert their pre-shipped rows — so a user who deleted every seeded item got them silently recreated on the next app start, no matter their intent. Fixed with a new `app_meta` key/value table tracking "has this batch ever been seeded" independent of current row count; upgrading from a pre-`app_meta` install with existing rows just records the flag without re-inserting (no duplication). Also added the missing `delete_ql_item` command — Quick Launch items had no delete path in the UI at all before this.
+
+### Tweaks — built-in tweaks aren't removable (not fixed yet)
+The above `app_meta` fix only covers DB-seeded content (`ql_items`, `fixes`). Tweaks' built-in list is hardcoded in `src/modules/tweaks.js`, not DB-backed at all — there's no delete path because there's no row to delete. A real fix needs the bigger Tweaks rethink the user asked for (WinUtil-style actual-state tracking before applying, and moving built-ins into the DB so they're deletable like everything else) — out of scope for this pass, flagged for its own session.
+
 ### Watchers removed (2026-08-18)
 The Watchers feature (roadmap item 4 — disk/process/CPU polling, tray toast or workflow trigger on alert) was pulled entirely: nav page, `watchers.js`, `commands/watchers.rs`, and its scheduler. Product decision — a dedicated page for so little functionality didn't earn its keep; the plan is to fold equivalent conditions into Workflows later instead of maintaining a separate feature. The `watchers` DB table stays in the schema (unused, harmless) since migrations here are additive-only, never destructive.
 

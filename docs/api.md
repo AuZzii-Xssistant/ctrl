@@ -48,7 +48,8 @@ PTY output streams via `pty-data-{tabId}` events (raw terminal bytes), not as a 
 | `delete_tool` | `{id}` | void |
 | `launch_tool` | `{id}` | void |
 | `browse_for_exe` | — | `string\|null` |
-| `get_ql_items` | — | `QlItem[]` — Windows shell shortcuts (`ms-settings:`, `.cpl` files), seeded on first run |
+| `get_ql_items` | — | `QlItem[]` — Windows shell shortcuts (`ms-settings:`, `.cpl` files), seeded once ever (not just "if empty" — deleting them all doesn't bring them back, see `docs/known-issues.md`) |
+| `delete_ql_item` | `{id}` | void — permanent, right-click a Quick Launch pill or use its hover ✕ button |
 | `launch_shortcut` | `{cmd}` | void — `cmd /c start "" <cmd>` |
 | `list_external_apps` | — | `ExternalApp[]` — simple name+path launch targets, used only by the Dashboard pin picker's "App" type now (Tools page's own Apps UI was removed 2026-08-17) |
 | `add_external_app` | `{name, path}` | `i64` |

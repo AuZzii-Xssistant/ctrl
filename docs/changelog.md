@@ -1,5 +1,10 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Seeded defaults stay deleted, Quick Launch gets a remove action
+
+- Fixed a real data-loss-of-intent bug: `ql_items` and `fixes` seeding both checked `COUNT(*) == 0`, so deleting every seeded row brought them all back on the next launch. New `app_meta` table tracks "seeded, ever" independent of current row count — upgrades with existing rows just record the flag, no duplication.
+- Added `delete_ql_item` — Quick Launch items had no delete path at all. Right-click a pill for a context menu (Pin to Dashboard / Remove), or use the hover ✕ button (CSS for it already existed, just never wired up).
+
 ## 2026-08-18 — Close (X/Alt+F4) now asks tray vs. quit instead of silently hiding
 
 Found by the user directly: closing the window hid it to the tray with no indication that's what happened — it just looked like the app hadn't closed. Rust's `WindowEvent::CloseRequested` handler now prevents the close and emits `close-requested` instead of silently calling `.hide()`; the frontend shows a modal (Minimize to Tray / Quit / Cancel) with an optional "remember my choice" checkbox (`localStorage.ctrl_close_action`) for anyone who wants the old silent behavior back. Same modal on the custom title bar's X button and on native Alt+F4.
