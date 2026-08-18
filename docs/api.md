@@ -162,7 +162,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `update_profile` | `{id, data: ProfileData}` | void — replaces all items |
 | `delete_profile` | `{id}` | void — also clears `profile_state` if it was active |
 | `get_active_profile` | — | `{id, name}\|null` |
-| ``activate_profile` | `{id}` | `RunResult` — two-phase: (1) non-elevated PS captures snapshot, (2) elevated PS applies each enabled item |
+| `activate_profile` | `{id}` | `RunResult` — two-phase: (1) non-elevated PS captures snapshot, (2) elevated PS applies each enabled item |
 | `restore_previous` | — | `RunResult` — reverts from the most recent snapshot of the active profile, clears active state |
 
 `ProfileData = {name, description?, icon?, items: [{item_type, value, enabled?}]}`. `item_type` is one of `power_plan` / `kill_apps` / `start_apps` / `dns` / `audio` / `refresh_rate` / `script`; empty-value items are dropped on save. `kill_apps`/`start_apps` values are newline-separated lists; `dns` is `"dhcp"` or comma-separated IPs.

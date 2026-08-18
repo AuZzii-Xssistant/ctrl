@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed a double-backtick markdown typo in api.md
+
+Found via a full registered-commands-vs-documented diff: `` ``activate_profile` `` had a stray extra backtick, breaking the table cell's markdown rendering. Swept the rest of docs/*.md and README.md for the same pattern — no other instances.
+
 ## 2026-08-18 — db-schema.md missing the app_meta table entirely
 
 Doc-reconciliation pass: `app_meta` (added this session for the seeded-defaults tombstone fix) had no entry in `docs/db-schema.md` at all. Added it, refreshed the stale "as of 2026-08-17" date stamp, and updated `ql_items`/`fixes`' descriptions to mention the once-ever seeding behavior instead of the old "seeded on first run" wording.
