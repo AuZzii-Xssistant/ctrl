@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Fixed workflow weekday schedules using UTC instead of local time
+
+`check_days` computed the current weekday from UTC epoch seconds while the same trigger's time-of-day check already correctly used local time (`GetLocalTime`) — for any non-UTC user, the day-of-week could be off by one near local midnight. Fixed by reading `SYSTEMTIME.wDayOfWeek` from the same `GetLocalTime` call already being made, instead of a separate UTC-based computation. Unverified against a real non-UTC clock.
+
 ## 2026-08-18 — Documented a Stop-button race between concurrent tab runs (not fixed)
 
 `RUN_CANCELLED` is a single global flag with no tab/run targeting — with two tabs each running something (an explicitly supported feature), Stop on one could non-deterministically cancel the *other* tab's unrelated run instead, based on poll timing. Documented rather than fixed: needs per-run cancel tokens, a moderate architectural change touching every runner and the frontend's Stop wiring, not verifiable against real concurrent runs here.

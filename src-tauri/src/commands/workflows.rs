@@ -300,13 +300,13 @@ pub fn start_workflow_scheduler(app: tauri::AppHandle) {
         // Poll every 60s for schedule triggers
         loop {
             std::thread::sleep(std::time::Duration::from_secs(60));
-            let now = chrono_local_hhmm();
-            fire_matching(&app, "schedule", Some(&now));
+            let (now, dow) = chrono_local_hhmm_dow();
+            fire_matching(&app, "schedule", Some((&now, dow)));
         }
     });
 }
 
-fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<&str>) {
+fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<(&str, u64)>) {
     let state = app.state::<AppState>();
     let ids: Vec<(i64, String)> = {
         let Ok(db) = state.0.lock() else { return };
@@ -326,11 +326,11 @@ fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<&str>)
     for (id, config) in ids {
         let should_run = match hhmm {
             None => true, // startup — always run
-            Some(now) => {
+            Some((now, dow)) => {
                 // config JSON: {"time":"09:00"} or {"days":[1,3,5],"time":"07:30"}
                 let v: serde_json::Value = serde_json::from_str(&config).unwrap_or_default();
                 let sched_time = v["time"].as_str().unwrap_or("00:00");
-                sched_time == now && check_days(&v)
+                sched_time == now && check_days(&v, dow)
             }
         };
         if should_run {
@@ -343,24 +343,21 @@ fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<&str>)
     }
 }
 
-fn check_days(config: &serde_json::Value) -> bool {
+fn check_days(config: &serde_json::Value, weekday: u64) -> bool {
     let Some(days) = config["days"].as_array() else {
         return true;
     };
     if days.is_empty() {
         return true;
     }
-    // weekday: 0=Sun … 6=Sat — use systemtime
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let weekday = ((secs / 86400) + 4) % 7; // 0=Sun
     days.iter().any(|d| d.as_u64() == Some(weekday))
 }
 
-fn chrono_local_hhmm() -> String {
+/// Local HH:MM plus day-of-week (0=Sun..6=Sat, same convention `check_days`'
+/// `days` array uses). Both read from one GetLocalTime call — `check_days`
+/// used to recompute weekday separately from UTC epoch seconds, which drifted
+/// a day off local near midnight for any timezone not UTC+0.
+fn chrono_local_hhmm_dow() -> (String, u64) {
     #[repr(C)]
     #[allow(clippy::upper_case_acronyms)] // mirrors the real Win32 SYSTEMTIME struct name
     struct SYSTEMTIME {
@@ -388,6 +385,6 @@ fn chrono_local_hhmm() -> String {
             ms: 0,
         };
         GetLocalTime(&mut t);
-        format!("{:02}:{:02}", t.hour, t.min)
+        (format!("{:02}:{:02}", t.hour, t.min), t.dow as u64)
     }
 }
