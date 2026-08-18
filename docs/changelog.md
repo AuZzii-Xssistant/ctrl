@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Dangling Quick Launch pins slipped through the earlier cleanup
+
+The `"ql"` branch of `resolve_item` (dashboard.rs) was the one exception to the dangling-pin cleanup fixed 2026-08-17 — it fell back to a placeholder name instead of empty, so a pin to a deleted Quick Launch item was never caught. Harmless until this session added `delete_ql_item`; now live. Fixed to fall back to empty like every other item type, matching the shared `get_pinned`/`fetch_pinned` cleanup.
+
 ## 2026-08-18 — Output no longer written to the live terminal; workflow notify fixed
 
 - **Real bug, found by the user**: `showOutput()` (used everywhere a run's result is displayed — History, Scripts, Fixes, Backup, Builder, Workflows, Profiles) wrote completed-run text directly into the active tab's live PTY terminal buffer. Since that bypasses the actual shell process, the real cursor position never moved to match, so typing right after could land in the middle of the injected text. Rewrote `showOutput()` to open a dedicated read-only modal instead — same function signature, all 16 call sites unchanged, but nothing touches a live PTY anymore.

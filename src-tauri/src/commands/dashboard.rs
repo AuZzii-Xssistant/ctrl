@@ -102,13 +102,7 @@ fn resolve_item(
                     ))
                 },
             )
-            .unwrap_or_else(|_| {
-                (
-                    format!("Quick Launch #{}", item_id),
-                    "ti-rocket".into(),
-                    String::new(),
-                )
-            }),
+            .unwrap_or_default(),
         "app" => db
             .query_row(
                 "SELECT name,path FROM external_apps WHERE id=?1",
