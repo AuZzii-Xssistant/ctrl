@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Removed dead code: unused src/modules/stubs.js
+
+A generic "coming soon" stub-page renderer with zero callers and zero docs references — likely a leftover placeholder from before Watchers/Profiles had real pages. `.stub-pane` CSS left in place (harmless, reusable if a future stub page needs it).
+
 ## 2026-08-18 — Removed dead code: unused src/modules/terminal.js
 
 Leftover from an earlier single-terminal architecture (bare `pty-data`/`pty-exit` events, no tab scoping) — the current app uses per-tab `pty-data-{tabId}`/`pty-exit-{tabId}` events handled inline in `app.js`. Confirmed zero importers anywhere in `src/` before removing 122 lines.
