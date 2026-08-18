@@ -1,5 +1,20 @@
 # CTRL Changelog
 
+## 2026-08-18 — Watchers → real alerting (roadmap item 4)
+
+Closes the "everything is manual or time-scheduled" gap — a small watcher primitive that observes system state on its own.
+
+- New `watchers` table (`src-tauri/src/db.rs`): `{id, name, condition_type, condition_config (JSON), action, enabled, last_checked, last_state, last_triggered_at}`
+- New `src-tauri/src/commands/watchers.rs`: CRUD (`get_watchers`/`add_watcher`/`update_watcher`/`delete_watcher`/`toggle_watcher`) + `start_watcher_scheduler`, a background poll loop mirroring `workflows.rs::start_workflow_scheduler` — checks every 30s
+- 3 condition types only, as scoped: `disk_below` (drive + free% threshold, reuses `get_perf_stats`), `process_down` (named process via `Get-Process`), `cpu_sustained` (% sustained for N minutes, also `get_perf_stats`)
+- No new notification dependency needed — `workflows.rs::run_step_notify`'s toast PowerShell was pulled out into a shared `send_toast()`, reused by both workflow "notify" steps and watchers
+- Fires only on the ok→alert transition (persisted `last_state`) — a condition that stays true doesn't renotify every poll
+- `cpu_sustained`'s rolling window is a simple in-memory streak counter (`watchers.rs::cpu_streaks`, `HashMap<i64,u32>`), not a new DB table — resets on app restart, documented trade-off rather than a schema addition
+- New Watchers nav page (`src/modules/watchers.js`): list, add/edit/delete, enable toggle, alert-state dot, last-triggered timestamp — same row-list/modal pattern as Snippets/Workflows
+- `cargo check`/`cargo clippy --quiet` both clean
+- **Not verified**: this dev environment can't run the Tauri app or a live Windows session — see `docs/known-issues.md`
+- `docs/ROADMAP.md` item 4 marked done, `docs/api.md`/`docs/db-schema.md`/`README.md` updated, `docs/known-issues.md` gained two "Active" entries
+
 ## 2026-08-18 — System Profiles (roadmap item 3)
 
 Named machine-state presets — the biggest genuinely new feature on the roadmap.

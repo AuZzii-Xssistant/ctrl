@@ -208,6 +208,14 @@ async fn run_step_fix(app: &tauri::AppHandle, state: &State<'_, AppState>, step:
 async fn run_step_notify(app: &tauri::AppHandle, step: &Step) -> Result<(bool, String), String> {
     let title = step.title.as_deref().unwrap_or("CTRL");
     let body  = step.body.as_deref().unwrap_or(step.label.as_str());
+    send_toast(app, title, body).await?;
+    Ok((true, format!("Notification sent: {}", title)))
+}
+
+/// Fire a Windows toast via the shell — the one notification mechanism in CTRL,
+/// shared by workflow "notify" steps and watchers (Roadmap item 4). No new
+/// notification plugin needed, this already works.
+pub async fn send_toast(app: &tauri::AppHandle, title: &str, body: &str) -> Result<(), String> {
     let ps = format!(
         r#"$null=[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime];
 $xml=$null;$xml=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02);
@@ -220,7 +228,7 @@ $xml.GetElementsByTagName('text').Item(1).InnerText='{body}';
     let _out = app.shell().command("powershell")
         .args(["-WindowStyle", "Hidden", "-NonInteractive", "-Command", &ps])
         .output().await.map_err(|e| e.to_string())?;
-    Ok((true, format!("Notification sent: {}", title)))
+    Ok(())
 }
 
 async fn run_step_wait(step: &Step) -> Result<(bool, String), String> {

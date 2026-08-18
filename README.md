@@ -47,6 +47,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 | Snippets | `ti-blockquote` | 🟡 Functional | Reusable text/command snippets — one-click copy, categories, tags |
 | Compare | `ti-arrows-diff` | 🟡 Functional | Side-by-side text diff with synced scroll |
 | Profiles | `ti-user-cog` | 🟡 Functional | Named machine-state presets (power plan / apps to kill-start / DNS / audio / refresh rate / custom script). Activate snapshots current state first; Restore Previous reverts. Audio-endpoint and refresh-rate changes are best-effort (see Known Issues) |
+| Watchers | `ti-eye` | 🟡 Functional | Polls disk space / a named process / sustained CPU every ~30s, notifies (tray toast) or runs a workflow on alert |
 | History | `ti-list-search` | 🟡 Functional | Full searchable `run_log`: filter by module/success/date range/text, click a row for full output, export filtered results to a text file |
 | Recent Activity | `ti-history` | 🟡 Functional | Last 50 run events (fixes, scripts, workflows) with success/fail status |
 | Settings | `ti-settings` | 🟡 Functional | App info, keyboard shortcuts, data folder access |

@@ -171,6 +171,25 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 - `refresh_rate` uses an inline P/Invoke call to `ChangeDisplaySettings` — no built-in cmdlet exists. Wrapped in try/catch so a failure can't break the rest of activation.
 - `kill_apps`/`start_apps` revert is best-effort: killed apps are not relaunched (no stored launch path), only apps *started* by the profile get stopped on restore.
 
+## Watchers
+| Command | Payload | Returns |
+|---|---|---|
+| `get_watchers` | — | `Watcher[]` |
+| `add_watcher` | `{data: WatcherData}` | `i64` |
+| `update_watcher` | `{id, data: WatcherData}` | void |
+| `delete_watcher` | `{id}` | void |
+| `toggle_watcher` | `{id, enabled}` | void |
+| `start_watcher_scheduler` | — | void (no return) — called once at app startup; polls every 30s, checks all enabled watchers, fires a toast or `run_workflow` on the ok→alert transition |
+
+`WatcherData = {name, condition_type, condition_config: string (JSON), action, enabled?}`. `condition_type` is one of:
+- `disk_below` — `condition_config: {drive, pct}` — fires when free space on `drive` drops under `pct`%. Reuses `get_perf_stats`'s drive list.
+- `process_down` — `condition_config: {process}` — fires when no process named `process` is running (`Get-Process -Name`, `.exe` suffix stripped).
+- `cpu_sustained` — `condition_config: {pct, minutes}` — fires once CPU load has been `>= pct`% for `minutes` straight (checked every 30s, so `minutes*2` consecutive samples). Tracked with an in-memory per-watcher counter (`watchers.rs::cpu_streaks`), not a DB table — resets on app restart; a missed sustained-CPU alert across a restart is an acceptable trade-off, see `docs/known-issues.md`.
+
+`action` is `"notify"` (fires a Windows toast via the same mechanism as a workflow's `notify` step — `workflows::send_toast`) or `"workflow:<id>"` (runs that workflow via `run_workflow`).
+
+Only the ok→alert transition fires — `last_state` is persisted per watcher so a condition that stays true doesn't renotify every 30s. `last_checked` and `last_triggered_at` update every poll / every fire respectively.
+
 ## Run Log
 | Command | Payload | Returns |
 |---|---|---|
@@ -225,6 +244,8 @@ RunResult    = { success: boolean, output: string }
 EnvVar       = { name: string, value: string }
 EnvVars      = { user: EnvVar[], system: EnvVar[] }
 Snippet      = { id, title, content, category, tags, created_at: string }
+Watcher      = { id, name, condition_type, condition_config, action, last_state: string, enabled: boolean, last_checked?: string, last_triggered_at?: string }
+WatcherData  = { name: string, condition_type: string, condition_config: string, action: string, enabled?: boolean }
 SnippetData  = { title, content, category?, tags?: string }
 Stats        = { tools, scripts, fixes, projects, workflows, runs: number }
 PinnedItem   = { id, item_type, item_id, item_name, item_icon, item_meta, group_name, sort_order }  // item_meta: cmd for 'ql', path for 'app', empty otherwise

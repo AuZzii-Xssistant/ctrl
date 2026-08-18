@@ -281,3 +281,22 @@ Single-row table (`id` fixed at 1) tracking which profile is currently active �
 | `id` | INTEGER PK | Always `1` (`CHECK (id = 1)`) |
 | `active_profile_id` | INTEGER | NULL when no profile is active |
 | `active_since` | TEXT | ISO 8601 timestamp, NULL when inactive |
+
+## `watchers`
+
+Roadmap item 4 — polls system state every ~30s (`watchers.rs::start_watcher_scheduler`) and fires a toast or a workflow on the ok→alert transition.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | |
+| `name` | TEXT | |
+| `condition_type` | TEXT | `disk_below` \| `process_down` \| `cpu_sustained` |
+| `condition_config` | TEXT | JSON, shape depends on `condition_type` — see `docs/api.md` |
+| `action` | TEXT | `notify` or `workflow:<id>` |
+| `enabled` | INTEGER | 0/1 |
+| `last_checked` | TEXT | Updated every poll, NULL until first check |
+| `last_state` | TEXT | `ok` \| `alert` — used to only fire on the transition, not every poll |
+| `last_triggered_at` | TEXT | Updated only when the action actually fires |
+| `created_at` | TEXT | |
+
+No rolling-window table for `cpu_sustained` — the consecutive-over-threshold streak is kept in an in-memory `HashMap<watcher_id, u32>` (`watchers.rs::cpu_streaks`), not persisted. Resets on app restart.

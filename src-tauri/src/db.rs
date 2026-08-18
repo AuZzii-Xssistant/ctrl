@@ -165,6 +165,24 @@ fn migrate(conn: &Connection) -> Result<()> {
         active_since      TEXT
     )", []);
     let _ = conn.execute("INSERT OR IGNORE INTO profile_state (id, active_profile_id) VALUES (1, NULL)", []);
+    // Watchers (Roadmap item 4) — polls system state, fires a toast or a workflow.
+    // condition_config JSON per condition_type:
+    //   disk_below    -> {"drive":"C","pct":10}          fires when free% < pct
+    //   process_down  -> {"process":"chrome"}             fires when not running
+    //   cpu_sustained -> {"pct":80,"minutes":5}            fires after N min >= pct
+    // action is either "notify" or "workflow:<id>".
+    let _ = conn.execute("CREATE TABLE IF NOT EXISTS watchers (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        name              TEXT NOT NULL,
+        condition_type    TEXT NOT NULL,
+        condition_config  TEXT NOT NULL DEFAULT '{}',
+        action            TEXT NOT NULL DEFAULT 'notify',
+        enabled           INTEGER NOT NULL DEFAULT 1,
+        last_checked      TEXT,
+        last_state        TEXT NOT NULL DEFAULT 'ok',
+        last_triggered_at TEXT,
+        created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    )", []);
     Ok(())
 }
 

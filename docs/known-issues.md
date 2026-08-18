@@ -19,6 +19,12 @@ Windows has no built-in cmdlet to change the default playback device. The `audio
 ### Profiles — refresh rate switching is unverified and best-effort
 No built-in PowerShell cmdlet changes display refresh rate either. The `refresh_rate` item uses an inline `Add-Type` P/Invoke call to `ChangeDisplaySettings`, wrapped in try/catch so a failure can't break the rest of activation — but this was written and reviewed, never run against real display hardware (this dev environment can't run the Tauri app or touch a real Windows session). Treat it as experimental until confirmed working on a real machine.
 
+### Watchers — cpu_sustained streak resets on app restart
+The consecutive-over-threshold counter behind `cpu_sustained` is in-memory only (`watchers.rs::cpu_streaks`), not a DB table — restarting CTRL mid-streak drops the count back to 0, so a sustained-CPU alert that was 4 of 5 minutes in has to start over. Deliberate scope cut per the roadmap ("keep it the simplest thing that works, not a new DB table") — an app restart losing a few minutes of streak progress isn't worth a schema addition.
+
+### Watchers — unverified end-to-end
+Same limitation as System Profiles: this dev environment can't run the Tauri app or a live Windows session. `cargo check`/`cargo clippy` are clean and the poll loop/PowerShell follow the exact patterns of the already-shipped, presumably-working workflow scheduler and notify step — but the watcher scheduler, the toast firing, and `Get-Process`-based `process_down` detection were never executed against a real machine.
+
 ### Profiles — killed apps aren't relaunched on Restore Previous
 The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing.
 

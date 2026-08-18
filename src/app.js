@@ -37,6 +37,7 @@ const _paneLoaders = {
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
   compare:   ()  => import('./modules/compare.js').then(m => m.load()),
   profiles:  ()  => import('./modules/profiles.js').then(m => m.load()),
+  watchers:  ()  => import('./modules/watchers.js').then(m => m.load()),
   history:   ()  => import('./modules/history.js').then(m => m.load()),
   activity:  ()  => import('./modules/activity.js').then(m => m.load()),
   changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
