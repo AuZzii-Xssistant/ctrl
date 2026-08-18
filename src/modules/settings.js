@@ -3,10 +3,12 @@ import { toast } from '../app.js';
 const inv = window.__TAURI__.core.invoke;
 
 const SHORTCUTS = [
+  { key: 'Ctrl+Shift+Space (global, works anywhere)', action: 'Show >_ CTRL and focus search — even if minimized/hidden to tray' },
   { key: 'Ctrl+K',  action: 'Focus global search' },
   { key: 'Escape',  action: 'Close modal / clear search' },
   { key: '↑ ↓',    action: 'Navigate search results' },
   { key: 'Enter',   action: 'Open highlighted search result' },
+  { key: 'Ctrl+Enter (in search)', action: 'Run the highlighted result directly — tools, scripts, fixes, workflows' },
   { key: 'Right-click', action: 'Context menu on any card or row' },
 ];
 

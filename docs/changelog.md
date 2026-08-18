@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Settings' in-app shortcuts list was missing two shortcuts
+
+`README.md` documented `Ctrl+Shift+Space` (global hotkey) and `Ctrl+Enter` (run highlighted search result) when those features shipped, but `settings.js`'s hardcoded `SHORTCUTS` array was never updated to match — found via a doc-reconciliation pass, not a user report. Added both.
+
 ## 2026-08-18 — Removed dead code: unused src/modules/stubs.js
 
 A generic "coming soon" stub-page renderer with zero callers and zero docs references — likely a leftover placeholder from before Watchers/Profiles had real pages. `.stub-pane` CSS left in place (harmless, reusable if a future stub page needs it).
