@@ -39,13 +39,16 @@ pub fn run() {
                     eprintln!("[CTRL] could not register global hotkey {GLOBAL_HOTKEY}: {e}");
                 }
             }
-            // Window close (X button) hides to tray instead of quitting.
+            // Window close (X button, Alt+F4) doesn't silently hide anymore —
+            // the frontend asks tray-vs-quit (see app.js's close-requested listener).
             if let Some(win) = app.get_webview_window("main") {
                 let win2 = win.clone();
                 win.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
-                        let _ = win2.hide();
+                        let _ = win2.show();
+                        let _ = win2.set_focus();
+                        let _ = win2.emit("close-requested", ());
                     }
                 });
             }

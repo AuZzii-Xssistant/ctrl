@@ -6,8 +6,39 @@ const { getCurrentWindow } = window.__TAURI__.window;
 const appWindow = getCurrentWindow();
 
 // ── Window controls ─────────────────────────────────────────────────────────
-document.getElementById('btn-close').addEventListener('click', () => invoke('close_window'));
+// Closing (X button, Alt+F4) hides to tray rather than quitting — not obvious
+// at all, so ask every time unless the user has opted to remember a choice.
+const CLOSE_PREF_KEY = 'ctrl_close_action'; // 'tray' | 'quit'
+function _confirmClose() {
+  const remembered = localStorage.getItem(CLOSE_PREF_KEY);
+  if (remembered === 'tray') return invoke('close_window');
+  if (remembered === 'quit') return invoke('exit_app');
+  openModal('Close &gt;_ CTRL', `
+    <p class="modal-confirm-msg">Minimize to the tray (keep running in the background) or quit completely?</p>
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:12px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" id="close-remember"> Remember my choice
+    </label>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._modalCancel()">Cancel</button>
+      <button class="action-btn btn-secondary" id="close-quit-btn"><i class="ti ti-power"></i> Quit</button>
+      <button class="action-btn btn-primary" id="close-tray-btn"><i class="ti ti-corner-down-left"></i> Minimize to Tray</button>
+    </div>`);
+  const remember = () => document.getElementById('close-remember')?.checked;
+  document.getElementById('close-tray-btn').onclick = () => {
+    if (remember()) localStorage.setItem(CLOSE_PREF_KEY, 'tray');
+    closeModal();
+    invoke('close_window');
+  };
+  document.getElementById('close-quit-btn').onclick = () => {
+    if (remember()) localStorage.setItem(CLOSE_PREF_KEY, 'quit');
+    closeModal();
+    invoke('exit_app');
+  };
+}
+document.getElementById('btn-close').addEventListener('click', _confirmClose);
 document.getElementById('btn-min').addEventListener('click',   () => invoke('minimize_window'));
+// Native close (Alt+F4) — Rust prevents the actual close and emits this instead.
+window.__TAURI__.event.listen('close-requested', _confirmClose);
 
 // Global hotkey (Ctrl+Shift+Space, registered in Rust) summons the window from
 // anywhere — jump straight into search since that's why you hit the hotkey.

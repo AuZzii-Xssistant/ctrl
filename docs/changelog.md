@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Close (X/Alt+F4) now asks tray vs. quit instead of silently hiding
+
+Found by the user directly: closing the window hid it to the tray with no indication that's what happened — it just looked like the app hadn't closed. Rust's `WindowEvent::CloseRequested` handler now prevents the close and emits `close-requested` instead of silently calling `.hide()`; the frontend shows a modal (Minimize to Tray / Quit / Cancel) with an optional "remember my choice" checkbox (`localStorage.ctrl_close_action`) for anyone who wants the old silent behavior back. Same modal on the custom title bar's X button and on native Alt+F4.
+
 ## 2026-08-18 — WinScript sync: multi-select debloat groups, Autounattend, auto icon sync
 
 Pulled WinScript from `9ae2de2` to `5d3e3f0` (6 commits), including upstream's #243 "split debloat scripts into multi select app removal."

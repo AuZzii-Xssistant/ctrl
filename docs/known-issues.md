@@ -31,6 +31,9 @@ Same limitation as System Profiles: this dev environment can't run the Tauri app
 ### Profiles — killed apps aren't relaunched on Restore Previous
 The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing. Process names are derived from `start_apps` item file paths (executable stem) rather than from `Start-Process -PassThru` output, since the apply step runs elevated and its stdout is not captured back into Rust.
 
+### ~~Closing the window silently minimized to tray with no explanation~~ ✅ Resolved (2026-08-18)
+Found by the user hitting it directly — clicking X (or Alt+F4) hid the app to the tray with zero indication that's what happened, which read as "the app didn't close" rather than "it's still running in the background." Rust now prevents the close and emits a `close-requested` event instead of silently hiding; the frontend shows a modal asking Minimize to Tray vs. Quit, with an optional "remember my choice" to skip the prompt on future closes.
+
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
 Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.
 

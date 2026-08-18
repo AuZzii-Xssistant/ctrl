@@ -5,12 +5,14 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 ## Window
 | Command | Payload | Returns |
 |---|---|---|
-| `close_window` | — | void — hides to the system tray, does not quit (also triggered by Alt+F4/native close) |
+| `close_window` | — | void — hides to the system tray, does not quit |
 | `minimize_window` | — | void |
 | `toggle_maximize` | — | void |
 | `exit_app` | — | void — actually quits. Only real exit path besides the tray menu's "Quit >_ CTRL" |
 
 A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort — silently no-ops if another app already owns it) shows+focuses the window and focuses global search from anywhere, emitting a `hotkey-summon` event the frontend listens for. The tray icon's menu lists up to 10 pinned items (rebuilt whenever `pin_item`/`unpin_item` run, so it never drifts) plus Show/Quit.
+
+Closing the window (X button or Alt+F4) does **not** silently hide to tray — Rust intercepts `WindowEvent::CloseRequested`, prevents it, and emits a `close-requested` event instead. The frontend (`app.js`) listens for that event and shows a modal asking Minimize to Tray vs. Quit, with an optional "remember my choice" (stored in `localStorage` under `ctrl_close_action`) that skips the prompt on future closes.
 
 ## Dashboard
 | Command | Payload | Returns |
