@@ -152,7 +152,8 @@ pub fn launch_pinned_from_tray(app: &tauri::AppHandle, item_type: &str, item_id:
             }
             "script" => {
                 let _ =
-                    crate::commands::scripts::run_script(app2.clone(), state, item_id, None).await;
+                    crate::commands::scripts::run_script(app2.clone(), state, item_id, None, None)
+                        .await;
             }
             "fix" => {
                 let _ = crate::commands::fixes::run_fix(app2.clone(), state, item_id).await;

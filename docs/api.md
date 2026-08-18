@@ -70,7 +70,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | Command | Payload | Returns |
 |---|---|---|
 | `get_scripts` | `{search?}` | `Script[]` — dashboard pin picker, workflow item picker |
-| `run_script` | `{id, forceAdmin?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
+| `run_script` | `{id, forceAdmin?: bool, skipPause?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin`; `skipPause` forces "Pause Script" off (used by `run_workflow` — a workflow step has no one to press a key) |
 | `open_script_editor` | `{id}` | void — called internally by `ss_open_in_editor`, not directly from JS |
 | `watch_script_edit` | `{id}` | void — called internally by `ss_open_in_editor`; polls the temp file every 1.5s and syncs edits back to `scripts.content`, emitting `script-synced` |
 
@@ -133,7 +133,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `update_workflow` | `{id, data: WorkflowData}` | void |
 | `delete_workflow` | `{id}` | void |
 | `toggle_workflow` | `{id, enabled}` | void |
-| `run_workflow` | `{id}` | `StepResult[]` — also persists to `run_log` and updates `last_run_at`/`last_run_ok` |
+| `run_workflow` | `{id}` | `StepResult[]` — also persists to `run_log` and updates `last_run_at`/`last_run_ok`. Script/fix steps route through the real `run_script`/`run_fix` commands, so they get the same admin-elevation and sandbox handling as running them directly (each step also logs its own `run_log` row in addition to the workflow's combined one) |
 | `start_workflow_scheduler` | — | void (no return) — called once at app startup; polls `trigger_type='schedule'` workflows and fires `run_workflow` when due |
 
 ## Tweaks

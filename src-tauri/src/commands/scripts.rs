@@ -133,6 +133,7 @@ pub async fn run_script(
     state: State<'_, AppState>,
     id: i64,
     force_admin: Option<bool>,
+    skip_pause: Option<bool>,
 ) -> Result<RunResult, String> {
     let (file_path, content, script_type, name, db_admin, interactive) = {
         let db = state.0.lock().map_err(|e| e.to_string())?;
@@ -143,6 +144,9 @@ pub async fn run_script(
         }).map_err(|e| e.to_string())?
     };
     let run_as_admin = force_admin.unwrap_or(false) || db_admin;
+    // A workflow step has no one to press a key — force-disable "Pause Script" for it
+    // rather than hang the workflow forever waiting on Read-Host/pause.
+    let interactive = interactive && !skip_pause.unwrap_or(false);
 
     // Sandbox dry-run
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {

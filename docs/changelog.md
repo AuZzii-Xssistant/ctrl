@@ -1,5 +1,11 @@
 # CTRL Changelog
 
+## 2026-08-18 — Workflow steps now actually elevate (real bug, found via testing)
+
+Reported by hands-on testing: an SFC workflow step failed with "You must be an administrator" despite the fix being configured `run_as_admin`. Root cause: `run_step_script`/`run_step_fix` in `workflows.rs` were a wholly separate, duplicated exec implementation that never checked `run_as_admin` at all — every workflow step ran unprivileged, silently. Fixed by routing both through the real `run_script`/`run_fix` commands instead of the shadow implementation, so workflow steps now get identical admin-elevation, PTY execution, and sandbox handling to running the item from its own pane.
+
+Found and fixed the same pass: a "Pause Script" (interactive) script as a workflow step would have hung forever waiting for a keypress nobody can send, once routed through the real `run_script`. Added a `skip_pause` param to `run_script`, set only by `run_workflow`'s script-step path — existing callers unaffected.
+
 ## 2026-08-18 — Workflow macro recorder (roadmap item 6, final)
 
 Closes the "hand-writing workflow steps is friction" gap. Record toggle on the Workflows page.

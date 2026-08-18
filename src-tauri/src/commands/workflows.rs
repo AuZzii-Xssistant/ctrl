@@ -201,52 +201,21 @@ pub async fn run_workflow(
     Ok(results)
 }
 
+// Routes through the real run_script/run_fix commands (not a shadow implementation) so
+// workflow steps get the same admin-elevation, PTY output, and sandbox handling as running
+// the same script/fix directly from its own pane. A prior version reimplemented spawn logic
+// here from scratch and never checked run_as_admin at all — steps needing elevation silently
+// ran unprivileged.
 async fn run_step_script(
     app: &tauri::AppHandle,
     state: &State<'_, AppState>,
     step: &Step,
 ) -> Result<(bool, String), String> {
     let id = step.item_id.ok_or("missing item_id")?;
-    let (fp, content, st): (String, Option<String>, String) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        db.query_row(
-            "SELECT file_path,content,script_type FROM scripts WHERE id=?1",
-            params![id],
-            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-        )
-        .map_err(|e| e.to_string())?
-    };
-    let path = if let Some(c) = content {
-        let p = std::env::temp_dir().join(format!("ctrl_wf_{}.{}", id, st));
-        std::fs::write(&p, c).map_err(|e| e.to_string())?;
-        p.to_string_lossy().to_string()
-    } else {
-        fp
-    };
-
-    let (prog, args): (&str, Vec<String>) = match st.as_str() {
-        "ps1" => (
-            "powershell",
-            vec![
-                "-ExecutionPolicy".into(),
-                "Bypass".into(),
-                "-File".into(),
-                path,
-            ],
-        ),
-        "py" => ("python", vec![path]),
-        _ => ("cmd", vec!["/c".into(), path]),
-    };
-    let out = app
-        .shell()
-        .command(prog)
-        .args(&args)
-        .output()
-        .await
-        .map_err(|e| e.to_string())?;
-    let text =
-        String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
-    Ok((out.status.success(), text))
+    let r =
+        crate::commands::scripts::run_script(app.clone(), state.clone(), id, None, Some(true))
+            .await?;
+    Ok((r.success, r.output))
 }
 
 async fn run_step_fix(
@@ -255,38 +224,8 @@ async fn run_step_fix(
     step: &Step,
 ) -> Result<(bool, String), String> {
     let id = step.item_id.ok_or("missing item_id")?;
-    let (cmd, st): (String, String) = {
-        let db = state.0.lock().map_err(|e| e.to_string())?;
-        db.query_row(
-            "SELECT command,shell_type FROM fixes WHERE id=?1",
-            params![id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .map_err(|e| e.to_string())?
-    };
-    let (prog, args): (&str, Vec<String>) = match st.as_str() {
-        "powershell" => (
-            "powershell",
-            vec![
-                "-ExecutionPolicy".into(),
-                "Bypass".into(),
-                "-Command".into(),
-                cmd,
-            ],
-        ),
-        "python" => ("python", vec!["-c".into(), cmd]),
-        _ => ("cmd", vec!["/c".into(), cmd]),
-    };
-    let out = app
-        .shell()
-        .command(prog)
-        .args(&args)
-        .output()
-        .await
-        .map_err(|e| e.to_string())?;
-    let text =
-        String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
-    Ok((out.status.success(), text))
+    let r = crate::commands::fixes::run_fix(app.clone(), state.clone(), id).await?;
+    Ok((r.success, r.output))
 }
 
 async fn run_step_notify(app: &tauri::AppHandle, step: &Step) -> Result<(bool, String), String> {

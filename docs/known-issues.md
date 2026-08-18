@@ -31,6 +31,12 @@ The snapshot only remembers process names for apps the profile *itself started* 
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
 Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.
 
+### ~~Workflow steps never elevated, even when the script/fix has run_as_admin set~~ ✅ Resolved (2026-08-18)
+Found by real-world testing: a workflow with an SFC step failed with "You must be an administrator" even though the underlying fix was configured `run_as_admin`. Root cause: `run_step_script`/`run_step_fix` in `workflows.rs` were a completely separate, duplicated exec implementation (`app.shell().command(...).output()` directly) that never looked at the `run_as_admin` column at all — every workflow step ran unprivileged regardless of its own settings, with no error or indication anything was skipped. Fixed by routing both through the real `run_script`/`run_fix` commands instead, so workflow steps now get identical admin-elevation, PTY execution, and sandbox handling to running the same item from its own pane. One side effect: each step now also writes its own `run_log` row (in addition to the workflow's combined row), so Recent Activity will show individual step runs during a workflow, not just the workflow-level entry — this is arguably more correct (the step genuinely ran), not a regression.
+
+### ~~Workflows — a "Pause Script" (interactive) script as a step would hang forever~~ ✅ Resolved (2026-08-18)
+Found in the same pass as the admin-elevation fix above: routing workflow steps through the real `run_script` meant they'd also inherit "Pause Script" — a `Read-Host`/`pause` appended for the embedded terminal, where a workflow step has no one to press a key. Added a `skip_pause` param to `run_script` (only `run_workflow`'s script-step path sets it); existing callers (Scripts pane, palette, tray) are unaffected since the param defaults to off.
+
 ### ~~Tools — icon always shows generic app-window icon~~ ✅ Resolved
 Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.ps1` → terminal-2, `.bat/.cmd` → terminal, `.py` → brand-python, `.ahk` → keyboard.
 
