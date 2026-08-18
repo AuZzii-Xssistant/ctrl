@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Exporting/importing a ScriptStash profile silently dropped "Pause Script"~~ ✅ Resolved (2026-08-18)
+`SsExportScript` (the JSON shape `ss_export_profile`/`ss_import_profile` round-trip) never had an `interactive` field at all — export never wrote it, and `ss_import_profile`'s `INSERT INTO scripts` didn't include the column either, so it always fell back to the schema default (`0`/off). Every script with "Pause Script" enabled silently lost that setting on export → import, even round-tripping on the same machine. Real data loss, not just a display bug — this is exactly the setting the project already fixed once for persistence (see the ScriptStash hardening entry below), just missed in the export/import path specifically. Added the field to the export struct (with `#[serde(default)]` so old exports without it still import cleanly, just without the setting they never captured) and the import INSERT.
+
 ### ~~Add to PATH's duplicate check missed a trailing backslash~~ ✅ Resolved (2026-08-18)
 `add_to_path`'s duplicate check does an exact (case-insensitive) string match — `"C:\Tools\bin\"` wouldn't match an existing `"C:\Tools\bin"` entry, silently adding a redundant PATH entry. Reachable in practice: the Add to PATH field is free-text with no folder picker, so a trailing backslash (habit, or copy-pasted from Explorer's address bar) is plausible. Fixed by trimming trailing backslashes before both the comparison and the value actually written.
 

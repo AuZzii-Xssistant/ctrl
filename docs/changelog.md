@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed Profile export/import silently dropping "Pause Script"
+
+`SsExportScript` never had an `interactive` field, and the import path's `INSERT` didn't include the column either — every script with "Pause Script" enabled lost that setting on export → import, even round-tripping on the same machine. Real data loss, not a display bug. Added the field to both sides.
+
 ## 2026-08-18 — Fixed Add to PATH's duplicate check missing a trailing backslash
 
 `"C:\Tools\bin\"` wouldn't match an existing `"C:\Tools\bin"` entry in the exact-match duplicate check, silently adding a redundant PATH entry. Reachable — the field is free-text with no folder picker. Fixed by trimming trailing backslashes before comparing and writing.

@@ -83,6 +83,10 @@ struct SsExportScript {
     content: String,
     #[serde(rename = "runAsAdmin")]
     run_as_admin: bool,
+    // "Pause Script" — was missing here entirely, so export/import silently
+    // dropped it on every round-trip (always came back off). See known-issues.md.
+    #[serde(default)]
+    interactive: bool,
     enabled: bool,
     order: i64,
     state: SsExportState,
@@ -668,6 +672,7 @@ pub fn ss_export_profile(
             script_type: s.script_type.clone(),
             content: s.content.clone().unwrap_or_default(),
             run_as_admin: s.run_as_admin,
+            interactive: s.interactive,
             enabled: s.enabled,
             order: s.order,
             state: SsExportState {
@@ -744,6 +749,10 @@ pub fn ss_import_profile(
             .get("runAsAdmin")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
+        let interactive = s
+            .get("interactive")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let last_status = s
             .get("state")
             .and_then(|v| v.get("lastStatus"))
@@ -764,8 +773,8 @@ pub fn ss_import_profile(
             )
             .unwrap_or(0);
         db.execute(
-            "INSERT INTO scripts (name,description,script_type,content,run_as_admin,master_order,last_status,last_run,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'','')",
-            params![name, desc, stype, content, admin as i64, max_mo, last_status, last_run]
+            "INSERT INTO scripts (name,description,script_type,content,run_as_admin,interactive,master_order,last_status,last_run,file_path,category) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,'','')",
+            params![name, desc, stype, content, admin as i64, interactive as i64, max_mo, last_status, last_run]
         ).map_err(|e| e.to_string())?;
         let sid = db.last_insert_rowid();
 
