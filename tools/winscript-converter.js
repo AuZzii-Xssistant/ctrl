@@ -16,6 +16,9 @@
  *   {n}-{tab}.json   — one per script tab (Tools, Debloat, Privacy …)
  *   08-apps.json     — app installer tab (generated from appinstall.js)
  *   _meta.json       — presets (basic/strict/extreme) pulled from scripts.js
+ * Also syncs every icon referenced by the JSON above into src/assets/ws-icons/
+ * (copied straight from winscript-ref/app/public/icons/) — no manual icon
+ * copying step needed after a WinScript update.
  *
  * Re-import after WinScript update:
  *   cd M:/Projects/winscript-ref && git pull
@@ -70,10 +73,16 @@ function propValue(prop, en) {
   return prop.value || '';
 }
 
-// Strips leading /icons/ from WinScript icon paths → relative path
+// Strips leading /icons/ from WinScript icon paths → relative path.
+// Every path that survives this also gets queued for copying into
+// src/assets/ws-icons/ by copyUsedIcons() at the end of run() — icon syncing
+// is no longer a manual step.
+const usedIcons = new Set();
 function iconRel(raw) {
   if (!raw) return null;
-  return raw.replace(/^\/icons\//, '') || null;
+  const rel = raw.replace(/^\/icons\//, '') || null;
+  if (rel) usedIcons.add(rel);
+  return rel;
 }
 
 // ── Extract tools=[...] from ScriptGroup props ───────────────────────────────
@@ -115,6 +124,46 @@ function extractTools(propsStr) {
     i = oe + 1;
   }
   return tools;
+}
+
+// ── Extract apps=[...] from a DebloatGroup props string ────────────────────
+// DebloatGroup (added upstream in "split debloat scripts into multi select
+// app removal", #243) generates its removal command client-side from
+// checked appIds rather than shipping one PS1 per app in scripts.js. We
+// don't replicate that client-side JS — instead each app becomes its own
+// toggle item with a generated one-liner ps1, using WinScript's own
+// single-app removal idiom (see scripts.js's ForEach-Object bodies).
+function extractDebloatApps(propsStr) {
+  const idx = propsStr.indexOf('apps={[');
+  if (idx === -1) return [];
+  const arrStart = idx + 'apps={'.length;
+  const arrEnd   = findClose(propsStr, arrStart, '[', ']');
+  if (arrEnd === -1) return [];
+  const arrStr = propsStr.slice(arrStart + 1, arrEnd);
+
+  const apps = [];
+  let i = 0;
+  while (i < arrStr.length) {
+    const ob = arrStr.indexOf('{', i);
+    if (ob === -1) break;
+    const oe = findClose(arrStr, ob, '{', '}');
+    if (oe === -1) break;
+    const obj = arrStr.slice(ob + 1, oe);
+
+    const titleM  = /title:\s*"([^"]+)"/.exec(obj);
+    const appIdM  = /appId:\s*"([^"]+)"/.exec(obj);
+    const descM   = /desc:\s*"([^"]+)"/.exec(obj);
+
+    if (titleM && appIdM) {
+      apps.push({ title: titleM[1], appId: appIdM[1], desc: descM ? descM[1] : '' });
+    }
+    i = oe + 1;
+  }
+  return apps;
+}
+
+function debloatAppPs1(appId) {
+  return `$pkg = Get-AppxPackage "${appId}"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host "Removed: ${appId}" }`;
 }
 
 // ── Special items handled by WinScript's main.js (not in scripts.js) ─────────
@@ -168,13 +217,48 @@ function parseTabBody(body, en) {
     const nextSG = body.indexOf('<ScriptGroup', i);
     const nextST = body.indexOf('<ScriptToggle', i);
     const nextBE = body.indexOf('<ButtonEntry', i);
+    const nextDG = body.indexOf('<DebloatGroup', i);
 
-    if (nextSG === -1 && nextST === -1 && nextBE === -1) break;
+    if (nextSG === -1 && nextST === -1 && nextBE === -1 && nextDG === -1) break;
 
     // ButtonEntry — skip; these live in the Tools tab Quick Launch section, not the builder
-    if (nextBE !== -1 && (nextSG === -1 || nextBE < nextSG) && (nextST === -1 || nextBE < nextST)) {
+    if (nextBE !== -1 && (nextSG === -1 || nextBE < nextSG) && (nextST === -1 || nextBE < nextST) && (nextDG === -1 || nextBE < nextDG)) {
       const tagEnd = body.indexOf('/>', nextBE);
       i = tagEnd >= 0 ? tagEnd + 2 : nextBE + 1;
+      continue;
+    }
+
+    // DebloatGroup — multi-select AppX bulk removal (#243). Decompose into one
+    // toggle per app, each with a generated ps1, since our Builder architecture
+    // already lets a user multi-select many independent toggles and combines
+    // them into one script — no need to replicate WinScript's dynamic client JS.
+    if (nextDG !== -1 && (nextSG === -1 || nextDG < nextSG) && (nextST === -1 || nextDG < nextST) && (nextBE === -1 || nextDG < nextBE)) {
+      const tagEnd = body.indexOf('/>', nextDG);
+      if (tagEnd === -1) { i = nextDG + 1; continue; }
+      const propsStr = body.slice(nextDG + '<DebloatGroup'.length, tagEnd);
+
+      const titleProp = extractProp(propsStr, 'title');
+      const descProp  = extractProp(propsStr, 'desc');
+      const iconProp  = extractProp(propsStr, 'icon');
+      const idM       = /\sid="([^"]+)"/.exec(propsStr);
+      const apps      = extractDebloatApps(propsStr);
+      i = tagEnd + 2;
+
+      if (!apps.length) continue;
+
+      const groupId = idM ? idM[1] : ('debloat_' + items.length);
+      items.push({
+        type:  'group',
+        label: propValue(titleProp, en),
+        desc:  propValue(descProp, en),
+        icon:  iconRel(propValue(iconProp, en)),
+        items: apps.map(a => ({
+          id:    'debloat_' + groupId + '_' + a.appId.replace(/[^a-zA-Z0-9]+/g, '').toLowerCase(),
+          label: a.title,
+          desc:  a.desc,
+          ps1:   debloatAppPs1(a.appId),
+        })),
+      });
       continue;
     }
 
@@ -288,7 +372,8 @@ function attachScripts(items, scriptMap) {
       if (!item.ps1) console.warn('  warn: no script for toggle', item.id);
     } else if (item.type === 'group' || item.type === 'radio') {
       for (const sub of item.items || []) {
-        sub.ps1 = scriptMap[sub.id] || null;
+        // DebloatGroup items already have a generated ps1 attached — don't overwrite it.
+        sub.ps1 = sub.ps1 || scriptMap[sub.id] || null;
         if (!sub.ps1) console.warn('  warn: no script for', sub.id);
       }
       item.items = (item.items || []).filter(s => s.ps1);
@@ -394,6 +479,24 @@ function parseApps(appJsPath) {
   };
 }
 
+// ── Copy every referenced icon into src/assets/ws-icons/ ────────────────────
+// Builder's _wsIcon() (src/modules/builder.js) resolves item.icon relative to
+// assets/ws-icons/ at runtime — this used to be a manual copy-the-new-files
+// step after every WinScript update; now it just happens automatically.
+function copyUsedIcons(winscriptPath, wsIconsDir) {
+  const iconsRoot = path.join(winscriptPath, 'app/public/icons');
+  let copied = 0, missing = 0;
+  for (const rel of usedIcons) {
+    const src = path.join(iconsRoot, rel);
+    if (!fs.existsSync(src)) { console.warn('  warn: icon not found upstream:', rel); missing++; continue; }
+    const dest = path.join(wsIconsDir, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+    copied++;
+  }
+  console.log(`icons: ${copied} copied, ${missing} missing (of ${usedIcons.size} referenced)`);
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 function run(winscriptPath, outDir) {
   const enPath     = path.join(winscriptPath, 'app/src/i18n/locales/en.json');
@@ -445,6 +548,10 @@ function run(winscriptPath, outDir) {
   const metaFile = path.join(outDir, '_meta.json');
   fs.writeFileSync(metaFile, JSON.stringify({ presets }, null, 2));
   console.log(`wrote ${metaFile}`);
+
+  // Sync icons referenced by the JSON we just wrote into src/assets/ws-icons/
+  const wsIconsDir = path.join(__dirname, '..', 'src', 'assets', 'ws-icons');
+  copyUsedIcons(winscriptPath, wsIconsDir);
 
   console.log('done.');
 }

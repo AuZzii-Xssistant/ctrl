@@ -36,7 +36,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 |---|---|---|---|
 | Quick Fixes | `ti-bolt` | 🟢 Solid | One-click commands (flush DNS, clear temp, restart service…) — the most-used, most battle-tested part of the app |
 | Scripts | `ti-code` | 🟢 Solid | ScriptStash port — named profiles + a Master view, drag-reorder, per-script admin/pause flags. Heavily reworked and hardened; the module I trust most after Quick Fixes |
-| Builder | `ti-wand` | 🟡 Functional (ported) | Toggle-based script generator, imported from the separate [WinScript](https://github.com/flick9000/winscript) project rather than designed for >_ CTRL from scratch. Works, but carries someone else's design decisions and hasn't had the same scrutiny as Scripts/Fixes |
+| Builder | `ti-wand` | 🟡 Functional (ported) | Toggle-based script generator, imported from the separate [WinScript](https://github.com/flick9000/winscript) project rather than designed for >_ CTRL from scratch. Works, but carries someone else's design decisions and hasn't had the same scrutiny as Scripts/Fixes. Basic/Strict/Extreme presets plus an Autounattend card that bakes the current combined script into a Windows answer file (`unattend.xml`) for a fully unattended install |
 | Dashboard | `ti-home` | 🟡 Functional | Pinned launchpad — one-click access to tools/scripts/fixes, drag-reorder, compact mode |
 | Tools | `ti-tool` | 🟡 Functional | Register and launch executables, with optional Run As Admin |
 | Projects | `ti-archive` | 🟡 Functional | Track projects by status (idea → stable → deprecated) |

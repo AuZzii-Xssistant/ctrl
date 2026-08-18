@@ -111,6 +111,7 @@ pub fn run() {
             commands::builder::build_script,
             commands::builder::run_built_script,
             commands::builder::save_built_script,
+            commands::builder::export_autounattend,
             commands::dashboard::get_pinned,
             commands::dashboard::pin_item,
             commands::dashboard::unpin_item,

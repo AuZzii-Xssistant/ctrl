@@ -5,38 +5,6 @@
   "items": [
     {
       "type": "group",
-      "label": "Windows Apps",
-      "desc": "Uninstall pre-installed apps.",
-      "icon": "debloat/app.png",
-      "items": [
-        {
-          "id": "thirdparty",
-          "label": "Remove Third-Party Apps",
-          "desc": "Removes 3rd-party apps like Shazam, Spotify etc.",
-          "ps1": "Write-Host '-- Uninstalling third-party apps' -ForegroundColor Green\n@(\"*Minecraft*\",\"*DropboxOEM*\",\"*RandomSaladGamesLLC*\",\"*McAfee*\",\"ShazamEntertainmentLtd.Shazam\",\"ClearChannelRadioDigital.iHeartRadio\",\"SpotifyAB.SpotifyMusic\",\"*EclipseManager*\",\"*ActiproSoftwareLLC*\",\"*AdobeSystemsIncorporated.AdobePhotoshopExpress*\",\"*Duolingo-LearnLanguagesforFree*\",\"*PandoraMediaInc*\",\"*CandyCrush*\",\"*BubbleWitch3Saga*\",\"*Wunderlist*\",\"*Flipboard*\",\"*Twitter*\",\"*Facebook*\",\"*Royal Revolt*\",\"*Sway*\",\"*Speed Test*\",\"*Dolby*\",\"*Viber*\",\"*ACGMediaPlayer*\",\"*Netflix*\",\"*OneCalendar*\",\"*LinkedInForWindows*\",\"*HiddenCityMysteryofShadows*\",\"*Hulu*\",\"*HiddenCity*\",\"*AdobePhotoshopExpress*\") | ForEach-Object { $pkg = Get-AppxPackage $_; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: $_\" } }"
-        },
-        {
-          "id": "msapps",
-          "label": "Remove Microsoft Apps",
-          "desc": "Removes pre-installed apps like Solitaire, People etc.",
-          "ps1": "Write-Host '-- Uninstalling Microsoft apps' -ForegroundColor Green\n@(\"Microsoft.ZuneMusic\",\"Microsoft.Whiteboard\",\"*UserExperienceImprovementProgram*\",\"Microsoft.Office.Lens\",\"Microsoft.News\",\"Microsoft.GetHelp\",\"*BingSearch*\",\"Microsoft.BingTravel\",\"Microsoft.BingHealthAndFitness\",\"Microsoft.BingFoodAndDrink\",\"Microsoft.BingTranslator\",\"Microsoft.AppConnector\",\"MicrosoftCorporationII.MicrosoftFamily\",\"*QuickAssist*\",\"Microsoft.OutlookForWindows\",\"Clipchamp.Clipchamp\",\"Microsoft.3DBuilder\",\"Microsoft.Microsoft3DViewer\",\"Microsoft.BingWeather\",\"Microsoft.BingSports\",\"Microsoft.BingFinance\",\"Microsoft.MicrosoftOfficeHub\",\"Microsoft.BingNews\",\"Microsoft.Office.OneNote\",\"Microsoft.Office.Sway\",\"Microsoft.WindowsPhone\",\"Microsoft.CommsPhone\",\"Microsoft.YourPhone\",\"Microsoft.Getstarted\",\"Microsoft.549981C3F5F10\",\"Microsoft.Messaging\",\"Microsoft.WindowsSoundRecorder\",\"Microsoft.MixedReality.Portal\",\"Microsoft.WindowsFeedbackHub\",\"Microsoft.WindowsAlarms\",\"Microsoft.MSPaint\",\"Microsoft.WindowsMaps\",\"Microsoft.MinecraftUWP\",\"Microsoft.People\",\"Microsoft.Wallet\",\"Microsoft.Print3D\",\"Microsoft.OneConnect\",\"Microsoft.MicrosoftSolitaireCollection\",\"Microsoft.MicrosoftStickyNotes\",\"microsoft.windowscommunicationsapps\",\"Microsoft.SkypeApp\",\"Microsoft.GroupMe10\",\"MSTeams\",\"Microsoft.Todos\") | ForEach-Object { $pkg = Get-AppxPackage $_; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: $_\" } }"
-        },
-        {
-          "id": "extensions",
-          "label": "Remove Extensions",
-          "desc": "Removes pre-installed extensions like HEVC, VP9 etc.",
-          "ps1": "Write-Host '-- Uninstalling extensions' -ForegroundColor Green\n@(\"Microsoft.HEIFImageExtension\",\"Microsoft.VP9VideoExtensions\",\"Microsoft.WebpImageExtension\",\"Microsoft.HEVCVideoExtension\",\"Microsoft.RawImageExtension\",\"Microsoft.WebMediaExtensions\") | ForEach-Object { $pkg = Get-AppxPackage $_; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: $_\" } }"
-        },
-        {
-          "id": "xbox",
-          "label": "Remove Xbox",
-          "desc": "Uninstalls pre-installed Xbox apps and components.",
-          "ps1": "Write-Host '-- Uninstalling Xbox' -ForegroundColor Green\n@(\"Microsoft.XboxApp\",\"Microsoft.Xbox.TCUI\",\"Microsoft.XboxGamingOverlay\",\"Microsoft.XboxGameOverlay\",\"Microsoft.XboxIdentityProvider\",\"Microsoft.XboxSpeechToTextOverlay\",\"Microsoft.GamingApp\") | ForEach-Object { $pkg = Get-AppxPackage $_ -AllUsers; if ($pkg) { $pkg | Remove-AppxPackage -AllUsers; Write-Host \"Removed: $_\" } }\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxSpeechToTextOverlay_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.Xbox.TCUI_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxApp_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxGamingOverlay_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxGameOverlay_8wekyb3d8bbwe\" /f\nSet-Service -Name \"XblAuthManager\" -StartupType Manual\nSet-Service -Name \"XblGameSave\" -StartupType Manual\nSet-Service -Name \"XboxGipSvc\" -StartupType Manual\nSet-Service -Name \"XboxNetApiSvc\" -StartupType Manual"
-        }
-      ]
-    },
-    {
-      "type": "group",
       "label": "Windows Features",
       "desc": "Disable pre-installed features.",
       "icon": "debloat/features.png",
@@ -118,6 +86,524 @@
       ]
     },
     {
+      "type": "group",
+      "label": "Remove Microsoft Apps",
+      "desc": "Removes pre-installed apps like Solitaire, People etc.",
+      "icon": "debloat/app.png",
+      "items": [
+        {
+          "id": "debloat_microsoft_microsoft3dbuilder",
+          "label": "3D Builder",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.3DBuilder*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.3DBuilder*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmicrosoft3dviewer",
+          "label": "3D Viewer",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Microsoft3DViewer*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Microsoft3DViewer*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftappconnector",
+          "label": "App Connector",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.AppConnector*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.AppConnector*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingfoodanddrink",
+          "label": "Bing Food & Drink",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingFoodAndDrink*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingFoodAndDrink*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbinghealthandfitness",
+          "label": "Bing Health & Fitness",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingHealthAndFitness*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingHealthAndFitness*\" }"
+        },
+        {
+          "id": "debloat_microsoft_bingsearch",
+          "label": "Bing Search",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*BingSearch*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *BingSearch*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingtranslator",
+          "label": "Bing Translator",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingTranslator*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingTranslator*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingtravel",
+          "label": "Bing Travel",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingTravel*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingTravel*\" }"
+        },
+        {
+          "id": "debloat_microsoft_clipchampclipchamp",
+          "label": "Clipchamp",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Clipchamp.Clipchamp*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Clipchamp.Clipchamp*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowsalarms",
+          "label": "Clock (Alarms & Clock)",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WindowsAlarms*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WindowsAlarms*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowsfeedbackhub",
+          "label": "Feedback Hub",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WindowsFeedbackHub*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WindowsFeedbackHub*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftgethelp",
+          "label": "Get Help",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.GetHelp*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.GetHelp*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftgetstarted",
+          "label": "Get Started",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Getstarted*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Getstarted*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftzunemusic",
+          "label": "Groove Music",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.ZuneMusic*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.ZuneMusic*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftgroupme10",
+          "label": "GroupMe",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.GroupMe10*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.GroupMe10*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowscommunicationsapps",
+          "label": "Mail and Calendar",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*microsoft.windowscommunicationsapps*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *microsoft.windowscommunicationsapps*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmicrosoftofficehub",
+          "label": "Microsoft 365 (Office Hub)",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MicrosoftOfficeHub*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MicrosoftOfficeHub*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftcorporationiimicrosoftfamily",
+          "label": "Microsoft Family Safety",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*MicrosoftCorporationII.MicrosoftFamily*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *MicrosoftCorporationII.MicrosoftFamily*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftofficelens",
+          "label": "Microsoft Lens",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Office.Lens*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Office.Lens*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowssoundrecorder",
+          "label": "Microsoft Messaging",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WindowsSoundRecorder*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WindowsSoundRecorder*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftnews",
+          "label": "Microsoft News",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.News*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.News*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftpeople",
+          "label": "Microsoft People",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.People*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.People*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmicrosoftsolitairecollection",
+          "label": "Microsoft Solitaire Collection",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MicrosoftSolitaireCollection*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MicrosoftSolitaireCollection*\" }"
+        },
+        {
+          "id": "debloat_microsoft_msteams",
+          "label": "Microsoft Teams",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*MSTeams*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *MSTeams*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsofttodos",
+          "label": "Microsoft To Do",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Todos*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Todos*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwallet",
+          "label": "Microsoft Wallet",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Wallet*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Wallet*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwhiteboard",
+          "label": "Microsoft Whiteboard",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Whiteboard*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Whiteboard*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftminecraftuwp",
+          "label": "Minecraft (Bedrock Edition)",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MinecraftUWP*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MinecraftUWP*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmixedrealityportal",
+          "label": "Mixed Reality Portal",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MixedReality.Portal*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MixedReality.Portal*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingfinance",
+          "label": "MSN Money",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingFinance*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingFinance*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingnews",
+          "label": "MSN News",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingNews*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingNews*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingsports",
+          "label": "MSN Sports",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingSports*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingSports*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftbingweather",
+          "label": "MSN Weather",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.BingWeather*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.BingWeather*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftofficeonenote",
+          "label": "OneNote",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Office.OneNote*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Office.OneNote*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftoutlookforwindows",
+          "label": "Outlook for Windows",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.OutlookForWindows*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.OutlookForWindows*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftoneconnect",
+          "label": "Paid Wi-Fi & Cellular",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.OneConnect*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.OneConnect*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmspaint",
+          "label": "Paint",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MSPaint*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MSPaint*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftcommsphone",
+          "label": "Phone",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.CommsPhone*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.CommsPhone*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftyourphone",
+          "label": "Phone Link",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.YourPhone*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.YourPhone*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftprint3d",
+          "label": "Print 3D",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Print3D*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Print3D*\" }"
+        },
+        {
+          "id": "debloat_microsoft_quickassist",
+          "label": "Quick Assist",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*QuickAssist*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *QuickAssist*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftskypeapp",
+          "label": "Skype",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.SkypeApp*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.SkypeApp*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftmicrosoftstickynotes",
+          "label": "Sticky Notes",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.MicrosoftStickyNotes*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.MicrosoftStickyNotes*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftofficesway",
+          "label": "Sway",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.Office.Sway*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.Office.Sway*\" }"
+        },
+        {
+          "id": "debloat_microsoft_userexperienceimprovementprogram",
+          "label": "Windows User Experience Improvement Program",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*UserExperienceImprovementProgram*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *UserExperienceImprovementProgram*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowsmaps",
+          "label": "Windows Maps",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WindowsMaps*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WindowsMaps*\" }"
+        },
+        {
+          "id": "debloat_microsoft_microsoftwindowsphone",
+          "label": "Windows Phone Companion",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WindowsPhone*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WindowsPhone*\" }"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": "Remove Third-Party Apps",
+      "desc": "Removes 3rd-party apps like Shazam, Spotify etc.",
+      "icon": "debloat/thirdparty.svg",
+      "items": [
+        {
+          "id": "debloat_thirdparty_acgmediaplayer",
+          "label": "ACG Media Player",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*ACGMediaPlayer*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *ACGMediaPlayer*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_actiprosoftwarellc",
+          "label": "Actipro Software",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*ActiproSoftwareLLC*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *ActiproSoftwareLLC*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_adobesystemsincorporatedadobephotoshopexpress",
+          "label": "Adobe Photoshop Express",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*AdobeSystemsIncorporated.AdobePhotoshopExpress*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *AdobeSystemsIncorporated.AdobePhotoshopExpress*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_adobephotoshopexpress",
+          "label": "Adobe Photoshop Express",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*AdobePhotoshopExpress*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *AdobePhotoshopExpress*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_bubblewitch3saga",
+          "label": "Bubble Witch 3 Saga",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*BubbleWitch3Saga*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *BubbleWitch3Saga*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_candycrush",
+          "label": "Candy Crush",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*CandyCrush*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *CandyCrush*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_dropboxoem",
+          "label": "Dropbox",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*DropboxOEM*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *DropboxOEM*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_duolingolearnlanguagesforfree",
+          "label": "Duolingo",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Duolingo-LearnLanguagesforFree*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Duolingo-LearnLanguagesforFree*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_eclipsemanager",
+          "label": "Eclipse Manager",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*EclipseManager*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *EclipseManager*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_facebook",
+          "label": "Facebook",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Facebook*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Facebook*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_flipboard",
+          "label": "Flipboard",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Flipboard*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Flipboard*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_hiddencity",
+          "label": "Hidden City",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*HiddenCity*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *HiddenCity*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_hulu",
+          "label": "Hulu",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Hulu*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Hulu*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_clearchannelradiodigitaliheartradio",
+          "label": "iHeartRadio",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*ClearChannelRadioDigital.iHeartRadio*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *ClearChannelRadioDigital.iHeartRadio*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_linkedinforwindows",
+          "label": "LinkedIn",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*LinkedInForWindows*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *LinkedInForWindows*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_mcafee",
+          "label": "McAfee",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*McAfee*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *McAfee*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_netflix",
+          "label": "Netflix",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Netflix*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Netflix*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_onecalendar",
+          "label": "OneCalendar",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*OneCalendar*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *OneCalendar*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_pandoramediainc",
+          "label": "Pandora",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*PandoraMediaInc*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *PandoraMediaInc*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_randomsaladgamesllc",
+          "label": "Random Salad Games",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*RandomSaladGamesLLC*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *RandomSaladGamesLLC*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_royalrevolt",
+          "label": "Royal Revolt",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Royal Revolt*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Royal Revolt*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_shazamentertainmentltdshazam",
+          "label": "Shazam",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*ShazamEntertainmentLtd.Shazam*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *ShazamEntertainmentLtd.Shazam*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_speedtest",
+          "label": "Speed Test",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Speed Test*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Speed Test*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_spotifyabspotifymusic",
+          "label": "Spotify",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*SpotifyAB.SpotifyMusic*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *SpotifyAB.SpotifyMusic*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_sway",
+          "label": "Sway",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Sway*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Sway*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_twitter",
+          "label": "Twitter",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Twitter*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Twitter*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_viber",
+          "label": "Viber",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Viber*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Viber*\" }"
+        },
+        {
+          "id": "debloat_thirdparty_wunderlist",
+          "label": "Wunderlist",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Wunderlist*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Wunderlist*\" }"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": "Remove Extensions",
+      "desc": "Removes pre-installed extensions like HEVC, VP9 etc.",
+      "icon": "debloat/extension.svg",
+      "items": [
+        {
+          "id": "debloat_extensions_microsoftheifimageextension",
+          "label": "HEIF Image Extension",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.HEIFImageExtension*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.HEIFImageExtension*\" }"
+        },
+        {
+          "id": "debloat_extensions_microsofthevcvideoextension",
+          "label": "HEVC Video Extension",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.HEVCVideoExtension*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.HEVCVideoExtension*\" }"
+        },
+        {
+          "id": "debloat_extensions_microsoftvp9videoextensions",
+          "label": "VP9 Video Extensions",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.VP9VideoExtensions*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.VP9VideoExtensions*\" }"
+        },
+        {
+          "id": "debloat_extensions_microsoftrawimageextension",
+          "label": "Raw Image Extension",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.RawImageExtension*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.RawImageExtension*\" }"
+        },
+        {
+          "id": "debloat_extensions_microsoftwebpimageextension",
+          "label": "WebP Image Extension",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WebpImageExtension*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WebpImageExtension*\" }"
+        },
+        {
+          "id": "debloat_extensions_microsoftwebmediaextensions",
+          "label": "Web Media Extensions",
+          "desc": "",
+          "ps1": "$pkg = Get-AppxPackage \"*Microsoft.WebMediaExtensions*\"; if ($pkg) { $pkg | Remove-AppxPackage; Write-Host \"Removed: *Microsoft.WebMediaExtensions*\" }"
+        }
+      ]
+    },
+    {
+      "type": "toggle",
+      "id": "xbox",
+      "label": "Remove Xbox",
+      "desc": "Uninstalls pre-installed Xbox apps and components.",
+      "icon": "debloat/xbox.svg",
+      "ps1": "Write-Host '-- Uninstalling Xbox' -ForegroundColor Green\n@(\"Microsoft.XboxApp\",\"Microsoft.Xbox.TCUI\",\"Microsoft.XboxGamingOverlay\",\"Microsoft.XboxGameOverlay\",\"Microsoft.XboxIdentityProvider\",\"Microsoft.XboxSpeechToTextOverlay\",\"Microsoft.GamingApp\") | ForEach-Object { $pkg = Get-AppxPackage $_ -AllUsers; if ($pkg) { $pkg | Remove-AppxPackage -AllUsers; Write-Host \"Removed: $_\" } }\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxSpeechToTextOverlay_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.Xbox.TCUI_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxApp_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxGamingOverlay_8wekyb3d8bbwe\" /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\Deprovisioned\\Microsoft.XboxGameOverlay_8wekyb3d8bbwe\" /f\nSet-Service -Name \"XblAuthManager\" -StartupType Manual\nSet-Service -Name \"XblGameSave\" -StartupType Manual\nSet-Service -Name \"XboxGipSvc\" -StartupType Manual\nSet-Service -Name \"XboxNetApiSvc\" -StartupType Manual"
+    },
+    {
       "type": "toggle",
       "id": "microsoftstore",
       "label": "Remove Microsoft Store",
@@ -179,7 +665,7 @@
       "label": "Remove Taskbar Widgets",
       "desc": "Disables taskbar widgets such as Task View, Weather etc.",
       "icon": "debloat/taskbarwidgets.png",
-      "ps1": "Write-Host '-- Disabling Taskbar Widgets' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"ShowTaskViewButton\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\default\\NewsAndInterests\\AllowNewsAndInterests\" /v \"value\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Feeds\" /v \"EnableFeeds\" /t REG_DWORD /d 0 /f"
+      "ps1": "Write-Host '-- Disabling Taskbar Widgets' -ForegroundColor Green\nreg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\" /v \"ShowTaskViewButton\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Microsoft\\PolicyManager\\default\\NewsAndInterests\\AllowNewsAndInterests\" /v \"value\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Feeds\" /v \"EnableFeeds\" /t REG_DWORD /d 0 /f\nreg add \"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent\" /v \"DisableCloudOptimizedContent\" /t REG_DWORD /d 1 /f"
     }
   ]
 }

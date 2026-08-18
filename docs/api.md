@@ -123,6 +123,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `build_script` | `{action_ids: string[], output_type}` | `string` |
 | `run_built_script` | `{code, script_type}` | `RunResult` |
 | `save_built_script` | `{code, name, scriptType, profileIds: i64[], inMaster: bool}` | void — asks which profile(s) to save into (Master checked by default) |
+| `export_autounattend` | `{script}` | `bool` — wraps the given script in a Windows `unattend.xml` answer file (bypasses Win11 hardware checks, runs the script via `FirstLogonCommands`) and writes it via a native save dialog; ported from WinScript's Autounattend button, see `docs/known-issues.md` |
 
 ## Workflows
 | Command | Payload | Returns |
