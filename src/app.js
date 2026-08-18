@@ -401,13 +401,19 @@ function _onDrawerOpened(userInitiated = false) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+// A separate read-only viewer, NOT the live terminal — writing arbitrary text
+// into an active PTY's xterm buffer (the old approach) desyncs the display
+// from what the real shell process thinks its cursor position is: PSReadLine
+// gets confused, and the next keystroke can land in the middle of the output
+// instead of after it. This never touches any PTY, so that can't happen.
 export function showOutput(text, ok = true) {
   if (!text) return;
-  const col   = ok ? '\x1b[32m' : '\x1b[31m';
-  const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
-  _activeTab()?.term.write(`\r\n${col}${clean}\x1b[0m\r\n`);
-  document.getElementById('output-new-dot')?.style.setProperty('display', '');
-  _openDrawer();
+  const clean = text.replace(/\x1b\[[0-9;]*m/g, ''); // strip any leftover ANSI codes defensively
+  openModal(ok ? 'Output' : 'Output — Failed', `
+    <pre class="output-view ${ok ? 'ok' : 'err'}">${esc(clean)}</pre>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._modalCancel()">Close</button>
+    </div>`);
 }
 
 // ── Event wiring ──────────────────────────────────────────────────────────────

@@ -234,25 +234,42 @@ async fn run_step_notify(app: &tauri::AppHandle, step: &Step) -> Result<(bool, S
     Ok((true, format!("Notification sent: {}", title)))
 }
 
-/// Fire a Windows toast via the shell — the one notification mechanism in CTRL,
-/// used by workflow "notify" steps.
+/// Fire a Windows notification via the shell — the one notification mechanism
+/// in CTRL, used by workflow "notify" steps.
+///
+/// Was `ToastNotificationManager::CreateToastNotifier("CTRL")` (native WinRT
+/// toast) — that API requires a registered AppUserModelID (a Start Menu
+/// shortcut with a toast activator CLSID), which an unpackaged NSIS-installed
+/// app like this doesn't have. It almost certainly threw an "app not
+/// registered" exception every single call, and the failure was silently
+/// swallowed (the process output was never checked), so "notify doesn't work"
+/// had no visible error anywhere. Switched to a `NotifyIcon` balloon tip —
+/// the standard notification mechanism for unpackaged Win32 apps, no app
+/// identity registration required — and the exit code/stderr are now
+/// actually checked instead of discarded.
 pub async fn send_toast(app: &tauri::AppHandle, title: &str, body: &str) -> Result<(), String> {
     let ps = format!(
-        r#"$null=[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime];
-$xml=$null;$xml=[Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02);
-$xml.GetElementsByTagName('text').Item(0).InnerText='{title}';
-$xml.GetElementsByTagName('text').Item(1).InnerText='{body}';
-[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('CTRL').Show([Windows.UI.Notifications.ToastNotification]::new($xml))"#,
+        r#"Add-Type -AssemblyName System.Windows.Forms,System.Drawing;
+$n=New-Object System.Windows.Forms.NotifyIcon;
+$n.Icon=[System.Drawing.SystemIcons]::Information;
+$n.Visible=$true;
+$n.ShowBalloonTip(5000,'{title}','{body}',[System.Windows.Forms.ToolTipIcon]::Info);
+Start-Sleep -Seconds 4;
+$n.Dispose()"#,
         title = title.replace('\'', "''"),
         body = body.replace('\'', "''"),
     );
-    let _out = app
+    let out = app
         .shell()
         .command("powershell")
         .args(["-WindowStyle", "Hidden", "-NonInteractive", "-Command", &ps])
         .output()
         .await
         .map_err(|e| e.to_string())?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("notification failed: {}", err.trim()));
+    }
     Ok(())
 }
 

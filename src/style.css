@@ -283,6 +283,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 
 /* Confirm modal variant */
 .modal-confirm-msg { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
+.output-view {
+  font-family: var(--mono); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+  max-height: 50vh; overflow-y: auto; padding: 12px; border-radius: 6px;
+  background: var(--bg1); border: 1px solid var(--border); color: var(--text2);
+}
+.output-view.ok  { border-left: 3px solid var(--green); }
+.output-view.err { border-left: 3px solid var(--red); }
 
 /* ── OUTPUT DRAWER ── */
 /* Output drawer — always visible, collapses to header bar */

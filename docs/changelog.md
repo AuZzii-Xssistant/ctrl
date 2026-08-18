@@ -1,5 +1,10 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Output no longer written to the live terminal; workflow notify fixed
+
+- **Real bug, found by the user**: `showOutput()` (used everywhere a run's result is displayed — History, Scripts, Fixes, Backup, Builder, Workflows, Profiles) wrote completed-run text directly into the active tab's live PTY terminal buffer. Since that bypasses the actual shell process, the real cursor position never moved to match, so typing right after could land in the middle of the injected text. Rewrote `showOutput()` to open a dedicated read-only modal instead — same function signature, all 16 call sites unchanged, but nothing touches a live PTY anymore.
+- **Workflow "notify" step fixed** (probably — unverified without a live Windows session): it called a native WinRT toast API that requires a registered AppUserModelID this unpackaged app doesn't have, and silently discarded the process result either way, so failure was invisible. Switched to a `NotifyIcon` balloon tip (works without app-identity registration) and now actually checks and surfaces the exit code/stderr.
+
 ## 2026-08-18 — Seeded defaults stay deleted, Quick Launch gets a remove action
 
 - Fixed a real data-loss-of-intent bug: `ql_items` and `fixes` seeding both checked `COUNT(*) == 0`, so deleting every seeded row brought them all back on the next launch. New `app_meta` table tracks "seeded, ever" independent of current row count — upgrades with existing rows just record the flag, no duplication.
