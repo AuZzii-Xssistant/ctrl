@@ -128,6 +128,11 @@ pub async fn add_to_path(
     target: Option<String>,
 ) -> Result<(), String> {
     let scope = target.as_deref().unwrap_or("User");
+    // Without this, "C:\Tools\bin\" (trailing backslash — plausible since this
+    // is a free-text field, no folder picker) wouldn't match an existing
+    // "C:\Tools\bin" entry in the -ieq duplicate check below, silently adding
+    // a redundant PATH entry every time.
+    let dir = dir.trim_end_matches('\\');
     let dir_esc = dir.replace('\'', "''");
     let inner = format!(
         "$cur=[Environment]::GetEnvironmentVariable('Path','{scope}'); \

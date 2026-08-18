@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Fixed Add to PATH's duplicate check missing a trailing backslash
+
+`"C:\Tools\bin\"` wouldn't match an existing `"C:\Tools\bin"` entry in the exact-match duplicate check, silently adding a redundant PATH entry. Reachable — the field is free-text with no folder picker. Fixed by trimming trailing backslashes before comparing and writing.
+
 ## 2026-08-18 — Fixed temp-file leak on every single Builder Run click
 
 `run_built_script` never deleted its temp script file — unlike the elevated-cancel leak (previous entry), this hit on *every* Run click, not just cancellations. Fixed by removing it right after `spawn_streaming` (which fully awaits completion) returns.

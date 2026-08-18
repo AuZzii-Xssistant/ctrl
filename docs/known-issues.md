@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Add to PATH's duplicate check missed a trailing backslash~~ ✅ Resolved (2026-08-18)
+`add_to_path`'s duplicate check does an exact (case-insensitive) string match — `"C:\Tools\bin\"` wouldn't match an existing `"C:\Tools\bin"` entry, silently adding a redundant PATH entry. Reachable in practice: the Add to PATH field is free-text with no folder picker, so a trailing backslash (habit, or copy-pasted from Explorer's address bar) is plausible. Fixed by trimming trailing backslashes before both the comparison and the value actually written.
+
 ### ~~Builder's Run button leaked a temp file on every single run~~ ✅ Resolved (2026-08-18)
 `run_built_script` (builder.rs) writes the combined script to a temp file, runs it via `spawn_streaming` (which fully awaits process completion), then returns — but never deleted the file. Unlike the elevated-cancel leak below, this happened on *every* Run click, not just cancellations. Fixed: removed right after `spawn_streaming` returns. One narrow residual gap left deliberately unaddressed: if `spawn_streaming`'s own process-spawn fails (not the script failing — the OS failing to launch `powershell`/`cmd` at all, extremely rare), the `?` returns before cleanup runs and the file leaks — same as before, just for a much narrower case; the startup sweep still catches it eventually.
 
