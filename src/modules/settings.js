@@ -38,6 +38,11 @@ export async function load() {
       <button class="action-btn btn-ghost"     id="s-open-db"  ><i class="ti ti-database"></i> Open DB location</button>
     </div>
 
+    <div class="settings-section">Behavior</div>
+    <div class="settings-card settings-actions">
+      <button class="action-btn btn-ghost" id="s-reset-close"><i class="ti ti-refresh"></i> Ask again when closing the window</button>
+    </div>
+
     <div class="settings-section">Keyboard shortcuts</div>
     <div class="settings-card">
       <table class="shortcuts-table">
@@ -70,5 +75,9 @@ export async function load() {
   document.getElementById('s-open-db').addEventListener('click', async () => {
     try { await inv('open_data_folder'); toast('Opened folder containing ctrl.db', 'info'); }
     catch (e) { toast(String(e), 'err'); }
+  });
+  document.getElementById('s-reset-close').addEventListener('click', () => {
+    localStorage.removeItem('ctrl_close_action');
+    toast('Closing the window will ask again next time', 'ok');
   });
 }

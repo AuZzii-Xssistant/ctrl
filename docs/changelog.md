@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Close-preference reset added to Settings
+
+The "remember my choice" checkbox on the tray-vs-quit close modal had no way to undo once checked — exactly the kind of silent, un-discoverable behavior the modal itself was built to fix. Added Settings → Behavior → "Ask again when closing the window", clears the `ctrl_close_action` localStorage key.
+
 ## 2026-08-18 — Autounattend line-ending double-CR fix
 
 `export_autounattend`'s `.replace('\n', "\r\n")` would double up any already-CRLF line into `\r\r\n`, corrupting the XML. Currently unreachable (Builder's combined script is JS-built with bare `\n`) but a real risk if that ever changes — normalizes to `\n` first now.
