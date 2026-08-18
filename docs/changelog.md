@@ -1,4 +1,114 @@
-# CTRL Changelog
+# >_ CTRL Changelog
+
+## 2026-08-18 — Output no longer written to the live terminal; workflow notify fixed
+
+- **Real bug, found by the user**: `showOutput()` (used everywhere a run's result is displayed — History, Scripts, Fixes, Backup, Builder, Workflows, Profiles) wrote completed-run text directly into the active tab's live PTY terminal buffer. Since that bypasses the actual shell process, the real cursor position never moved to match, so typing right after could land in the middle of the injected text. Rewrote `showOutput()` to open a dedicated read-only modal instead — same function signature, all 16 call sites unchanged, but nothing touches a live PTY anymore.
+- **Workflow "notify" step fixed** (probably — unverified without a live Windows session): it called a native WinRT toast API that requires a registered AppUserModelID this unpackaged app doesn't have, and silently discarded the process result either way, so failure was invisible. Switched to a `NotifyIcon` balloon tip (works without app-identity registration) and now actually checks and surfaces the exit code/stderr.
+
+## 2026-08-18 — Seeded defaults stay deleted, Quick Launch gets a remove action
+
+- Fixed a real data-loss-of-intent bug: `ql_items` and `fixes` seeding both checked `COUNT(*) == 0`, so deleting every seeded row brought them all back on the next launch. New `app_meta` table tracks "seeded, ever" independent of current row count — upgrades with existing rows just record the flag, no duplication.
+- Added `delete_ql_item` — Quick Launch items had no delete path at all. Right-click a pill for a context menu (Pin to Dashboard / Remove), or use the hover ✕ button (CSS for it already existed, just never wired up).
+
+## 2026-08-18 — Close (X/Alt+F4) now asks tray vs. quit instead of silently hiding
+
+Found by the user directly: closing the window hid it to the tray with no indication that's what happened — it just looked like the app hadn't closed. Rust's `WindowEvent::CloseRequested` handler now prevents the close and emits `close-requested` instead of silently calling `.hide()`; the frontend shows a modal (Minimize to Tray / Quit / Cancel) with an optional "remember my choice" checkbox (`localStorage.ctrl_close_action`) for anyone who wants the old silent behavior back. Same modal on the custom title bar's X button and on native Alt+F4.
+
+## 2026-08-18 — WinScript sync: multi-select debloat groups, Autounattend, auto icon sync
+
+Pulled WinScript from `9ae2de2` to `5d3e3f0` (6 commits), including upstream's #243 "split debloat scripts into multi select app removal."
+
+- **`tools/winscript-converter.js`**: added parsing for WinScript's new `<DebloatGroup>` component (bulk AppX-removal checklists — Microsoft bloat, third-party apps, extensions — that upstream generates client-side from checked appIds). Decomposed into one Builder toggle per app instead of replicating their dynamic JS, since our Builder already lets users multi-select many independent toggles and combines them into one script — same end result, matches our existing architecture instead of forking a second UI pattern. Debloat category grew from 23 to 101 actions (+78: 47 Microsoft apps, 28 third-party apps, 6 extensions).
+- **`appinstall.js` (app installer) confirmed still ports automatically** — `winscript-converter.js`'s `parseApps()` already dedicated to this file; upstream's only change since our last pull was a client-side empty-string filter (cosmetic UI logic, not the `appListChocolatey`/`appListWinget` data arrays we actually read). No converter change needed.
+- **Icon sync automated** — copying new WinScript icon files into `src/assets/ws-icons/` used to be a manual step after every update; `winscript-converter.js` now tracks every icon path it references while parsing and copies them straight from `winscript-ref/app/public/icons/` at the end of the run (67 icons synced this pass, 0 missing).
+- **Added Autounattend** — a 4th card next to Basic/Strict/Extreme in Builder's preset row. Bakes the currently-built combined script into a Windows `unattend.xml` answer file (bypasses Win11 TPM/Secure Boot/RAM/CPU/storage checks, disables network during the specialize pass to skip the forced Microsoft-account OOBE screen, runs the script via `FirstLogonCommands`, then re-enables network + Windows Update). New `export_autounattend` command (`builder.rs`), ported line-for-line from WinScript's `unattend.js` template — same three-script structure (winscript.ps1/Specialize.ps1/FirstLogon.ps1), generated server-side in Rust instead of via a Tauri JS plugin.
+- Other upstream changes pulled in as part of the same sync (through normal `scripts.js`/`en.json` re-parsing, no converter change needed): a duplicate `DisableMFUTracking` registry key removed (HKLM copy was redundant with the HKCU one), a new `DisableCloudOptimizedContent` registry tweak added to the taskbar-widgets toggle, and the `strict` preset no longer auto-selects third-party-app removal (upstream's own tradeoff — the new bulk-removal groups aren't individually preset-addressable either, on WinScript's side; matched here rather than diverging from what upstream actually does).
+- `cargo check`/`cargo clippy --quiet` clean. **Not verified**: the actual `unattend.xml` output was never tested against a real Windows install (no way to boot a VM/USB from this environment) — traced by hand against WinScript's own template, but treat it as unverified until tried on real install media.
+
+## 2026-08-18 — Rebrand to ">_ CTRL", record button moved into header, Recent Activity removed
+
+- Rebranded display name from "CTRL" to ">_ CTRL" everywhere it's prose/UI text (window title, in-app strings, README, docs) — matches the in-app logo convention that already used it. Left untouched: the built `ctrl.exe`/`ctrl-cli.exe` filenames, the Cargo package name, the GitHub repo name, `tauri.conf.json`'s `productName` (Windows disallows `>` in install paths/registry keys derived from that field — only the window-title string was changed, not the field that drives the installer/bundle identity), `CTRL_SANDBOX`/`CTRL_DB` env var names, and the `CTRL_SNAP:` internal marker prefix.
+- Workflows: the macro-recorder's Record/Stop & Save control moved from its own row below the header into the pane header itself, next to "New Workflow".
+- Removed the "Recent Activity" nav page (`activity.js`, `get_recent_activity` command, `ActivityEntry` type) — it was a strict subset of the new History page (last 50, no filters, no click-to-view-output, no export) with zero unique capability. History's nav icon changed to `ti-history` (freed up from Recent Activity). Added a "Clear Filters" button to History.
+
+## 2026-08-18 — Workflow steps now actually elevate (real bug, found via testing)
+
+Reported by hands-on testing: an SFC workflow step failed with "You must be an administrator" despite the fix being configured `run_as_admin`. Root cause: `run_step_script`/`run_step_fix` in `workflows.rs` were a wholly separate, duplicated exec implementation that never checked `run_as_admin` at all — every workflow step ran unprivileged, silently. Fixed by routing both through the real `run_script`/`run_fix` commands instead of the shadow implementation, so workflow steps now get identical admin-elevation, PTY execution, and sandbox handling to running the item from its own pane.
+
+Found and fixed the same pass: a "Pause Script" (interactive) script as a workflow step would have hung forever waiting for a keypress nobody can send, once routed through the real `run_script`. Added a `skip_pause` param to `run_script`, set only by `run_workflow`'s script-step path — existing callers unaffected.
+
+## 2026-08-18 — Workflow macro recorder (roadmap item 6, final)
+
+Closes the "hand-writing workflow steps is friction" gap. Record toggle on the Workflows page.
+
+- `src/app.js`: `acquireRun` takes an optional `meta` ({type,id,label}) arg; when a module-level `_recording` flag is on and `meta.type` is `script`/`fix`, the step gets pushed to `_recordedSteps`. New exports: `isRecording`/`startRecording`/`stopRecording`/`recordedStepCount`.
+- `src/modules/workflows.js`: Record/Stop & Save row above the workflow list (`_recRowHtml`, `window._toggleRecording`). Stop & Save hands the recorded steps straight to the existing `_showWorkflowModal` (prefilled `steps`), so saving reuses `add_workflow` — no new backend command, no schema change.
+- `src/modules/scripts.js` (`_runOne`) and `src/modules/fixes.js` (`_run`) now pass `{type,id,label}` into `acquireRun` so single script/fix runs get captured. Command-palette script/fix runs (`app.js::_runFromPalette`) do too.
+- `src/style.css`: `.wf-rec-row`/`.rec-dot` — pulsing red dot, reuses the existing `out-pulse` keyframe from the output drawer's new-activity dot.
+- Not captured: workflow runs, tweak runs, and the scripts-pane multi-select run queue (one `acquireRun` wraps N items) — documented limitation, not a bug.
+- This is the last item on `docs/ROADMAP.md` — roadmap complete.
+- Frontend-only change, no Rust touched — no `cargo check`/`clippy` needed.
+- **Not verified**: this session can't run the Tauri dev server or a browser — JS logic was traced by hand against the existing `acquireRun`/`_showWorkflowModal` code paths but never exercised live.
+
+## 2026-08-18 — Watchers → real alerting (roadmap item 4)
+
+Closes the "everything is manual or time-scheduled" gap — a small watcher primitive that observes system state on its own.
+
+- New `watchers` table (`src-tauri/src/db.rs`): `{id, name, condition_type, condition_config (JSON), action, enabled, last_checked, last_state, last_triggered_at}`
+- New `src-tauri/src/commands/watchers.rs`: CRUD (`get_watchers`/`add_watcher`/`update_watcher`/`delete_watcher`/`toggle_watcher`) + `start_watcher_scheduler`, a background poll loop mirroring `workflows.rs::start_workflow_scheduler` — checks every 30s
+- 3 condition types only, as scoped: `disk_below` (drive + free% threshold, reuses `get_perf_stats`), `process_down` (named process via `Get-Process`), `cpu_sustained` (% sustained for N minutes, also `get_perf_stats`)
+- No new notification dependency needed — `workflows.rs::run_step_notify`'s toast PowerShell was pulled out into a shared `send_toast()`, reused by both workflow "notify" steps and watchers
+- Fires only on the ok→alert transition (persisted `last_state`) — a condition that stays true doesn't renotify every poll
+- `cpu_sustained`'s rolling window is a simple in-memory streak counter (`watchers.rs::cpu_streaks`, `HashMap<i64,u32>`), not a new DB table — resets on app restart, documented trade-off rather than a schema addition
+- New Watchers nav page (`src/modules/watchers.js`): list, add/edit/delete, enable toggle, alert-state dot, last-triggered timestamp — same row-list/modal pattern as Snippets/Workflows
+- `cargo check`/`cargo clippy --quiet` both clean
+- **Not verified**: this dev environment can't run the Tauri app or a live Windows session — see `docs/known-issues.md`
+- `docs/ROADMAP.md` item 4 marked done, `docs/api.md`/`docs/db-schema.md`/`README.md` updated, `docs/known-issues.md` gained two "Active" entries
+
+## 2026-08-18 — System Profiles (roadmap item 3)
+
+Named machine-state presets — the biggest genuinely new feature on the roadmap.
+
+- New `profiles`/`profile_items`/`profile_snapshots`/`profile_state` SQLite tables (`src-tauri/src/db.rs`). `profile_items` holds one row per setting type (`power_plan`/`kill_apps`/`start_apps`/`dns`/`audio`/`refresh_rate`/`script`); `profile_snapshots` captures pre-activation state fresh on every activate (never reused stale); `profile_state` is a single-row table tracking which profile is active, so it survives restart in the portable folder
+- New `src-tauri/src/commands/profiles.rs`: `get_profiles`/`add_profile`/`update_profile`/`delete_profile`/`get_active_profile`/`activate_profile`/`restore_previous`. Activation builds one combined elevated PowerShell script (single UAC prompt): snapshot markers first (parsed back out of stdout via `CTRL_SNAP:` lines), then each enabled item applied in order, mirroring the `exec.rs::run_elevated` PTY-wrapper pattern already used by Tweaks/Fixes
+- New Profiles nav page (`src/modules/profiles.js`): list, create/edit (checklist-style item form with per-item enable toggle), Activate button, Restore Previous banner shown whenever a profile is active
+- Topbar chip (`#active-profile-chip`) and a disabled tray menu line ("Profile: X") both show the active profile name, rebuilt after every activate/restore the same way `pin_item`/`unpin_item` already rebuild the tray
+- **Best-effort / documented limitations** (see `docs/known-issues.md`): audio-endpoint switching needs the third-party `AudioDeviceCmdlets` module (not bundled); refresh-rate switching uses an inline P/Invoke `ChangeDisplaySettings` call with no built-in cmdlet equivalent, written and reviewed but **not verified on real hardware** — this dev environment can't run the Tauri app or touch a live Windows session; killed apps are not relaunched on restore (no stored launch path), only apps the profile itself started get stopped on revert
+- `cargo check`/`cargo clippy --quiet` both clean
+- `docs/ROADMAP.md` item 3 marked done, `docs/api.md`/`docs/db-schema.md`/`README.md` updated, `docs/known-issues.md`'s "Planned Features" entry replaced with three "Active" limitation entries
+
+## 2026-08-18 — real History page (roadmap item 5)
+
+- New History nav page (`src/modules/history.js`): filters `run_log` by module (script/fix/workflow/tool/backup), success/fail, date range, and text search over `item_name`; click a row to see full output in the existing terminal-drawer `showOutput` view; Export button writes filtered rows to a `.txt` file via a native save dialog
+- Backend: new `get_run_history_filtered` command (dynamic AND-combined filters), new generic `export_text_file` command (reused by any future plain-text export) — no schema change, both reuse the existing `run_log` table and dialog-plugin pattern already used by ScriptStash's export
+- `docs/ROADMAP.md` item 5 marked done
+
+## 2026-08-17 — dangling-pin bug fix
+
+- Fixed: deleting a pinned tool/fix/workflow/project/script left a dangling `pinned` row that rendered as a blank entry on the Dashboard and in the tray menu (`resolve_item`'s fallback returned an empty name, nothing filtered it out). `get_pinned`/`fetch_pinned` now skip and lazily delete pins that no longer resolve. Documented in `docs/known-issues.md` and `docs/api.md`.
+
+## 2026-08-17 — v0.1.1-beta release, tray/hotkey, README honesty pass
+
+**Release**
+- Tagged and published [v0.1.1-beta](https://github.com/AuZzii-Xssistant/ctrl/releases/tag/v0.1.1-beta) — `ctrl.exe`, `ctrl-cli.exe`, and an NSIS installer, built and verified from `main`
+
+**Backend hardening (second pass)**
+- Removed a second dead-code cluster: `ss_run_script_sync`/`do_run`/`ss_start_run`/`ss_run_now`/`ss_stop_run`/`ss_run_embedded` — an entire earlier run-queue implementation (~230 lines) confirmed via grep to have zero frontend callers, fully superseded by the `run_script` PTY rewrite
+- Fixed mutex-poisoning risk in `terminal.rs`'s PTY commands and `scripts.rs`'s editor watcher (`.lock().unwrap()` → recovers instead of propagating a panic that would otherwise brick every terminal command for the session)
+- Fixed temp-file collisions between concurrently running scripts (`exec.rs`'s `tmp()` now folds in a per-call counter, not just the process id)
+- Fixed a blocking `std::thread::sleep` inside an async Workflow Wait step that could starve other concurrent Tauri commands
+- `cargo clippy` made clean — 11 warnings fixed (doc-comment style, needless borrows, an unnecessary-unwrap-after-is_none, a couple of intentional-naming lints silenced with `#[allow]` rather than renamed)
+
+**docs/api.md** — closed the remaining gaps from the first reconciliation pass: Terminal/PTY section, Custom Tweaks, Dashboard/Tools extras, 8 missing type shapes, a `PinnedItem` field that was missing, 7 core types (`Tool`/`Fix`/`Project`/`Script`/etc.) that were referenced by name but never actually defined, and a misleading description of `SsScript` that implied it shared most of `Script`'s fields when it barely overlaps at all
+
+**Power-user roadmap** (on `feature/power-user-upgrades`, not yet in a release)
+- Command palette: `Ctrl+K` search results now have a ▶ Run button (and `Ctrl+Enter`) to execute directly instead of only navigating
+- Global hotkey (`Ctrl+Shift+Space`) + system tray: summons the window from anywhere, tray menu lists pinned items and runs them natively even with the window hidden, closing the window now minimizes to tray instead of quitting
+- `docs/ROADMAP.md` added, scoping the rest of the proposal (System Profiles, Watchers/alerting, a real History page, a Workflow macro recorder)
+
+**README + CLI**
+- Module status table no longer claims blanket "✅ Built" — now reflects real maturity per module (Quick Fixes/Scripts = Solid, Builder explicitly called out as a WinScript port, everything else = Functional but less battle-tested)
+- Full CLI/GUI parity audit: fixed `ctrl-cli add workflow --steps JSON` (documented but never implemented — always inserted empty steps), added a missing `--pause` flag to `add script`, documented the real capability gaps (CLI-added scripts always land in Master only, no CLI access to pins/env vars/Quick Launch/external apps/run history) in `docs/known-issues.md`
 
 ## 2026-08-18 — dangling-pin bug fix
 
@@ -157,7 +267,7 @@
 - Tauri v2 camelCase param mismatch fixed across all invoke calls
 - Admin script/fix output now captured via temp PS1 + Out-File bridge
 - Modal scroll: `max-height:85vh`, scrollable body prevents off-screen overflow
-- Project status `active` not in STATUS_ORDER — CTRL project corrected to `working`
+- Project status `active` not in STATUS_ORDER — >_ CTRL project corrected to `working`
 - `default-run = "ctrl"` in Cargo.toml fixes `dev.bat`/`build.bat` after ctrl-cli was added
 
 ### Major Upgrade 5 — Admin elevation, Recent Activity pane, output drawer redesign, UX fixes

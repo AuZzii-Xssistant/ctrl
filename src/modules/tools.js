@@ -34,11 +34,12 @@ function _render(el, tools, qls = []) {
   // Quick Launch from DB — pill grid with pin button
   html += `<div class="section-hdr"><span class="section-label">Quick Launch</span><span class="section-count">${qls.length}</span></div>`;
   html += '<div class="ql-grid">' + qls.map(q => `
-    <div class="ql-pill-wrap">
+    <div class="ql-pill-wrap" data-ql-id="${q.id}">
       <button class="ql-pill" data-cmd="${esc(q.cmd)}" title="${esc(q.label)}">
         <i class="ti ${q.icon}"></i>${esc(q.label)}
       </button>
       <button class="ql-pin-btn" data-ql-id="${q.id}" title="Pin to Dashboard"><i class="ti ti-pin"></i></button>
+      <button class="ql-del-btn" data-ql-id="${q.id}" title="Remove"><i class="ti ti-x"></i></button>
     </div>`).join('') + '</div>';
 
   if (!tools.length) {
@@ -74,6 +75,28 @@ function _render(el, tools, qls = []) {
   // QL pill click → launch; pin button → pin to dashboard
   body.querySelectorAll('.ql-pill[data-cmd]').forEach(btn =>
     btn.addEventListener('click', () => inv('launch_shortcut', { cmd: btn.dataset.cmd }).catch(e => toast(String(e), 'err')))
+  );
+  body.querySelectorAll('.ql-pill-wrap[data-ql-id]').forEach(wrap => {
+    const id = +wrap.dataset.qlId;
+    wrap.addEventListener('contextmenu', e => {
+      showContextMenu(e, [
+        { label: 'Pin to Dashboard', icon: 'ti-pin', fn: () => inv('pin_item', { itemType: 'ql', itemId: id, groupName: 'Pinned' }).then(() => { invalidatePins(); toast('Pinned', 'ok'); }) },
+        '---',
+        { label: 'Remove', icon: 'ti-trash', danger: true, fn: async () => {
+          if (!(await confirmDialog('Remove this Quick Launch shortcut? This is permanent — it won\'t come back on a future update.', true))) return;
+          await inv('delete_ql_item', { id }).catch(e2 => { toast(String(e2), 'err'); throw e2; });
+          load();
+        } },
+      ]);
+    });
+  });
+  body.querySelectorAll('.ql-del-btn[data-ql-id]').forEach(btn =>
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!(await confirmDialog('Remove this Quick Launch shortcut? This is permanent — it won\'t come back on a future update.', true))) return;
+      await inv('delete_ql_item', { id: +btn.dataset.qlId }).catch(e2 => toast(String(e2), 'err'));
+      load();
+    })
   );
   body.querySelectorAll('.ql-pin-btn[data-ql-id]').forEach(btn =>
     btn.addEventListener('click', async e => {

@@ -63,7 +63,7 @@ function _render(el, fixes, lastRuns = []) {
       const id = +row.dataset.id;
       const f = fixes.find(x => x.id === id);
       showContextMenu(e, [
-        { label: 'Run',     icon: 'ti-player-play', fn: () => _run(id, el, f?.confirm_required) },
+        { label: 'Run',     icon: 'ti-player-play', fn: () => _run(id, el, f?.confirm_required, f?.name) },
         { label: 'History', icon: 'ti-history',     fn: () => _showHistory('fix', id, f?.name) },
         { label: 'Edit',    icon: 'ti-edit',        fn: () => f && window._showFixModal(f) },
         '---',
@@ -74,7 +74,7 @@ function _render(el, fixes, lastRuns = []) {
   body.querySelectorAll('[data-run]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
     const f = fixes.find(x => x.id === +btn.dataset.run);
-    _run(+btn.dataset.run, el, f?.confirm_required);
+    _run(+btn.dataset.run, el, f?.confirm_required, f?.name);
   }));
   body.querySelectorAll('[data-hist]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation(); _showHistory('fix', +btn.dataset.hist, btn.dataset.name);
@@ -113,12 +113,12 @@ function _wireSearch(el, initial) {
   }, 0);
 }
 
-async function _run(id, el, confirmRequired) {
+async function _run(id, el, confirmRequired, name) {
   if (confirmRequired) {
     const ok = await confirmDialog('This fix is marked as potentially dangerous. Run it?', true);
     if (!ok) return;
   }
-  await acquireRun();
+  await acquireRun({ type: 'fix', id, label: name || 'Fix' });
   toast('Running…', 'info');
   try {
     const r = await inv('run_fix', { id });

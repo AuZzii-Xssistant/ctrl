@@ -13,8 +13,45 @@
 
 ## Active
 
+### ~~showOutput() wrote completed-run output into the live terminal~~ ✅ Resolved (2026-08-18)
+Found by the user: clicking a History row (or the result of any script/fix/workflow/backup run) called `showOutput()`, which wrote the text directly into the active tab's live xterm.js buffer via `term.write()` — the same buffer a real PowerShell/PSReadLine session is using. Since this bypassed the actual PTY, the real shell process's cursor position never moved to match, so the next keystroke could land in the middle of the injected text instead of after it. Rewrote `showOutput()` (`src/app.js`) to open a dedicated read-only modal (`.output-view`) instead — completely decoupled from any PTY, used by all 16 existing call sites unchanged (same function signature). Nothing writes synthetic text into a live terminal anymore.
+
+### ~~Workflow "notify" steps didn't work, failure was invisible~~ ✅ Resolved (2026-08-18)
+`send_toast()` used `ToastNotificationManager::CreateToastNotifier("CTRL")` — native WinRT toast notifications require a registered AppUserModelID (a Start Menu shortcut with a toast-activator CLSID), which this unpackaged NSIS-installed app doesn't have. That call almost certainly threw an "app not registered" exception on every invocation, and the PowerShell process's exit code/stderr were never checked (`let _out = ...` — result discarded), so the failure was completely silent; `run_step_notify` always reported success regardless. Switched to a `NotifyIcon` balloon tip (the standard notification mechanism for unpackaged Win32 apps, no identity registration needed) and now actually checks the exit code, returning a real error through to the workflow step's result if it still fails. **Unverified** — no live Windows session in this dev environment to confirm the balloon tip itself renders; the fix addresses the specific, identifiable root cause (AUMID registration) and the silent-failure bug, but hasn't been visually confirmed.
+Both seed blocks checked `COUNT(*) == 0` to decide whether to (re)insert their pre-shipped rows — so a user who deleted every seeded item got them silently recreated on the next app start, no matter their intent. Fixed with a new `app_meta` key/value table tracking "has this batch ever been seeded" independent of current row count; upgrading from a pre-`app_meta` install with existing rows just records the flag without re-inserting (no duplication). Also added the missing `delete_ql_item` command — Quick Launch items had no delete path in the UI at all before this.
+
+### Tweaks — built-in tweaks aren't removable (not fixed yet)
+The above `app_meta` fix only covers DB-seeded content (`ql_items`, `fixes`). Tweaks' built-in list is hardcoded in `src/modules/tweaks.js`, not DB-backed at all — there's no delete path because there's no row to delete. A real fix needs the bigger Tweaks rethink the user asked for (WinUtil-style actual-state tracking before applying, and moving built-ins into the DB so they're deletable like everything else) — out of scope for this pass, flagged for its own session.
+
+### Watchers removed (2026-08-18)
+The Watchers feature (roadmap item 4 — disk/process/CPU polling, tray toast or workflow trigger on alert) was pulled entirely: nav page, `watchers.js`, `commands/watchers.rs`, and its scheduler. Product decision — a dedicated page for so little functionality didn't earn its keep; the plan is to fold equivalent conditions into Workflows later instead of maintaining a separate feature. The `watchers` DB table stays in the schema (unused, harmless) since migrations here are additive-only, never destructive.
+
+### Profiles — full nav page removed, backend/modal kept dormant (2026-08-18)
+The Profiles nav page (list, create/edit CRUD) was pulled — too much page for what it did. `src/modules/profiles.js` and the full Rust backend (`commands/profiles.rs`: CRUD, `activate_profile`, `restore_previous`) are untouched and still work, just not reachable from the UI right now. The topbar active-profile chip is now display-only (its click handler, which used to navigate to the removed page, was removed too — it would have thrown trying to activate a pane that no longer exists). Plan: replace with a lightweight quick-switcher overlay off the chip, or pre-shipped profile *scripts* (Gaming/Work/Personal) that don't need a dedicated page at all — not decided yet, deliberately not built this pass. The three Profile limitation entries above (audio endpoint, refresh rate, Restore Previous app-relaunch) still apply whenever this is wired back up.
+
+### Builder — Autounattend output is unverified against real install media
+`export_autounattend` generates a Windows `unattend.xml` answer file, ported line-for-line from WinScript's own template. The XML structure, escaping, and PowerShell blocks were traced by hand against WinScript's `unattend.js` and are believed correct, but this dev environment has no way to actually boot a VM or USB from generated install media — the output has never been tested on a real Windows setup. Treat it as experimental until confirmed working on real install media.
+
+### Profiles — audio endpoint switching needs a third-party PowerShell module
+Windows has no built-in cmdlet to change the default playback device. The `audio` profile item shells out to `Set-AudioDevice` from the community `AudioDeviceCmdlets` module — if it isn't installed, the item fails with a PowerShell warning in the activation output and the rest of the profile still applies. Not a bug, not fixable without bundling a third-party module (or shipping a signed native helper), which is out of scope for this pass. Workaround: `Install-Module AudioDeviceCmdlets` once, manually, if you want this item to work.
+
+### Profiles — refresh rate switching is unverified and best-effort
+No built-in PowerShell cmdlet changes display refresh rate either. The `refresh_rate` item uses an inline `Add-Type` P/Invoke call to `ChangeDisplaySettings`, wrapped in try/catch so a failure can't break the rest of activation — but this was written and reviewed, never run against real display hardware (this dev environment can't run the Tauri app or touch a real Windows session). Treat it as experimental until confirmed working on a real machine.
+
+### Profiles — killed apps aren't relaunched on Restore Previous
+The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing. Process names are derived from `start_apps` item file paths (executable stem) rather than from `Start-Process -PassThru` output, since the apply step runs elevated and its stdout is not captured back into Rust.
+
+### ~~Closing the window silently minimized to tray with no explanation~~ ✅ Resolved (2026-08-18)
+Found by the user hitting it directly — clicking X (or Alt+F4) hid the app to the tray with zero indication that's what happened, which read as "the app didn't close" rather than "it's still running in the background." Rust now prevents the close and emits a `close-requested` event instead of silently hiding; the frontend shows a modal asking Minimize to Tray vs. Quit, with an optional "remember my choice" to skip the prompt on future closes.
+
 ### ~~Builder — toggle state not persisted across sessions~~ ✅ Resolved
 Builder selections now saved to `localStorage` under key `ctrl_builder_apps` (plus `ctrl_builder_pkgmgr` for the chosen package manager). Restored on next load.
+
+### ~~Workflow steps never elevated, even when the script/fix has run_as_admin set~~ ✅ Resolved (2026-08-18)
+Found by real-world testing: a workflow with an SFC step failed with "You must be an administrator" even though the underlying fix was configured `run_as_admin`. Root cause: `run_step_script`/`run_step_fix` in `workflows.rs` were a completely separate, duplicated exec implementation (`app.shell().command(...).output()` directly) that never looked at the `run_as_admin` column at all — every workflow step ran unprivileged regardless of its own settings, with no error or indication anything was skipped. Fixed by routing both through the real `run_script`/`run_fix` commands instead, so workflow steps now get identical admin-elevation, PTY execution, and sandbox handling to running the same item from its own pane. One side effect: each step now also writes its own `run_log` row (in addition to the workflow's combined row), so History will show individual step runs during a workflow, not just the workflow-level entry — this is arguably more correct (the step genuinely ran), not a regression.
+
+### ~~Workflows — a "Pause Script" (interactive) script as a step would hang forever~~ ✅ Resolved (2026-08-18)
+Found in the same pass as the admin-elevation fix above: routing workflow steps through the real `run_script` meant they'd also inherit "Pause Script" — a `Read-Host`/`pause` appended for the embedded terminal, where a workflow step has no one to press a key. Added a `skip_pause` param to `run_script` (only `run_workflow`'s script-step path sets it); existing callers (Scripts pane, palette, tray) are unaffected since the param defaults to off.
 
 ### ~~Tools — icon always shows generic app-window icon~~ ✅ Resolved
 Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.ps1` → terminal-2, `.bat/.cmd` → terminal, `.py` → brand-python, `.ahk` → keyboard.
@@ -35,7 +72,7 @@ The inline filter in each pane searches only that pane's data. Use `Ctrl+K` glob
 Double RAF ensures scroll happens after layout paint.
 
 ### Run As Admin — output not captured for elevated processes
-When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated console (UAC requires this — a non-elevated process cannot read another process's console buffer). The embedded terminal shows a "Running as administrator — see external terminal" status line and captures only the exit code, not live output. This is a Windows UAC architecture limitation, not a CTRL bug.
+When a fix or script runs with `run_as_admin=true`, CTRL uses `Start-Process -Verb RunAs` which spawns a separate elevated console (UAC requires this — a non-elevated process cannot read another process's console buffer). The embedded terminal shows a "Running as administrator — see external terminal" status line and captures only the exit code, not live output. This is a Windows UAC architecture limitation, not a >_ CTRL bug.
 
 ### Builder — stale localStorage if action IDs change
 If `data/builder/` JSON files are modified and action IDs change, the saved selection in localStorage may reference non-existent IDs. Workaround: click Clear in the Builder to reset. Low priority — action files rarely change.
@@ -48,17 +85,7 @@ If a script or fix that is a workflow step is deleted, that step's DB lookup fai
 
 ## Planned Features
 
-### System Profiles (Context Switching)
-A named machine-state system. Each Profile is a collection of settings that activates together: power plan, background apps to kill/start, DNS server, audio endpoint, display refresh rate, and an optional custom PowerShell block. Activating a profile snapshots the current values first so "restore previous" is always safe.
-
-**Why:** One click switches the machine between Work / Gaming / Streaming / Presentation modes. No scripting needed — the profile editor is a checklist. Each setting is stored in SQLite and travels with the portable folder.
-
-**Implementation notes:**
-- Profiles stored in `profiles` and `profile_items` tables (SQLite)
-- Activation runs Rust commands: `powercfg /setactive`, `sc stop/start`, `netsh`, registry writes
-- Pre-activation snapshot saved to `profile_snapshots` for safe revert
-- Tray icon or header chip shows active profile name
-- Builds on top of existing Tweaks/Fixes infrastructure
+(none currently — see `docs/ROADMAP.md` items 4 and 6 for what's next)
 
 ## Resolved
 

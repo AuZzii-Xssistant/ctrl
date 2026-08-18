@@ -1,4 +1,4 @@
-import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun } from '../app.js';
+import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun, recordStep } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -591,14 +591,14 @@ async function _duplicateScript(id) {
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────────
-// All runs go through run_script — CTRL's existing runner.
+// All runs go through run_script — the app's existing runner.
 // forceAdmin=true overrides the script's own run_as_admin setting.
 // "Pause Script" scripts run in the same embedded terminal but hold at the end for a keypress.
 
 let _stopQueue = false;
 
 async function _runOne(id, forceAdmin) {
-  await acquireRun();
+  await acquireRun({ type: 'script', id, label: S.scripts.find(s => s.id === id)?.name || 'Script' });
   toast('Running…', 'info');
   try {
     const r = await inv('run_script', { id, forceAdmin: forceAdmin || false });
@@ -619,6 +619,7 @@ async function _runQueue(scriptIds, forceAdmin) {
     if (_stopQueue) break;
     S.progress++; _patchStatusBar();
     toast(`Running: ${s.name}`, 'info');
+    recordStep({ type: 'script', id: s.id, label: s.name });
     try {
       const r = await inv('run_script', { id: s.id, forceAdmin: forceAdmin || false });
       showOutput(r.output, r.success);

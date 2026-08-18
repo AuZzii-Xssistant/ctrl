@@ -6,8 +6,47 @@ const { getCurrentWindow } = window.__TAURI__.window;
 const appWindow = getCurrentWindow();
 
 // ── Window controls ─────────────────────────────────────────────────────────
-document.getElementById('btn-close').addEventListener('click', () => invoke('close_window'));
+// Closing (X button, Alt+F4) hides to tray rather than quitting — not obvious
+// at all, so ask every time unless the user has opted to remember a choice.
+const CLOSE_PREF_KEY = 'ctrl_close_action'; // 'tray' | 'quit'
+function _confirmClose() {
+  const remembered = localStorage.getItem(CLOSE_PREF_KEY);
+  if (remembered === 'tray') return invoke('close_window');
+  if (remembered === 'quit') return invoke('exit_app');
+  openModal('Close &gt;_ CTRL', `
+    <p class="modal-confirm-msg">Minimize to the tray (keep running in the background) or quit completely?</p>
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:12px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" id="close-remember"> Remember my choice
+    </label>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._modalCancel()">Cancel</button>
+      <button class="action-btn btn-secondary" id="close-quit-btn"><i class="ti ti-power"></i> Quit</button>
+      <button class="action-btn btn-primary" id="close-tray-btn"><i class="ti ti-corner-down-left"></i> Minimize to Tray</button>
+    </div>`);
+  const remember = () => document.getElementById('close-remember')?.checked;
+  document.getElementById('close-tray-btn').onclick = () => {
+    if (remember()) localStorage.setItem(CLOSE_PREF_KEY, 'tray');
+    closeModal();
+    invoke('close_window');
+  };
+  document.getElementById('close-quit-btn').onclick = () => {
+    if (remember()) localStorage.setItem(CLOSE_PREF_KEY, 'quit');
+    closeModal();
+    invoke('exit_app');
+  };
+}
+document.getElementById('btn-close').addEventListener('click', _confirmClose);
 document.getElementById('btn-min').addEventListener('click',   () => invoke('minimize_window'));
+// Native close (Alt+F4) — Rust prevents the actual close and emits this instead.
+window.__TAURI__.event.listen('close-requested', _confirmClose);
+
+// Global hotkey (Ctrl+Shift+Space, registered in Rust) summons the window from
+// anywhere — jump straight into search since that's why you hit the hotkey.
+window.__TAURI__.event.listen('hotkey-summon', () => {
+  const el = document.getElementById('global-search');
+  el?.focus();
+  el?.select();
+});
 document.getElementById('btn-max').addEventListener('click',   () => invoke('toggle_maximize'));
 document.getElementById('btn-bug')?.addEventListener('click',   () => invoke('open_path', { path: 'https://github.com/AuZzii-Xssistant/ctrl/issues' }));
 document.getElementById('btn-heart')?.addEventListener('click', () => invoke('open_path', { path: 'https://ko-fi.com' }));
@@ -28,7 +67,7 @@ const _paneLoaders = {
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
   compare:   ()  => import('./modules/compare.js').then(m => m.load()),
-  activity:  ()  => import('./modules/activity.js').then(m => m.load()),
+  history:   ()  => import('./modules/history.js').then(m => m.load()),
   changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
   settings:  ()  => import('./modules/settings.js').then(m => m.load()),
 };
@@ -238,8 +277,26 @@ async function _loadShells() {
   await _spawnTab(_shells[0]);
 }
 
+// ── Workflow macro recorder ────────────────────────────────────────────────
+// While active, every script/fix run through acquireRun() gets appended here.
+let _recording = false;
+let _recordedSteps = [];
+export function isRecording() { return _recording; }
+export function recordedStepCount() { return _recordedSteps.length; }
+export function startRecording() { _recording = true; _recordedSteps = []; }
+export function stopRecording() { const s = _recordedSteps; _recording = false; _recordedSteps = []; return s; }
+// For batch runs (Run Selected/Run All) that call acquireRun() once for the whole
+// queue — records one step per item without re-triggering tab-lock logic.
+export function recordStep(meta) {
+  if (_recording && meta && (meta.type === 'script' || meta.type === 'fix')) {
+    _recordedSteps.push({ step_type: meta.type, item_id: meta.id, label: meta.label });
+  }
+}
+
 // ── Run queue — per-tab locking, spawns new tab if active is busy ─────────────
-export async function acquireRun() {
+// meta = { type: 'script'|'fix', id, label } — optional, only used to append to
+// the macro recorder's step list when recording is active.
+export async function acquireRun(meta) {
   let tab = _activeTab();
   if (!tab || tab.runLock) {
     const shell = tab?.shell || _shells[0] || { name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] };
@@ -249,6 +306,9 @@ export async function acquireRun() {
   tab.runLock = true;
   _runTargetTabId = tab.id;
   _renderTabBar();
+  if (_recording && meta && (meta.type === 'script' || meta.type === 'fix')) {
+    _recordedSteps.push({ step_type: meta.type, item_id: meta.id, label: meta.label });
+  }
   return true;
 }
 
@@ -341,13 +401,19 @@ function _onDrawerOpened(userInitiated = false) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+// A separate read-only viewer, NOT the live terminal — writing arbitrary text
+// into an active PTY's xterm buffer (the old approach) desyncs the display
+// from what the real shell process thinks its cursor position is: PSReadLine
+// gets confused, and the next keystroke can land in the middle of the output
+// instead of after it. This never touches any PTY, so that can't happen.
 export function showOutput(text, ok = true) {
   if (!text) return;
-  const col   = ok ? '\x1b[32m' : '\x1b[31m';
-  const clean = text.replace(/\r\n/g, '\r\n').replace(/(?<!\r)\n/g, '\r\n');
-  _activeTab()?.term.write(`\r\n${col}${clean}\x1b[0m\r\n`);
-  document.getElementById('output-new-dot')?.style.setProperty('display', '');
-  _openDrawer();
+  const clean = text.replace(/\x1b\[[0-9;]*m/g, ''); // strip any leftover ANSI codes defensively
+  openModal(ok ? 'Output' : 'Output — Failed', `
+    <pre class="output-view ${ok ? 'ok' : 'err'}">${esc(clean)}</pre>
+    <div class="form-actions">
+      <button class="action-btn btn-ghost" onclick="window._modalCancel()">Close</button>
+    </div>`);
 }
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
@@ -584,7 +650,12 @@ _searchEl.addEventListener('keydown', e => {
   let idx = items.indexOf(cur);
   if (e.key === 'ArrowDown') { e.preventDefault(); idx = (idx + 1) % items.length; }
   else if (e.key === 'ArrowUp') { e.preventDefault(); idx = (idx - 1 + items.length) % items.length; }
-  else if (e.key === 'Enter' && cur) { cur.click(); return; }
+  else if (e.key === 'Enter' && cur) {
+    // Ctrl+Enter runs directly (same as the ▶ button) instead of navigating.
+    const runBtn = (e.ctrlKey || e.metaKey) && cur.querySelector('.sr-run-btn');
+    if (runBtn) runBtn.click(); else cur.click();
+    return;
+  }
   else return;
   items.forEach(i => i.classList.remove('sr-active'));
   items[idx].classList.add('sr-active');
@@ -604,13 +675,42 @@ async function doSearch(q) {
 const _searchSections = [
   { key: 'quick_launch', label: 'Quick Launch', icon: 'ti-rocket',       pane: 'tools', launch: 'ql' },
   { key: 'apps',         label: 'Apps',          icon: 'ti-device-desktop', pane: 'tools', launch: 'app' },
-  { key: 'tools',        label: 'Tools',         icon: 'ti-tool',          pane: 'tools' },
-  { key: 'scripts',      label: 'Scripts',       icon: 'ti-code',          pane: 'scripts' },
-  { key: 'fixes',        label: 'Fixes',         icon: 'ti-bolt',          pane: 'fixes' },
+  { key: 'tools',        label: 'Tools',         icon: 'ti-tool',          pane: 'tools',     runnable: true },
+  { key: 'scripts',      label: 'Scripts',       icon: 'ti-code',          pane: 'scripts',   runnable: true },
+  { key: 'fixes',        label: 'Fixes',         icon: 'ti-bolt',          pane: 'fixes',     runnable: true },
   { key: 'projects',     label: 'Projects',      icon: 'ti-archive',       pane: 'projects' },
-  { key: 'workflows',    label: 'Workflows',     icon: 'ti-player-play',   pane: 'workflows' },
+  { key: 'workflows',    label: 'Workflows',     icon: 'ti-player-play',   pane: 'workflows', runnable: true },
   { key: 'snippets',     label: 'Snippets',      icon: 'ti-blockquote',    pane: 'snippets' },
 ];
+
+// Command palette: Enter/click on a row navigates to it (safe default, lets you
+// see it first); the ▶ button runs it immediately without leaving search — the
+// "type a name, hit run, done" flow that makes this an actual command palette
+// instead of just a jump-to-pane search.
+const _paletteRun = {
+  tools:     id => invoke('launch_tool', { id }),
+  scripts:   id => invoke('run_script', { id }),
+  fixes:     id => invoke('run_fix', { id }),
+  workflows: id => invoke('run_workflow', { id }),
+};
+
+async function _runFromPalette(key, id, name) {
+  await acquireRun(key === 'scripts' ? { type: 'script', id, label: name } : key === 'fixes' ? { type: 'fix', id, label: name } : undefined);
+  toast(`Running: ${name}`, 'info');
+  try {
+    const r = await _paletteRun[key](id);
+    if (key === 'workflows') {
+      const allOk = r.every(x => x.success);
+      showOutput(r.map((x, i) => `[${i+1}/${r.length}] ${x.success?'✓':'✗'} ${x.label}\n${x.output.trim()||'(no output)'}`).join('\n' + '─'.repeat(36) + '\n'), allOk);
+      toast(allOk ? `${name} complete` : `${name} had failures`, allOk ? 'ok' : 'err');
+    } else if (r && typeof r === 'object' && 'success' in r) {
+      showOutput(r.output, r.success);
+      toast(r.success ? 'Done' : `${name} failed`, r.success ? 'ok' : 'err');
+    } else {
+      toast('Launched', 'ok');
+    }
+  } catch (e) { toast(String(e), 'err'); } finally { releaseRun(); }
+}
 
 function renderSearch(data) {
   let html = '';
@@ -622,16 +722,26 @@ function renderSearch(data) {
     html += `<div class="sr-section">${s.label}</div>`;
     for (const item of items) {
       const launchAttr = s.launch ? ` data-launch="${s.launch}" data-launch-meta="${esc(item.meta)}"` : '';
+      const runBtn = s.runnable ? `<button class="sr-run-btn" data-run-key="${s.key}" data-run-id="${item.id}" data-run-name="${esc(item.name)}" title="Run now"><i class="ti ti-player-play"></i></button>` : '';
       html += `<div class="sr-item" data-pane="${s.pane}"${launchAttr}>
         <i class="ti ${s.icon}" style="color:var(--text3);font-size:14px;flex-shrink:0"></i>
         <span class="sr-item-name">${esc(item.name)}</span>
         <span class="sr-item-meta">${esc(item.meta)}</span>
+        ${runBtn}
       </div>`;
     }
   }
   if (!total) html = `<div class="sr-empty">No results</div>`;
   _searchRes.innerHTML = html;
   _searchRes.classList.add('open');
+  _searchRes.querySelectorAll('.sr-run-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      _searchRes.classList.remove('open');
+      _searchEl.value = '';
+      _runFromPalette(btn.dataset.runKey, parseInt(btn.dataset.runId), btn.dataset.runName);
+    });
+  });
   _searchRes.querySelectorAll('.sr-item').forEach(el => {
     el.addEventListener('click', async () => {
       const q = _searchEl.value.trim();
@@ -705,5 +815,19 @@ export function paneHeader(icon, title, btnLabel, btnFn, searchId, note) {
   return `<div class="pane-header${note ? ' pane-header-sticky' : ''}"><div class="pane-header-row"><div class="pane-header-title"><i class="ti ${esc(icon)}"></i>${esc(title)}</div>${srch}${btn}</div>${noteHtml}</div><div class="pane-divider"></div>`;
 }
 
+// ── Active System Profile chip ──────────────────────────────────────────────
+// Profiles' full nav page was pulled (see docs/ROADMAP.md) — this chip is now
+// display-only (no page to click through to) until a quick-switcher overlay
+// replaces it. src/modules/profiles.js and the Rust backend are untouched.
+window._refreshActiveProfileChip = async () => {
+  const chip = document.getElementById('active-profile-chip');
+  const name = document.getElementById('active-profile-name');
+  if (!chip || !name) return;
+  const active = await invoke('get_active_profile').catch(() => null);
+  if (active) { name.textContent = active.name; chip.style.display = 'flex'; }
+  else { chip.style.display = 'none'; }
+};
+
 // ── Init ────────────────────────────────────────────────────────────────────
 _paneLoaders['dash']();
+window._refreshActiveProfileChip();

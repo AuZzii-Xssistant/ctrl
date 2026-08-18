@@ -17,9 +17,17 @@ pub struct Stats {
 pub fn get_stats(state: State<AppState>) -> Result<Stats, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let count = |table: &str| -> i64 {
-        db.query_row(&format!("SELECT COUNT(*) FROM {}", table), [], |r| r.get(0)).unwrap_or(0)
+        db.query_row(&format!("SELECT COUNT(*) FROM {}", table), [], |r| r.get(0))
+            .unwrap_or(0)
     };
-    Ok(Stats { tools: count("tools"), scripts: count("scripts"), fixes: count("fixes"), projects: count("projects"), workflows: count("workflows"), runs: count("run_log") })
+    Ok(Stats {
+        tools: count("tools"),
+        scripts: count("scripts"),
+        fixes: count("fixes"),
+        projects: count("projects"),
+        workflows: count("workflows"),
+        runs: count("run_log"),
+    })
 }
 
 #[derive(Serialize)]
@@ -47,10 +55,21 @@ pub fn global_search(state: State<AppState>, query: String) -> Result<SearchResu
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let q = format!("%{}%", query.to_lowercase());
     let search = |sql: &str| -> Vec<SearchResult> {
-        let mut stmt = match db.prepare(sql) { Ok(s) => s, Err(_) => return vec![] };
+        let mut stmt = match db.prepare(sql) {
+            Ok(s) => s,
+            Err(_) => return vec![],
+        };
         let rows = match stmt.query_map([&q], |row| {
-            Ok(SearchResult { item_type: row.get(0)?, id: row.get(1)?, name: row.get(2)?, meta: row.get(3)? })
-        }) { Ok(r) => r, Err(_) => return vec![] };
+            Ok(SearchResult {
+                item_type: row.get(0)?,
+                id: row.get(1)?,
+                name: row.get(2)?,
+                meta: row.get(3)?,
+            })
+        }) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
         rows.filter_map(|r| r.ok()).take(5).collect()
     };
     Ok(SearchResults {
@@ -81,30 +100,15 @@ pub fn get_last_runs(state: State<AppState>, item_type: String) -> Result<Vec<La
            AND ran_at = (SELECT MAX(ran_at) FROM run_log r2 WHERE r2.item_type=r1.item_type AND r2.item_id=r1.item_id)
          GROUP BY item_id"
     ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([&item_type], |row| {
-        Ok(LastRun { item_id: row.get(0)?, success: row.get::<_,i64>(1)? != 0, ran_at: row.get(2)? })
-    }).map_err(|e| e.to_string())?;
-    Ok(rows.filter_map(|r| r.ok()).collect())
-}
-
-#[derive(Serialize)]
-pub struct ActivityEntry {
-    pub item_type: String,
-    pub item_name: String,
-    pub success: bool,
-    pub ran_at: String,
-}
-
-#[tauri::command]
-pub fn get_recent_activity(state: State<AppState>, limit: Option<i64>) -> Result<Vec<ActivityEntry>, String> {
-    let db = state.0.lock().map_err(|e| e.to_string())?;
-    let n = limit.unwrap_or(12);
-    let mut stmt = db.prepare(
-        "SELECT item_type, COALESCE(item_name,'(unknown)'), (exit_code=0), ran_at FROM run_log ORDER BY ran_at DESC LIMIT ?1"
-    ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([n], |row| {
-        Ok(ActivityEntry { item_type: row.get(0)?, item_name: row.get(1)?, success: row.get::<_,i64>(2)? != 0, ran_at: row.get(3)? })
-    }).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([&item_type], |row| {
+            Ok(LastRun {
+                item_id: row.get(0)?,
+                success: row.get::<_, i64>(1)? != 0,
+                ran_at: row.get(2)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
@@ -117,16 +121,119 @@ pub struct RunHistoryEntry {
 }
 
 #[tauri::command]
-pub fn get_run_history(state: State<AppState>, item_type: String, item_id: i64, limit: Option<i64>) -> Result<Vec<RunHistoryEntry>, String> {
+pub fn get_run_history(
+    state: State<AppState>,
+    item_type: String,
+    item_id: i64,
+    limit: Option<i64>,
+) -> Result<Vec<RunHistoryEntry>, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     let n = limit.unwrap_or(10);
     let mut stmt = db.prepare(
         "SELECT id,(exit_code=0),ran_at,COALESCE(output,'') FROM run_log WHERE item_type=?1 AND item_id=?2 ORDER BY ran_at DESC LIMIT ?3"
     ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map(rusqlite::params![item_type, item_id, n], |row| {
-        Ok(RunHistoryEntry { id: row.get(0)?, success: row.get::<_,i64>(1)? != 0, ran_at: row.get(2)?, output: row.get(3)? })
-    }).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(rusqlite::params![item_type, item_id, n], |row| {
+            Ok(RunHistoryEntry {
+                id: row.get(0)?,
+                success: row.get::<_, i64>(1)? != 0,
+                ran_at: row.get(2)?,
+                output: row.get(3)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
+}
+
+#[derive(Serialize)]
+pub struct RunHistoryFullEntry {
+    pub id: i64,
+    pub item_type: String,
+    pub item_id: i64,
+    pub item_name: String,
+    pub success: bool,
+    pub ran_at: String,
+    pub output: String,
+}
+
+/// History page: run_log filtered by module/success/date range/text search over item_name.
+#[tauri::command]
+pub fn get_run_history_filtered(
+    state: State<AppState>,
+    item_type: Option<String>,
+    success: Option<bool>,
+    date_from: Option<String>,
+    date_to: Option<String>,
+    text: Option<String>,
+    limit: Option<i64>,
+) -> Result<Vec<RunHistoryFullEntry>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let mut sql = "SELECT id,item_type,item_id,COALESCE(item_name,'(unknown)'),(exit_code=0),ran_at,COALESCE(output,'') FROM run_log WHERE 1=1".to_string();
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![];
+    if let Some(t) = &item_type {
+        sql.push_str(" AND item_type=?");
+        params.push(Box::new(t.clone()));
+    }
+    if let Some(s) = success {
+        sql.push_str(" AND (exit_code=0)=?");
+        params.push(Box::new(s));
+    }
+    if let Some(d) = &date_from {
+        sql.push_str(" AND ran_at>=?");
+        params.push(Box::new(d.clone()));
+    }
+    if let Some(d) = &date_to {
+        sql.push_str(" AND ran_at<=?");
+        params.push(Box::new(d.clone()));
+    }
+    if let Some(q) = &text {
+        if !q.is_empty() {
+            sql.push_str(" AND lower(item_name) LIKE ?");
+            params.push(Box::new(format!("%{}%", q.to_lowercase())));
+        }
+    }
+    sql.push_str(" ORDER BY ran_at DESC LIMIT ?");
+    params.push(Box::new(limit.unwrap_or(500)));
+
+    let mut stmt = db.prepare(&sql).map_err(|e| e.to_string())?;
+    let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let rows = stmt
+        .query_map(param_refs.as_slice(), |row| {
+            Ok(RunHistoryFullEntry {
+                id: row.get(0)?,
+                item_type: row.get(1)?,
+                item_id: row.get(2)?,
+                item_name: row.get(3)?,
+                success: row.get::<_, i64>(4)? != 0,
+                ran_at: row.get(5)?,
+                output: row.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(rows.filter_map(|r| r.ok()).collect())
+}
+
+/// Generic save-as-text-file dialog. Reused by History export (and any future plain-text export).
+#[tauri::command]
+pub async fn export_text_file(
+    app: tauri::AppHandle,
+    text: String,
+    suggested: String,
+) -> Result<bool, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let path = app
+        .dialog()
+        .file()
+        .add_filter("Text", &["txt"])
+        .set_file_name(&suggested)
+        .blocking_save_file();
+    match path {
+        Some(p) => {
+            std::fs::write(p.to_string(), text).map_err(|e| e.to_string())?;
+            Ok(true)
+        }
+        None => Ok(false),
+    }
 }
 
 #[derive(Serialize)]
@@ -136,7 +243,7 @@ pub struct SysInfo {
     pub os: String,
     pub ram_gb: String,
     pub cpu: String,
-    pub boot_epoch_ms: i64,   // Unix ms — JS computes live uptime from this
+    pub boot_epoch_ms: i64, // Unix ms — JS computes live uptime from this
 }
 
 #[tauri::command]
@@ -155,17 +262,21 @@ $bootMs = [DateTimeOffset]::new($os.LastBootUpTime).ToUnixTimeMilliseconds()
     bootMs    = $bootMs
 } | ConvertTo-Json -Compress
 "#;
-    let out = app.shell().command("powershell")
+    let out = app
+        .shell()
+        .command("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", ps])
-        .output().await.map_err(|e| e.to_string())?;
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
     let raw = String::from_utf8_lossy(&out.stdout);
     let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
     Ok(SysInfo {
-        hostname:      v["hostname"].as_str().unwrap_or("").to_string(),
-        username:      v["username"].as_str().unwrap_or("").to_string(),
-        os:            v["os"].as_str().unwrap_or("").to_string(),
-        ram_gb:        v["ram_gb"].as_str().unwrap_or("").to_string(),
-        cpu:           v["cpu"].as_str().unwrap_or("").to_string(),
+        hostname: v["hostname"].as_str().unwrap_or("").to_string(),
+        username: v["username"].as_str().unwrap_or("").to_string(),
+        os: v["os"].as_str().unwrap_or("").to_string(),
+        ram_gb: v["ram_gb"].as_str().unwrap_or("").to_string(),
+        cpu: v["cpu"].as_str().unwrap_or("").to_string(),
         boot_epoch_ms: v["bootMs"].as_i64().unwrap_or(0),
     })
 }
@@ -213,23 +324,32 @@ $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null 
     drives= @($drives)
 } | ConvertTo-Json -Compress -Depth 3
 "#;
-    let out = app.shell().command("powershell")
+    let out = app
+        .shell()
+        .command("powershell")
         .args(["-NoProfile", "-NonInteractive", "-Command", ps])
-        .output().await.map_err(|e| e.to_string())?;
+        .output()
+        .await
+        .map_err(|e| e.to_string())?;
     let raw = String::from_utf8_lossy(&out.stdout);
     let v: serde_json::Value = serde_json::from_str(raw.trim()).map_err(|e| e.to_string())?;
-    let drives = v["drives"].as_array().map(|arr| {
-        arr.iter().map(|d| DriveInfo {
-            name:     d["name"].as_str().unwrap_or("").to_string(),
-            used_gb:  d["usedGb"].as_f64().unwrap_or(0.0),
-            total_gb: d["totalGb"].as_f64().unwrap_or(0.0),
-        }).collect()
-    }).unwrap_or_default();
+    let drives = v["drives"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|d| DriveInfo {
+                    name: d["name"].as_str().unwrap_or("").to_string(),
+                    used_gb: d["usedGb"].as_f64().unwrap_or(0.0),
+                    total_gb: d["totalGb"].as_f64().unwrap_or(0.0),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
     Ok(PerfStats {
-        cpu_pct:        v["cpu"].as_i64().unwrap_or(0),
-        ram_used_gb:    v["ramUsed"].as_f64().unwrap_or(0.0),
-        ram_total_gb:   v["ramTotal"].as_f64().unwrap_or(0.0),
-        net_name:       v["netName"].as_str().unwrap_or("").to_string(),
+        cpu_pct: v["cpu"].as_i64().unwrap_or(0),
+        ram_used_gb: v["ramUsed"].as_f64().unwrap_or(0.0),
+        ram_total_gb: v["ramTotal"].as_f64().unwrap_or(0.0),
+        net_name: v["netName"].as_str().unwrap_or("").to_string(),
         net_recv_bytes: v["netRecv"].as_i64().unwrap_or(0),
         net_sent_bytes: v["netSent"].as_i64().unwrap_or(0),
         drives,
@@ -238,15 +358,24 @@ $drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null 
 
 #[tauri::command]
 pub async fn open_path(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    app.shell().command("explorer").args([path]).spawn().map_err(|e| e.to_string())?;
+    app.shell()
+        .command("explorer")
+        .args([path])
+        .spawn()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn open_data_folder(app: tauri::AppHandle) -> Result<(), String> {
-    let dir = std::env::current_exe().ok()
+    let dir = std::env::current_exe()
+        .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .unwrap_or_else(|| std::path::PathBuf::from("."));
-    app.shell().command("explorer").args([dir.to_string_lossy().as_ref()]).spawn().map_err(|e| e.to_string())?;
+    app.shell()
+        .command("explorer")
+        .args([dir.to_string_lossy().as_ref()])
+        .spawn()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }

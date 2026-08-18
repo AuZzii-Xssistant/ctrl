@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CTRL</title>
+<title>&gt;_ CTRL</title>
 <link rel="stylesheet" href="assets/tabler-icons.css" />
 <link rel="stylesheet" href="assets/xterm.css" />
 <link rel="stylesheet" href="style.css" />
@@ -20,8 +20,9 @@
       <div id="search-results"></div>
     </div>
     <div class="win-controls">
+      <button class="win-btn ghost" id="active-profile-chip" title="Active System Profile" style="display:none;gap:5px;font-size:11px;color:var(--amber)"><i class="ti ti-user-cog"></i><span id="active-profile-name"></span></button>
       <button class="win-btn ghost" id="btn-bug"   title="Report a bug"><i class="ti ti-bug"></i></button>
-      <button class="win-btn ghost" id="btn-heart" title="Support CTRL"><i class="ti ti-heart"></i></button>
+      <button class="win-btn ghost" id="btn-heart" title="Support &gt;_ CTRL"><i class="ti ti-heart"></i></button>
       <button class="win-btn" id="btn-min"   title="Minimise"><i class="ti ti-minus"></i></button>
       <button class="win-btn" id="btn-max"   title="Maximise"><i class="ti ti-square"></i></button>
       <button class="win-btn close" id="btn-close" title="Close"><i class="ti ti-x"></i></button>
@@ -45,7 +46,7 @@
       <button class="nav-btn"        data-pane="snippets"><i class="ti ti-blockquote"></i>        <span class="tip">Snippets</span></button>
       <button class="nav-btn"        data-pane="compare"> <i class="ti ti-arrows-diff"></i>          <span class="tip">Compare</span></button>
       <div class="nav-spacer"></div>
-      <button class="nav-btn"        data-pane="activity">  <i class="ti ti-history"></i>         <span class="tip">Recent Activity</span></button>
+      <button class="nav-btn"        data-pane="history">   <i class="ti ti-history"></i>         <span class="tip">History</span></button>
       <button class="nav-btn"        data-pane="changelog"><i class="ti ti-notes"></i>            <span class="tip">Changelog</span></button>
       <button class="nav-btn"        data-pane="settings">  <i class="ti ti-settings"></i>       <span class="tip">Settings</span></button>
     </nav>
@@ -97,17 +98,21 @@
           <div id="builder-script-view">
             <div id="builder-presets">
               <span class="preset-label">Presets</span>
-              <button class="preset-btn" data-preset="basic">
+              <button class="preset-btn" data-preset="basic" title="Safe cleanup &amp; light debloat">
                 <i class="ti ti-shield-check"></i>
-                <div><strong>Basic</strong><span>Safe cleanup &amp; light debloat</span></div>
+                <strong>Basic</strong>
               </button>
-              <button class="preset-btn" data-preset="strict">
+              <button class="preset-btn" data-preset="strict" title="Full privacy &amp; deeper debloat">
                 <i class="ti ti-shield-lock"></i>
-                <div><strong>Strict</strong><span>Full privacy &amp; deeper debloat</span></div>
+                <strong>Strict</strong>
               </button>
-              <button class="preset-btn" data-preset="extreme">
+              <button class="preset-btn" data-preset="extreme" title="Maximum privacy, removes more">
                 <i class="ti ti-shield-x"></i>
-                <div><strong>Extreme</strong><span>Maximum privacy, removes more</span></div>
+                <strong>Extreme</strong>
+              </button>
+              <button class="preset-btn" id="builder-autounattend" title="Bake the current script into a Windows answer file">
+                <i class="ti ti-file-type-xml"></i>
+                <strong>Autounattend</strong>
               </button>
               <div style="flex:1"></div>
               <button class="action-btn btn-ghost" id="builder-clear" style="margin-left:8px"><i class="ti ti-x"></i> Clear All</button>
@@ -198,9 +203,10 @@
         </div>
       </div>
 
-      <!-- RECENT ACTIVITY -->
-      <div class="pane" id="activity-pane">
-        <div class="pane-scroll" id="activity-scroll"></div>
+
+      <!-- HISTORY -->
+      <div class="pane" id="history-pane">
+        <div class="pane-scroll" id="history-scroll"></div>
       </div>
 
       <!-- CHANGELOG -->

@@ -1,9 +1,9 @@
-use tauri::State;
+use crate::commands::exec::{run as exec_run, run_elevated as exec_elevated, Shell};
+use crate::commands::scripts::RunResult;
+use crate::AppState;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use crate::AppState;
-use crate::commands::scripts::RunResult;
-use crate::commands::exec::{Shell, run as exec_run, run_elevated as exec_elevated};
+use tauri::State;
 
 #[derive(Serialize)]
 pub struct CustomTweak {
@@ -27,9 +27,16 @@ pub struct CustomTweakData {
 }
 
 #[tauri::command]
-pub async fn run_tweak_cmd(app: tauri::AppHandle, cmd: String, admin: Option<bool>) -> Result<RunResult, String> {
+pub async fn run_tweak_cmd(
+    app: tauri::AppHandle,
+    cmd: String,
+    admin: Option<bool>,
+) -> Result<RunResult, String> {
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
-        return Ok(RunResult { success: true, output: format!("SANDBOX: would run:\n{cmd}") });
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would run:\n{cmd}"),
+        });
     }
     let shell = Shell::PowerShell;
     let is_admin = admin.unwrap_or(false);
@@ -40,7 +47,10 @@ pub async fn run_tweak_cmd(app: tauri::AppHandle, cmd: String, admin: Option<boo
         exec_run(&app, &cmd, &shell).await?
     };
     use crate::commands::scripts::RunResult;
-    Ok(RunResult { success: result.success, output: String::new() })
+    Ok(RunResult {
+        success: result.success,
+        output: String::new(),
+    })
 }
 
 #[tauri::command]
@@ -49,11 +59,19 @@ pub fn get_custom_tweaks(state: State<AppState>) -> Result<Vec<CustomTweak>, Str
     let mut stmt = db.prepare(
         "SELECT id,category,label,description,apply_cmd,revert_cmd,admin FROM custom_tweaks ORDER BY category,sort_order,id"
     ).map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |r| Ok(CustomTweak {
-        id: r.get(0)?, category: r.get(1)?, label: r.get(2)?,
-        description: r.get(3)?, apply_cmd: r.get(4)?, revert_cmd: r.get(5)?,
-        admin: r.get::<_,i64>(6)? != 0,
-    })).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(CustomTweak {
+                id: r.get(0)?,
+                category: r.get(1)?,
+                label: r.get(2)?,
+                description: r.get(3)?,
+                apply_cmd: r.get(4)?,
+                revert_cmd: r.get(5)?,
+                admin: r.get::<_, i64>(6)? != 0,
+            })
+        })
+        .map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
@@ -70,7 +88,11 @@ pub fn add_custom_tweak(state: State<AppState>, data: CustomTweakData) -> Result
 }
 
 #[tauri::command]
-pub fn update_custom_tweak(state: State<AppState>, id: i64, data: CustomTweakData) -> Result<(), String> {
+pub fn update_custom_tweak(
+    state: State<AppState>,
+    id: i64,
+    data: CustomTweakData,
+) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
         "UPDATE custom_tweaks SET category=?1,label=?2,description=?3,apply_cmd=?4,revert_cmd=?5,admin=?6 WHERE id=?7",
@@ -84,6 +106,7 @@ pub fn update_custom_tweak(state: State<AppState>, id: i64, data: CustomTweakDat
 #[tauri::command]
 pub fn delete_custom_tweak(state: State<AppState>, id: i64) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM custom_tweaks WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM custom_tweaks WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
     Ok(())
 }

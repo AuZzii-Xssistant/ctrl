@@ -1,10 +1,28 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{params, Connection, Result};
+
+/// Has this seed batch already run at least once (ever, including on a version
+/// that predates app_meta — see the two call sites for the upgrade-safe check)?
+fn was_seeded(conn: &Connection, key: &str) -> bool {
+    conn.query_row("SELECT 1 FROM app_meta WHERE key=?1", params![key], |_| {
+        Ok(())
+    })
+    .is_ok()
+}
+
+fn mark_seeded(conn: &Connection, key: &str) {
+    let _ = conn.execute(
+        "INSERT OR REPLACE INTO app_meta (key,value) VALUES (?1,'1')",
+        params![key],
+    );
+}
 
 pub fn init(conn: &Connection) -> Result<()> {
-    conn.execute_batch("
+    conn.execute_batch(
+        "
         PRAGMA journal_mode=WAL;
         PRAGMA foreign_keys=ON;
-    ")?;
+    ",
+    )?;
     create_tables(conn)?;
     migrate(conn)?;
     migrate_scriptstash(conn)?;
@@ -14,22 +32,34 @@ pub fn init(conn: &Connection) -> Result<()> {
 /// Idempotent schema migrations for databases created before columns were added.
 fn migrate(conn: &Connection) -> Result<()> {
     // Fixes: run_as_admin column (added Major Upgrade 5)
-    let _ = conn.execute("ALTER TABLE fixes ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0", []);
+    let _ = conn.execute(
+        "ALTER TABLE fixes ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
     // Scripts: run_as_admin column (added Major Upgrade 5)
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN run_as_admin INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
     // Scripts: inline content stored in DB (file_path becomes optional)
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN content TEXT", []);
     // Snippets table (added Major Upgrade 8)
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS snippets (
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS snippets (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         title      TEXT NOT NULL,
         content    TEXT NOT NULL DEFAULT '',
         category   TEXT NOT NULL DEFAULT 'General',
         tags       TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )", []);
+    )",
+        [],
+    );
     // Release & Renew IP needs admin (requires elevated network access on some systems)
-    let _ = conn.execute("UPDATE fixes SET run_as_admin=1 WHERE name='Release & Renew IP' AND run_as_admin=0", []);
+    let _ = conn.execute(
+        "UPDATE fixes SET run_as_admin=1 WHERE name='Release & Renew IP' AND run_as_admin=0",
+        [],
+    );
     // Fix Restart Explorer — needs -ErrorAction SilentlyContinue on Stop-Process
     let _ = conn.execute(
         "UPDATE fixes SET command='Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Process explorer' WHERE name='Restart Explorer' AND command NOT LIKE '%-ErrorAction%'",
@@ -44,31 +74,56 @@ fn migrate(conn: &Connection) -> Result<()> {
         ],
     );
     // Scripts: icon stored as data URI (added for WinScript import)
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT ''", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT ''",
+        [],
+    );
     // Workflows: triggers, enable/disable, run tracking
-    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1", []);
-    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN trigger_type TEXT NOT NULL DEFAULT 'manual'", []);
-    let _ = conn.execute("ALTER TABLE workflows ADD COLUMN trigger_config TEXT NOT NULL DEFAULT '{}'", []);
+    let _ = conn.execute(
+        "ALTER TABLE workflows ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE workflows ADD COLUMN trigger_type TEXT NOT NULL DEFAULT 'manual'",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE workflows ADD COLUMN trigger_config TEXT NOT NULL DEFAULT '{}'",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_at TEXT", []);
     let _ = conn.execute("ALTER TABLE workflows ADD COLUMN last_run_ok INTEGER", []);
     // External apps table (added Loop 12)
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS external_apps (
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS external_apps (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
         path       TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )", []);
+    )",
+        [],
+    );
     // Quick Launch items table — seeded once, used for search + pinning
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ql_items (
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS ql_items (
         id    INTEGER PRIMARY KEY AUTOINCREMENT,
         label TEXT NOT NULL,
         icon  TEXT NOT NULL DEFAULT 'ti-rocket',
         cmd   TEXT NOT NULL
-    )", []);
-    // Seed QL items if empty
-    let ql_count: i64 = conn.query_row("SELECT COUNT(*) FROM ql_items", [], |r| r.get(0)).unwrap_or(0);
-    if ql_count == 0 {
-        let _ = conn.execute_batch("
+    )",
+        [],
+    );
+    // Seed QL items once ever — not "if empty", so a user who deletes every
+    // seeded item doesn't get them silently recreated on next launch.
+    if !was_seeded(conn, "ql_items_seeded") {
+        let ql_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM ql_items", [], |r| r.get(0))
+            .unwrap_or(0);
+        // Upgrading from a pre-app_meta version already has rows — don't
+        // duplicate them, just record that seeding has "happened."
+        if ql_count == 0 {
+            let _ = conn.execute_batch(
+                "
             INSERT INTO ql_items (label,icon,cmd) VALUES
             ('Windows Settings','ti-settings','ms-settings:'),
             ('Control Panel','ti-layout-grid','control'),
@@ -93,25 +148,38 @@ fn migrate(conn: &Connection) -> Result<()> {
             ('Visual Effects','ti-eye','SystemPropertiesPerformance'),
             ('System Restore','ti-history','rstrui.exe'),
             ('Windows Update','ti-refresh','ms-settings:windowsupdate');
-        ");
+        ",
+            );
+        }
+        mark_seeded(conn, "ql_items_seeded");
     }
     // Scripts: interactive flag (opens visible terminal window, ScriptStash port)
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN interactive INTEGER NOT NULL DEFAULT 0", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN interactive INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
     // ScriptStash profiles
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ss_profiles (
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS ss_profiles (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0
-    )", []);
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS ss_script_profile (
+    )",
+        [],
+    );
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS ss_script_profile (
         script_id  INTEGER NOT NULL,
         profile_id INTEGER NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
         disabled   INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (script_id, profile_id)
-    )", []);
+    )",
+        [],
+    );
     // Custom tweaks table (added Loop 11)
-    let _ = conn.execute("CREATE TABLE IF NOT EXISTS custom_tweaks (
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS custom_tweaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         category    TEXT NOT NULL DEFAULT 'Custom',
         label       TEXT NOT NULL,
@@ -120,12 +188,103 @@ fn migrate(conn: &Connection) -> Result<()> {
         revert_cmd  TEXT NOT NULL DEFAULT '',
         admin       INTEGER NOT NULL DEFAULT 0,
         sort_order  INTEGER NOT NULL DEFAULT 0
-    )", []);
+    )",
+        [],
+    );
+    // System Profiles (Roadmap item 3) — named machine-state snapshots.
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS profiles (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        name        TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        icon        TEXT NOT NULL DEFAULT 'ti-user-cog',
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )",
+        [],
+    );
+    // One row per setting type per profile. `value` format depends on item_type:
+    //   power_plan   -> powercfg plan GUID or name substring
+    //   kill_apps    -> newline-separated process names (Stop-Process -Name)
+    //   start_apps   -> newline-separated paths/commands (Start-Process)
+    //   dns          -> 'dhcp' or comma-separated DNS server IPs
+    //   audio        -> playback device name substring (best-effort, needs AudioDeviceCmdlets)
+    //   refresh_rate -> target Hz (best-effort, via P/Invoke ChangeDisplaySettingsEx)
+    //   script       -> raw custom PowerShell block
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS profile_items (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        item_type  TEXT NOT NULL,
+        value      TEXT NOT NULL DEFAULT '',
+        enabled    INTEGER NOT NULL DEFAULT 1
+    )",
+        [],
+    );
+    // Pre-activation state, captured fresh every activate_profile call, so
+    // restore_previous always reverts to what was actually running before —
+    // never a stale snapshot from an earlier activation.
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS profile_snapshots (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id     INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+        power_plan     TEXT NOT NULL DEFAULT '',
+        dns_interface  TEXT NOT NULL DEFAULT '',
+        dns_servers    TEXT NOT NULL DEFAULT '',
+        audio_device   TEXT NOT NULL DEFAULT '',
+        started_apps   TEXT NOT NULL DEFAULT '',
+        captured_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    )",
+        [],
+    );
+    // Single-row table tracking which profile is currently active, for the
+    // header chip and restore_previous. Survives restart (portable folder).
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS profile_state (
+        id                INTEGER PRIMARY KEY CHECK (id = 1),
+        active_profile_id INTEGER,
+        active_since      TEXT
+    )",
+        [],
+    );
+    let _ = conn.execute(
+        "INSERT OR IGNORE INTO profile_state (id, active_profile_id) VALUES (1, NULL)",
+        [],
+    );
+    // Watchers (Roadmap item 4) — polls system state, fires a toast or a workflow.
+    // condition_config JSON per condition_type:
+    //   disk_below    -> {"drive":"C","pct":10}          fires when free% < pct
+    //   process_down  -> {"process":"chrome"}             fires when not running
+    //   cpu_sustained -> {"pct":80,"minutes":5}            fires after N min >= pct
+    // action is either "notify" or "workflow:<id>".
+    let _ = conn.execute(
+        "CREATE TABLE IF NOT EXISTS watchers (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        name              TEXT NOT NULL,
+        condition_type    TEXT NOT NULL,
+        condition_config  TEXT NOT NULL DEFAULT '{}',
+        action            TEXT NOT NULL DEFAULT 'notify',
+        enabled           INTEGER NOT NULL DEFAULT 1,
+        last_checked      TEXT,
+        last_state        TEXT NOT NULL DEFAULT 'ok',
+        last_triggered_at TEXT,
+        created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    )",
+        [],
+    );
     Ok(())
 }
 
 fn create_tables(conn: &Connection) -> Result<()> {
-    conn.execute_batch("
+    conn.execute_batch(
+        "
+        -- Tracks which pre-shipped defaults have been seeded, so a user who
+        -- deletes every seeded row (ql_items, fixes) doesn't get them silently
+        -- recreated on next launch. See was_seeded()/mark_seeded() below.
+        CREATE TABLE IF NOT EXISTS app_meta (
+            key   TEXT PRIMARY KEY,
+            value TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS tools (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             name        TEXT NOT NULL,
@@ -209,13 +368,22 @@ fn create_tables(conn: &Connection) -> Result<()> {
             last_run    TEXT,
             created_at  TEXT NOT NULL DEFAULT (datetime('now'))
         );
-    ")
+    ",
+    )
 }
 
 fn seed_defaults(conn: &Connection) -> Result<()> {
-    // Only seed if fixes table is empty (fresh install)
+    // Seed once ever, not "if empty" — a user who deletes every seeded fix
+    // shouldn't get them silently recreated on next launch.
+    if was_seeded(conn, "fixes_seeded") {
+        return Ok(());
+    }
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM fixes", [], |r| r.get(0))?;
-    if count > 0 { return Ok(()); }
+    if count > 0 {
+        // Upgrading from a pre-app_meta version — already has rows, just record it.
+        mark_seeded(conn, "fixes_seeded");
+        return Ok(());
+    }
 
     // columns: name, description, category, shell_type, command, tags, confirm_required, run_as_admin
     conn.execute_batch("
@@ -235,17 +403,31 @@ fn seed_defaults(conn: &Connection) -> Result<()> {
         ('Clear Event Log (System)','Clear the Windows System event log','Maintenance','powershell','Clear-EventLog -LogName System','eventlog,logs',1,1),
         ('Set High Performance Power','Switch to High Performance power plan','Performance','powershell','powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c','power,performance',0,1),
         ('Set Balanced Power','Switch back to Balanced power plan','Performance','powershell','powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e','power,balanced',0,1);
-    ")
+    ")?;
+    mark_seeded(conn, "fixes_seeded");
+    Ok(())
 }
 
 // ScriptStash state columns on scripts (added ScriptStash port v2)
 fn migrate_scriptstash(conn: &Connection) -> Result<()> {
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN master_order INTEGER NOT NULL DEFAULT 9999", []);
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN master_disabled INTEGER NOT NULL DEFAULT 0", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN master_order INTEGER NOT NULL DEFAULT 9999",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN master_disabled INTEGER NOT NULL DEFAULT 0",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_run TEXT", []);
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_status TEXT NOT NULL DEFAULT 'never'", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN last_status TEXT NOT NULL DEFAULT 'never'",
+        [],
+    );
     let _ = conn.execute("ALTER TABLE scripts ADD COLUMN last_error TEXT", []);
     // Master is a real, toggleable profile — not "every script unconditionally".
-    let _ = conn.execute("ALTER TABLE scripts ADD COLUMN in_master INTEGER NOT NULL DEFAULT 1", []);
+    let _ = conn.execute(
+        "ALTER TABLE scripts ADD COLUMN in_master INTEGER NOT NULL DEFAULT 1",
+        [],
+    );
     Ok(())
 }

@@ -16,10 +16,28 @@ pub struct QlItem {
 #[tauri::command]
 pub fn get_ql_items(state: State<AppState>) -> Result<Vec<QlItem>, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = db.prepare("SELECT id,label,icon,cmd FROM ql_items ORDER BY label").map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |r| Ok(QlItem { id: r.get(0)?, label: r.get(1)?, icon: r.get(2)?, cmd: r.get(3)? }))
+    let mut stmt = db
+        .prepare("SELECT id,label,icon,cmd FROM ql_items ORDER BY label")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(QlItem {
+                id: r.get(0)?,
+                label: r.get(1)?,
+                icon: r.get(2)?,
+                cmd: r.get(3)?,
+            })
+        })
         .map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
+}
+
+#[tauri::command]
+pub fn delete_ql_item(state: State<AppState>, id: i64) -> Result<(), String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM ql_items WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[derive(Serialize, Clone)]
@@ -32,8 +50,17 @@ pub struct ExternalApp {
 #[tauri::command]
 pub fn list_external_apps(state: State<AppState>) -> Result<Vec<ExternalApp>, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = db.prepare("SELECT id,name,path FROM external_apps ORDER BY name").map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], |r| Ok(ExternalApp { id: r.get(0)?, name: r.get(1)?, path: r.get(2)? }))
+    let mut stmt = db
+        .prepare("SELECT id,name,path FROM external_apps ORDER BY name")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(ExternalApp {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                path: r.get(2)?,
+            })
+        })
         .map_err(|e| e.to_string())?;
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
@@ -41,27 +68,36 @@ pub fn list_external_apps(state: State<AppState>) -> Result<Vec<ExternalApp>, St
 #[tauri::command]
 pub fn add_external_app(state: State<AppState>, name: String, path: String) -> Result<i64, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("INSERT INTO external_apps (name,path) VALUES (?1,?2)", params![name, path])
-        .map_err(|e| e.to_string())?;
+    db.execute(
+        "INSERT INTO external_apps (name,path) VALUES (?1,?2)",
+        params![name, path],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(db.last_insert_rowid())
 }
 
 #[tauri::command]
 pub fn remove_external_app(state: State<AppState>, id: i64) -> Result<(), String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
-    db.execute("DELETE FROM external_apps WHERE id=?1", params![id]).map_err(|e| e.to_string())?;
+    db.execute("DELETE FROM external_apps WHERE id=?1", params![id])
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn launch_external(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    app.shell().command("cmd").args(["/c", "start", "", &path]).spawn().map_err(|e| e.to_string())?;
+    app.shell()
+        .command("cmd")
+        .args(["/c", "start", "", &path])
+        .spawn()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn pick_exe_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    let path = app.dialog()
+    let path = app
+        .dialog()
         .file()
         .add_filter("Executables", &["exe", "lnk", "bat", "cmd", "msc"])
         .blocking_pick_file();

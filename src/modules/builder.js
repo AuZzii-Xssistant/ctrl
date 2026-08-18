@@ -703,3 +703,13 @@ document.getElementById('builder-run').addEventListener('click', async () => {
 
 document.querySelectorAll('[data-preset]').forEach(btn =>
   btn.addEventListener('click', () => _applyPreset(btn.dataset.preset)));
+
+// Bakes the currently-built combined script into a Windows unattend.xml answer
+// file (bypasses Win11 hardware checks, runs the script on first logon) —
+// ported from WinScript's Autounattend button, same source text Copy/Save/Run use.
+document.getElementById('builder-autounattend').addEventListener('click', async () => {
+  const raw = document.getElementById('builder-code').textContent;
+  if (!raw.trim()) { toast('Nothing to bake — select some actions first', 'err'); return; }
+  const ok = await inv('export_autounattend', { script: raw }).catch(e => { toast(String(e), 'err'); return false; });
+  if (ok) toast('autounattend.xml saved', 'ok');
+});

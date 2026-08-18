@@ -1,4 +1,4 @@
-# CTRL — Database Schema
+# >_ CTRL — Database Schema
 
 SQLite database at `ctrl.db` (next to the exe, portable).
 WAL mode enabled. All tables use `INTEGER PRIMARY KEY` autoincrement IDs unless noted.
@@ -221,3 +221,80 @@ User-defined system tweaks (Tweaks page, alongside the built-in ones which aren'
 | `revert_cmd` | TEXT | |
 | `admin` | INTEGER | 0/1 |
 | `sort_order` | INTEGER | |
+
+---
+
+## `profiles`
+
+Named System Profiles (Roadmap item 3) — a machine-state preset activated as a whole.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | |
+| `name` | TEXT | |
+| `description` | TEXT | |
+| `icon` | TEXT | Tabler icon class, default `ti-user-cog` |
+| `created_at` | TEXT | ISO 8601 timestamp |
+
+## `profile_items`
+
+One row per setting type per profile. `ON DELETE CASCADE` from `profiles`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | |
+| `profile_id` | INTEGER | FK → `profiles.id`, cascades on delete |
+| `item_type` | TEXT | `power_plan` / `kill_apps` / `start_apps` / `dns` / `audio` / `refresh_rate` / `script` |
+| `value` | TEXT | Format depends on `item_type` — see below |
+| `enabled` | INTEGER | 0/1, toggled per item without deleting it |
+
+`value` format per `item_type`:
+- `power_plan` — powercfg plan GUID or a name substring (resolved via `powercfg /list` at activation time)
+- `kill_apps` — newline-separated process names, passed to `Stop-Process -Name`
+- `start_apps` — newline-separated paths/commands, passed to `Start-Process`
+- `dns` — `dhcp` (reset to DHCP) or comma-separated DNS server IPs
+- `audio` — playback device name substring (best-effort — see `docs/known-issues.md`)
+- `refresh_rate` — target Hz (best-effort — see `docs/known-issues.md`)
+- `script` — raw custom PowerShell block, runs last, elevated
+
+## `profile_snapshots`
+
+Pre-activation state, captured fresh on every `activate_profile` call (not reused from an earlier activation), so `restore_previous` always reverts to what was actually running.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | |
+| `profile_id` | INTEGER | FK → `profiles.id`, cascades on delete |
+| `power_plan` | TEXT | Active plan GUID before activation |
+| `dns_interface` | TEXT | Interface alias the DNS snapshot/restore targets |
+| `dns_servers` | TEXT | Comma-separated IPs, empty = was DHCP |
+| `audio_device` | TEXT | Playback device name before activation (empty if unreadable) |
+| `started_apps` | TEXT | Comma-separated process names the profile itself started, for revert-by-stopping |
+| `captured_at` | TEXT | ISO 8601 timestamp |
+
+## `profile_state`
+
+Single-row table (`id` fixed at 1) tracking which profile is currently active — drives the topbar chip, tray line, and `restore_previous`. Persists across restarts since it travels with the portable `ctrl.db`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Always `1` (`CHECK (id = 1)`) |
+| `active_profile_id` | INTEGER | NULL when no profile is active |
+| `active_since` | TEXT | ISO 8601 timestamp, NULL when inactive |
+
+## `watchers` (unused — feature removed 2026-08-18)
+
+Schema kept for the additive-migrations-only convention; `commands/watchers.rs` and its scheduler were deleted, nothing reads or writes this table anymore. See `docs/known-issues.md` and `docs/ROADMAP.md` item 4.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | |
+| `name` | TEXT | |
+| `condition_type` | TEXT | was `disk_below` \| `process_down` \| `cpu_sustained` |
+| `condition_config` | TEXT | JSON, shape depended on `condition_type` |
+| `action` | TEXT | was `notify` or `workflow:<id>` |
+| `enabled` | INTEGER | 0/1 |
+| `last_checked` | TEXT | |
+| `last_state` | TEXT | `ok` \| `alert` |
+| `last_triggered_at` | TEXT | |
+| `created_at` | TEXT | |

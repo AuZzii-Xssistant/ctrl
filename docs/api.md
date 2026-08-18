@@ -1,13 +1,18 @@
-# CTRL — Tauri Command API
+# >_ CTRL — Tauri Command API
 
 All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 
 ## Window
 | Command | Payload | Returns |
 |---|---|---|
-| `close_window` | — | void |
+| `close_window` | — | void — hides to the system tray, does not quit |
 | `minimize_window` | — | void |
 | `toggle_maximize` | — | void |
+| `exit_app` | — | void — actually quits. Only real exit path besides the tray menu's "Quit >_ CTRL" |
+
+A global hotkey (`Ctrl+Shift+Space`, registered in Rust at startup, best-effort — silently no-ops if another app already owns it) shows+focuses the window and focuses global search from anywhere, emitting a `hotkey-summon` event the frontend listens for. The tray icon's menu lists up to 10 pinned items (rebuilt whenever `pin_item`/`unpin_item` run, so it never drifts) plus Show/Quit.
+
+Closing the window (X button or Alt+F4) does **not** silently hide to tray — Rust intercepts `WindowEvent::CloseRequested`, prevents it, and emits a `close-requested` event instead. The frontend (`app.js`) listens for that event and shows a modal asking Minimize to Tray vs. Quit, with an optional "remember my choice" (stored in `localStorage` under `ctrl_close_action`) that skips the prompt on future closes.
 
 ## Dashboard
 | Command | Payload | Returns |
@@ -18,7 +23,6 @@ All commands called via `window.__TAURI__.core.invoke(command, payload)`.
 | `reorder_pins` | `{orders: [{id, sort_order}]}` | void |
 | `get_sys_info` | — | `SysInfo` — hostname/username/OS/RAM/CPU/boot time, via a PowerShell CIM query |
 | `get_perf_stats` | — | `PerfStats` — live CPU/RAM/network/drive usage, polled every 1.5s by the dashboard perf panel |
-| `get_recent_activity` | `{limit?}` (default 12) | `ActivityEntry[]` — most recent `run_log` rows |
 
 ## Terminal / PTY
 | Command | Payload | Returns |
@@ -44,7 +48,8 @@ PTY output streams via `pty-data-{tabId}` events (raw terminal bytes), not as a 
 | `delete_tool` | `{id}` | void |
 | `launch_tool` | `{id}` | void |
 | `browse_for_exe` | — | `string\|null` |
-| `get_ql_items` | — | `QlItem[]` — Windows shell shortcuts (`ms-settings:`, `.cpl` files), seeded on first run |
+| `get_ql_items` | — | `QlItem[]` — Windows shell shortcuts (`ms-settings:`, `.cpl` files), seeded once ever (not just "if empty" — deleting them all doesn't bring them back, see `docs/known-issues.md`) |
+| `delete_ql_item` | `{id}` | void — permanent, right-click a Quick Launch pill or use its hover ✕ button |
 | `launch_shortcut` | `{cmd}` | void — `cmd /c start "" <cmd>` |
 | `list_external_apps` | — | `ExternalApp[]` — simple name+path launch targets, used only by the Dashboard pin picker's "App" type now (Tools page's own Apps UI was removed 2026-08-17) |
 | `add_external_app` | `{name, path}` | `i64` |
@@ -67,7 +72,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | Command | Payload | Returns |
 |---|---|---|
 | `get_scripts` | `{search?}` | `Script[]` — dashboard pin picker, workflow item picker |
-| `run_script` | `{id, forceAdmin?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin` |
+| `run_script` | `{id, forceAdmin?: bool, skipPause?: bool}` | `RunResult` — routes through the embedded PTY (`exec::run`/`run_elevated`); `forceAdmin` overrides the script's own `run_as_admin`; `skipPause` forces "Pause Script" off (used by `run_workflow` — a workflow step has no one to press a key) |
 | `open_script_editor` | `{id}` | void — called internally by `ss_open_in_editor`, not directly from JS |
 | `watch_script_edit` | `{id}` | void — called internally by `ss_open_in_editor`; polls the temp file every 1.5s and syncs edits back to `scripts.content`, emitting `script-synced` |
 
@@ -121,6 +126,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `build_script` | `{action_ids: string[], output_type}` | `string` |
 | `run_built_script` | `{code, script_type}` | `RunResult` |
 | `save_built_script` | `{code, name, scriptType, profileIds: i64[], inMaster: bool}` | void — asks which profile(s) to save into (Master checked by default) |
+| `export_autounattend` | `{script}` | `bool` — wraps the given script in a Windows `unattend.xml` answer file (bypasses Win11 hardware checks, runs the script via `FirstLogonCommands`) and writes it via a native save dialog; ported from WinScript's Autounattend button, see `docs/known-issues.md` |
 
 ## Workflows
 | Command | Payload | Returns |
@@ -130,7 +136,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `update_workflow` | `{id, data: WorkflowData}` | void |
 | `delete_workflow` | `{id}` | void |
 | `toggle_workflow` | `{id, enabled}` | void |
-| `run_workflow` | `{id}` | `StepResult[]` — also persists to `run_log` and updates `last_run_at`/`last_run_ok` |
+| `run_workflow` | `{id}` | `StepResult[]` — also persists to `run_log` and updates `last_run_at`/`last_run_ok`. Script/fix steps route through the real `run_script`/`run_fix` commands, so they get the same admin-elevation and sandbox handling as running them directly (each step also logs its own `run_log` row in addition to the workflow's combined one) |
 | `start_workflow_scheduler` | — | void (no return) — called once at app startup; polls `trigger_type='schedule'` workflows and fires `run_workflow` when due |
 
 ## Tweaks
@@ -148,14 +154,36 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `run_backup` | `{id}` | `RunResult` |
 | `browse_for_folder` | — | `string\|null` |
 
+## System Profiles
+| Command | Payload | Returns |
+|---|---|---|
+| `get_profiles` | — | `Profile[]` (each with its `items`) |
+| `add_profile` | `{data: ProfileData}` | `i64` |
+| `update_profile` | `{id, data: ProfileData}` | void — replaces all items |
+| `delete_profile` | `{id}` | void — also clears `profile_state` if it was active |
+| `get_active_profile` | — | `{id, name}\|null` |
+| ``activate_profile` | `{id}` | `RunResult` — two-phase: (1) non-elevated PS captures snapshot, (2) elevated PS applies each enabled item |
+| `restore_previous` | — | `RunResult` — reverts from the most recent snapshot of the active profile, clears active state |
+
+`ProfileData = {name, description?, icon?, items: [{item_type, value, enabled?}]}`. `item_type` is one of `power_plan` / `kill_apps` / `start_apps` / `dns` / `audio` / `refresh_rate` / `script`; empty-value items are dropped on save. `kill_apps`/`start_apps` values are newline-separated lists; `dns` is `"dhcp"` or comma-separated IPs.
+
+`activate_profile` uses two PowerShell steps: (1) a non-elevated call reads current state (power plan via `powercfg`, DNS via `Get-DnsClientServerAddress`, audio via `Get-AudioDevice`) and returns `CTRL_SNAP:*` lines directly to Rust -- no UAC, stdout reliably captured; (2) an elevated fire-and-forget call applies each enabled item in order (power plan → kill apps → start apps → DNS → audio → refresh rate → custom script). Apps started by the profile are recorded by deriving process names from the `start_apps` item paths. The tray menu and topbar chip (`active-profile-chip` in `index.html`, refreshed via `window._refreshActiveProfileChip()`) both rebuild after activate/restore.
+
+**Best-effort, unverified on real hardware** (documented in `docs/known-issues.md`):
+- `audio` requires the third-party `AudioDeviceCmdlets` PowerShell module — not bundled, not installed by >_ CTRL. Fails silently (a PowerShell warning in the output) if missing.
+- `refresh_rate` uses an inline P/Invoke call to `ChangeDisplaySettings` — no built-in cmdlet exists. Wrapped in try/catch so a failure can't break the rest of activation.
+- `kill_apps`/`start_apps` revert is best-effort: killed apps are not relaunched (no stored launch path), only apps *started* by the profile get stopped on restore.
+
 ## Run Log
 | Command | Payload | Returns |
 |---|---|---|
 | `get_last_runs` | `{item_type: "script"\|"fix"\|"tool"}` | `LastRun[]` |
 | `get_run_history` | `{item_type, item_id, limit?}` | `RunHistoryEntry[]` |
+| `get_run_history_filtered` | `{itemType?, success?, dateFrom?, dateTo?, text?, limit?}` | `RunHistoryFullEntry[]` |
 
 `get_last_runs` returns the most recent run per item of that type.  
 `get_run_history` returns the last N runs (default 10) for a single item with full captured output.
+`get_run_history_filtered` powers the History page — all filters optional/AND-combined: `itemType` (script/fix/workflow/tool/backup), `success` (bool), `dateFrom`/`dateTo` (`"YYYY-MM-DD HH:MM:SS"` strings, inclusive), `text` (substring match on `item_name`, case-insensitive), `limit` (default 500). Returns full `output` per row for the click-to-view drawer.
 
 ## Environment Variables
 | Command | Payload | Returns |
@@ -181,6 +209,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `global_search` | `{query}` | `SearchResults` |
 | `open_data_folder` | — | void |
 | `open_path` | `{path}` | void |
+| `export_text_file` | `{text, suggested}` | `bool` — native save-file dialog (`.txt` filter); `false` if the user cancels. Generic, reused by the History page's Export button. |
 
 ## Types
 
@@ -211,7 +240,6 @@ WorkflowData = { name, steps: string (JSON), description?, trigger_type?, trigge
 StepResult   = { label: string, success: boolean, output: string }
 BackupJob    = { id, name, source, dest, last_run?: string, created_at: string }
 BackupData   = { name, source, dest: string }
-ActivityEntry= { item_type, item_name, success: boolean, ran_at: string }
 SysInfo      = { hostname, username, os, ram_gb, cpu: string, boot_epoch_ms: number }
 PerfStats    = { cpu_pct: number, ram_used_gb, ram_total_gb: number, net_name: string, net_recv_bytes, net_sent_bytes: number, drives: DriveInfo[] }
 DriveInfo    = { name: string, used_gb, total_gb: number }

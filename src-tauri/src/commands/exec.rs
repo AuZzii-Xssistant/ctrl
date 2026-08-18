@@ -33,7 +33,6 @@ pub fn kill_process(pid: u32) -> Result<(), String> {
     Ok(())
 }
 
-
 /// Cached elevation check — computed once at first use.
 pub fn running_as_admin() -> bool {
     use std::sync::OnceLock;
@@ -54,23 +53,35 @@ pub fn ps_bin() -> &'static str {
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false);
-        if pwsh_ok { "pwsh" } else { "powershell" }
+        if pwsh_ok {
+            "pwsh"
+        } else {
+            "powershell"
+        }
     })
 }
 
 #[allow(clippy::enum_variant_names)] // PowerShell is the correct/clear name, not a naming accident
-pub enum Shell { PowerShell, Cmd, Python }
+pub enum Shell {
+    PowerShell,
+    Cmd,
+    Python,
+}
 
 impl Shell {
     pub fn from_str(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "powershell" | "ps1" => Shell::PowerShell,
-            "python" | "py"      => Shell::Python,
-            _                    => Shell::Cmd,
+            "python" | "py" => Shell::Python,
+            _ => Shell::Cmd,
         }
     }
     fn ext(&self) -> &'static str {
-        match self { Shell::PowerShell => "ps1", Shell::Python => "py", Shell::Cmd => "bat" }
+        match self {
+            Shell::PowerShell => "ps1",
+            Shell::Python => "py",
+            Shell::Cmd => "bat",
+        }
     }
 }
 
@@ -95,12 +106,20 @@ fn esc_ps_path(p: &Path) -> String {
 
 /// Stream a process to the frontend via events. Returns (success, full_output).
 /// Emits `run-start` at the start and `run-output` per chunk.
-pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) -> Result<RunResult, String> {
+pub async fn spawn_streaming(
+    app: &AppHandle,
+    program: &str,
+    args: Vec<String>,
+) -> Result<RunResult, String> {
     use tauri::Emitter;
     use tauri_plugin_shell::process::CommandEvent;
 
-    let (mut rx, _child) = app.shell().command(program).args(&args)
-        .spawn().map_err(|e| e.to_string())?;
+    let (mut rx, _child) = app
+        .shell()
+        .command(program)
+        .args(&args)
+        .spawn()
+        .map_err(|e| e.to_string())?;
 
     app.emit("run-start", ()).ok();
 
@@ -132,25 +151,25 @@ pub async fn spawn_streaming(app: &AppHandle, program: &str, args: Vec<String>) 
 pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunResult, String> {
     use tauri::Emitter;
 
-    let script   = tmp("exec", "cmd",      shell.ext());
-    let wrapper  = tmp("exec", "wrap",     "ps1");
+    let script = tmp("exec", "cmd", shell.ext());
+    let wrapper = tmp("exec", "wrap", "ps1");
     let sentinel = tmp("exec", "sentinel", "txt");
 
     let content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
-        Shell::Python     => command.to_string(),
-        Shell::Cmd        => format!("@echo off\n{command}"),
+        Shell::Python => command.to_string(),
+        Shell::Cmd => format!("@echo off\n{command}"),
     };
     fs::write(&script, &content).map_err(|e| e.to_string())?;
 
     let run_line = match shell {
         Shell::PowerShell => format!("& '{}'", esc_ps_path(&script)),
-        Shell::Python     => format!("python '{}'", esc_ps_path(&script)),
-        Shell::Cmd        => format!("cmd /c '{}'", esc_ps_path(&script)),
+        Shell::Python => format!("python '{}'", esc_ps_path(&script)),
+        Shell::Cmd => format!("cmd /c '{}'", esc_ps_path(&script)),
     };
-    let s_esc  = esc_ps_path(&sentinel);
+    let s_esc = esc_ps_path(&sentinel);
     let sc_esc = esc_ps_path(&script);
-    let w_esc  = esc_ps_path(&wrapper);
+    let w_esc = esc_ps_path(&wrapper);
 
     // Wrapper embeds run/done dividers and writes sentinel file when done.
     // All output flows through pty-data — no _termWrite injection needed.
@@ -174,8 +193,9 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
     fs::write(&wrapper, &wrapper_content).map_err(|e| e.to_string())?;
 
     RUN_CANCELLED.store(false, Ordering::SeqCst);
-    app.emit("run-start",   ()).ok();
-    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&wrapper))).ok();
+    app.emit("run-start", ()).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&wrapper)))
+        .ok();
 
     // Poll for sentinel written by wrapper on completion (max 10 min, blocking thread).
     // Stop button sets RUN_CANCELLED — bail immediately instead of waiting on a
@@ -197,41 +217,53 @@ pub async fn run(app: &AppHandle, command: &str, shell: &Shell) -> Result<RunRes
                 let _ = fs::remove_file(&wrapper);
                 return false;
             }
-            if std::time::Instant::now() > deadline { return false; }
+            if std::time::Instant::now() > deadline {
+                return false;
+            }
         }
-    }).await.unwrap_or(false);
+    })
+    .await
+    .unwrap_or(false);
 
     app.emit("run-done", success).ok();
-    Ok(RunResult { success, output: String::new() })
+    Ok(RunResult {
+        success,
+        output: String::new(),
+    })
 }
 
 /// Run an inline command string elevated (UAC).
 /// Same PTY-wrapper pattern as run(): UAC prompt fires, elevated script runs hidden,
 /// output captured and displayed in CTRL's embedded terminal — no external window.
-pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: &str) -> Result<RunResult, String> {
+pub async fn run_elevated(
+    app: &AppHandle,
+    command: &str,
+    shell: &Shell,
+    label: &str,
+) -> Result<RunResult, String> {
     use tauri::Emitter;
 
-    let cmd_file  = tmp(label, "cmd",      shell.ext());
+    let cmd_file = tmp(label, "cmd", shell.ext());
     let elev_wrap = tmp(label, "elevwrap", "ps1");
-    let pty_wrap  = tmp(label, "ptywrap",  "ps1");
-    let exit_file = tmp(label, "exit",     "txt");
-    let sentinel  = tmp(label, "sentinel", "txt");
-    let pid_file  = tmp(label, "pid",      "txt");
+    let pty_wrap = tmp(label, "ptywrap", "ps1");
+    let exit_file = tmp(label, "exit", "txt");
+    let sentinel = tmp(label, "sentinel", "txt");
+    let pid_file = tmp(label, "pid", "txt");
 
     // The actual script content (run elevated)
     let cmd_content = match shell {
         Shell::PowerShell => format!("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n{command}"),
-        Shell::Python     => command.to_string(),
-        Shell::Cmd        => format!("@echo off\n{command}"),
+        Shell::Python => command.to_string(),
+        Shell::Cmd => format!("@echo off\n{command}"),
     };
     fs::write(&cmd_file, &cmd_content).map_err(|e| e.to_string())?;
 
     let run_line = match shell {
         Shell::PowerShell => format!("& '{}'", esc_ps_path(&cmd_file)),
-        Shell::Python     => format!("python '{}'", esc_ps_path(&cmd_file)),
-        Shell::Cmd        => format!("cmd /c '{}'", esc_ps_path(&cmd_file)),
+        Shell::Python => format!("python '{}'", esc_ps_path(&cmd_file)),
+        Shell::Cmd => format!("cmd /c '{}'", esc_ps_path(&cmd_file)),
     };
-    let exit_esc  = esc_ps_path(&exit_file);
+    let exit_esc = esc_ps_path(&exit_file);
 
     // Elevated wrapper: runs script directly (no pipeline) so CONOUT$ tools like
     // sfc.exe, chkdsk etc. appear live in the external window, not just stdout.
@@ -244,13 +276,13 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     );
     fs::write(&elev_wrap, &elev_content).map_err(|e| e.to_string())?;
 
-    let elev_esc  = esc_ps_path(&elev_wrap);
-    let cmd_esc   = esc_ps_path(&cmd_file);
+    let elev_esc = esc_ps_path(&elev_wrap);
+    let cmd_esc = esc_ps_path(&cmd_file);
     let exit_esc2 = esc_ps_path(&exit_file);
-    let s_esc     = esc_ps_path(&sentinel);
-    let pw_esc    = esc_ps_path(&pty_wrap);
-    let pid_esc   = esc_ps_path(&pid_file);
-    let ps        = ps_bin();
+    let s_esc = esc_ps_path(&sentinel);
+    let pw_esc = esc_ps_path(&pty_wrap);
+    let pid_esc = esc_ps_path(&pid_file);
+    let ps = ps_bin();
 
     // PTY wrapper: runs non-elevated in the embedded terminal.
     // Shows run divider, opens visible elevated window, waits, shows done/failed divider.
@@ -288,8 +320,9 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
     fs::write(&pty_wrap, &pty_content).map_err(|e| e.to_string())?;
 
     RUN_CANCELLED.store(false, Ordering::SeqCst);
-    app.emit("run-start",   ()).ok();
-    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&pty_wrap))).ok();
+    app.emit("run-start", ()).ok();
+    app.emit("run-pty-cmd", format!("& '{}'", esc_ps_path(&pty_wrap)))
+        .ok();
 
     // Poll for sentinel written by pty_wrap on completion (max 10 min, blocking thread).
     // Also opportunistically pick up the elevated process's PID once Start-Process
@@ -321,10 +354,17 @@ pub async fn run_elevated(app: &AppHandle, command: &str, shell: &Shell, label: 
                 let _ = fs::remove_file(&pid_file2);
                 return false;
             }
-            if std::time::Instant::now() > deadline { return false; }
+            if std::time::Instant::now() > deadline {
+                return false;
+            }
         }
-    }).await.unwrap_or(false);
+    })
+    .await
+    .unwrap_or(false);
 
     app.emit("run-done", success).ok();
-    Ok(RunResult { success, output: String::new() })
+    Ok(RunResult {
+        success,
+        output: String::new(),
+    })
 }
