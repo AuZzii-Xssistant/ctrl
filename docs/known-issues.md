@@ -13,6 +13,9 @@
 
 ## Active
 
+### ~~Settings' "Open DB location" button was byte-identical to "Open data folder"~~ ✅ Resolved (2026-08-18)
+Both buttons called `open_data_folder`, which only ever opens the exe's own folder — it never accounted for `CTRL_DB`, the env var `sandbox.bat` sets to redirect the database elsewhere. "Open DB location" was silently wrong whenever `CTRL_DB` pointed away from the exe's directory. Added `db::resolve_path()` (the same `CTRL_DB`-aware logic already used at startup, now shared instead of duplicated) and a new `open_db_folder` command that opens the DB's actual parent folder.
+
 ### ~~showOutput() wrote completed-run output into the live terminal~~ ✅ Resolved (2026-08-18)
 Found by the user: clicking a History row (or the result of any script/fix/workflow/backup run) called `showOutput()`, which wrote the text directly into the active tab's live xterm.js buffer via `term.write()` — the same buffer a real PowerShell/PSReadLine session is using. Since this bypassed the actual PTY, the real shell process's cursor position never moved to match, so the next keystroke could land in the middle of the injected text instead of after it. Rewrote `showOutput()` (`src/app.js`) to open a dedicated read-only modal (`.output-view`) instead — completely decoupled from any PTY, used by all 16 existing call sites unchanged (same function signature). Nothing writes synthetic text into a live terminal anymore.
 

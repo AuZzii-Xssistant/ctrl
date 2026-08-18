@@ -207,7 +207,8 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 |---|---|---|
 | `get_stats` | — | `Stats` |
 | `global_search` | `{query}` | `SearchResults` |
-| `open_data_folder` | — | void |
+| `open_data_folder` | — | void — always opens the exe's own folder |
+| `open_db_folder` | — | void — opens `ctrl.db`'s actual parent folder via `db::resolve_path()` (respects `CTRL_DB` env override); was byte-identical to `open_data_folder` until 2026-08-18, silently wrong under `sandbox.bat` |
 | `open_path` | `{path}` | void |
 | `export_text_file` | `{text, suggested}` | `bool` — native save-file dialog (`.txt` filter); `false` if the user cancels. Generic, reused by the History page's Export button. |
 

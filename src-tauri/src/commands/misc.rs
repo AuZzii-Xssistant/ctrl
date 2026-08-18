@@ -379,3 +379,22 @@ pub async fn open_data_folder(app: tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+// Was byte-identical to open_data_folder (both just opened the exe's own
+// folder), which is wrong whenever CTRL_DB points elsewhere — the button
+// claiming to open the DB's location silently opened the wrong folder in
+// sandbox mode. Now resolves the DB's actual parent folder via db::resolve_path().
+#[tauri::command]
+pub async fn open_db_folder(app: tauri::AppHandle) -> Result<(), String> {
+    let db_path = crate::db::resolve_path();
+    let dir = db_path
+        .parent()
+        .map(|d| d.to_path_buf())
+        .unwrap_or_else(|| std::path::PathBuf::from("."));
+    app.shell()
+        .command("explorer")
+        .args([dir.to_string_lossy().as_ref()])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

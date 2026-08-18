@@ -52,14 +52,8 @@ pub fn run() {
                     }
                 });
             }
-            // DB lives next to the exe (portable)
-            let exe_dir = std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-                .unwrap_or_else(|| std::path::PathBuf::from("."));
-            let db_path = std::env::var("CTRL_DB")
-                .map(std::path::PathBuf::from)
-                .unwrap_or_else(|_| exe_dir.join("ctrl.db"));
+            // DB lives next to the exe (portable), or wherever CTRL_DB points.
+            let db_path = db::resolve_path();
             let conn = Connection::open(&db_path).expect("failed to open ctrl.db");
             db::init(&conn).expect("failed to init db schema");
             app.manage(AppState(Mutex::new(conn)));
@@ -125,6 +119,7 @@ pub fn run() {
             commands::misc::export_text_file,
             commands::misc::global_search,
             commands::misc::open_data_folder,
+            commands::misc::open_db_folder,
             commands::misc::get_perf_stats,
             commands::misc::open_path,
             commands::snippets::get_snippets,

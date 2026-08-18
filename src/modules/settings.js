@@ -73,7 +73,7 @@ export async function load() {
     catch (e) { toast(String(e), 'err'); }
   });
   document.getElementById('s-open-db').addEventListener('click', async () => {
-    try { await inv('open_data_folder'); toast('Opened folder containing ctrl.db', 'info'); }
+    try { await inv('open_db_folder'); toast('Opened folder containing ctrl.db', 'info'); }
     catch (e) { toast(String(e), 'err'); }
   });
   document.getElementById('s-reset-close').addEventListener('click', () => {

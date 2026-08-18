@@ -1,5 +1,19 @@
 use rusqlite::{params, Connection, Result};
 
+/// Where ctrl.db actually lives: CTRL_DB env override if set (used by
+/// sandbox.bat), otherwise next to the exe (portable). Single source of
+/// truth shared by lib.rs's startup and commands::misc::open_db_folder,
+/// so "open the DB's folder" can't silently drift from where it's really opened.
+pub fn resolve_path() -> std::path::PathBuf {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+        .unwrap_or_else(|| std::path::PathBuf::from("."));
+    std::env::var("CTRL_DB")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| exe_dir.join("ctrl.db"))
+}
+
 /// Has this seed batch already run at least once (ever, including on a version
 /// that predates app_meta — see the two call sites for the upgrade-safe check)?
 fn was_seeded(conn: &Connection, key: &str) -> bool {

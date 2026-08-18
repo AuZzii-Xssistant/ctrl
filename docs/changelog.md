@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — "Open DB location" was silently opening the wrong folder
+
+Both Settings buttons ("Open data folder" / "Open DB location") called the same `open_data_folder` command, which always opens the exe's folder regardless of `CTRL_DB` (the env var `sandbox.bat` uses to redirect the database). Added `db::resolve_path()`, shared by startup and a new `open_db_folder` command, so the DB-location button actually opens where the DB really is.
+
 ## 2026-08-18 — Close-preference reset added to Settings
 
 The "remember my choice" checkbox on the tray-vs-quit close modal had no way to undo once checked — exactly the kind of silent, un-discoverable behavior the modal itself was built to fix. Added Settings → Behavior → "Ask again when closing the window", clears the `ctrl_close_action` localStorage key.
