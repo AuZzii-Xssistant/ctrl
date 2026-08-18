@@ -67,8 +67,6 @@ const _paneLoaders = {
   env:      ()  => import('./modules/env.js').then(m => m.load()),
   snippets: ()  => import('./modules/snippets.js').then(m => m.load()),
   compare:   ()  => import('./modules/compare.js').then(m => m.load()),
-  profiles:  ()  => import('./modules/profiles.js').then(m => m.load()),
-  watchers:  ()  => import('./modules/watchers.js').then(m => m.load()),
   history:   ()  => import('./modules/history.js').then(m => m.load()),
   changelog: ()  => import('./modules/changelog.js').then(m => m.load()),
   settings:  ()  => import('./modules/settings.js').then(m => m.load()),
@@ -812,6 +810,9 @@ export function paneHeader(icon, title, btnLabel, btnFn, searchId, note) {
 }
 
 // ── Active System Profile chip ──────────────────────────────────────────────
+// Profiles' full nav page was pulled (see docs/ROADMAP.md) — this chip is now
+// display-only (no page to click through to) until a quick-switcher overlay
+// replaces it. src/modules/profiles.js and the Rust backend are untouched.
 window._refreshActiveProfileChip = async () => {
   const chip = document.getElementById('active-profile-chip');
   const name = document.getElementById('active-profile-name');
@@ -820,7 +821,6 @@ window._refreshActiveProfileChip = async () => {
   if (active) { name.textContent = active.name; chip.style.display = 'flex'; }
   else { chip.style.display = 'none'; }
 };
-document.getElementById('active-profile-chip')?.addEventListener('click', () => goPane('profiles'));
 
 // ── Init ────────────────────────────────────────────────────────────────────
 _paneLoaders['dash']();

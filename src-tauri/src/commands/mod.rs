@@ -15,6 +15,5 @@ pub mod terminal;
 pub mod tools;
 pub mod tray;
 pub mod tweaks;
-pub mod watchers;
 pub mod window;
 pub mod workflows;

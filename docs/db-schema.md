@@ -282,21 +282,19 @@ Single-row table (`id` fixed at 1) tracking which profile is currently active �
 | `active_profile_id` | INTEGER | NULL when no profile is active |
 | `active_since` | TEXT | ISO 8601 timestamp, NULL when inactive |
 
-## `watchers`
+## `watchers` (unused — feature removed 2026-08-18)
 
-Roadmap item 4 — polls system state every ~30s (`watchers.rs::start_watcher_scheduler`) and fires a toast or a workflow on the ok→alert transition.
+Schema kept for the additive-migrations-only convention; `commands/watchers.rs` and its scheduler were deleted, nothing reads or writes this table anymore. See `docs/known-issues.md` and `docs/ROADMAP.md` item 4.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK | |
 | `name` | TEXT | |
-| `condition_type` | TEXT | `disk_below` \| `process_down` \| `cpu_sustained` |
-| `condition_config` | TEXT | JSON, shape depends on `condition_type` — see `docs/api.md` |
-| `action` | TEXT | `notify` or `workflow:<id>` |
+| `condition_type` | TEXT | was `disk_below` \| `process_down` \| `cpu_sustained` |
+| `condition_config` | TEXT | JSON, shape depended on `condition_type` |
+| `action` | TEXT | was `notify` or `workflow:<id>` |
 | `enabled` | INTEGER | 0/1 |
-| `last_checked` | TEXT | Updated every poll, NULL until first check |
-| `last_state` | TEXT | `ok` \| `alert` — used to only fire on the transition, not every poll |
-| `last_triggered_at` | TEXT | Updated only when the action actually fires |
+| `last_checked` | TEXT | |
+| `last_state` | TEXT | `ok` \| `alert` |
+| `last_triggered_at` | TEXT | |
 | `created_at` | TEXT | |
-
-No rolling-window table for `cpu_sustained` — the consecutive-over-threshold streak is kept in an in-memory `HashMap<watcher_id, u32>` (`watchers.rs::cpu_streaks`), not persisted. Resets on app restart.

@@ -71,8 +71,6 @@ pub fn run() {
             }
             // Start workflow scheduler (startup triggers + schedule polling)
             commands::workflows::start_workflow_scheduler(app.handle().clone());
-            // Start watcher scheduler (system-state polling every 30s)
-            commands::watchers::start_watcher_scheduler(app.handle().clone());
             // Clean up stale temp files from previous sessions
             if let Ok(tmp) = std::fs::read_dir(std::env::temp_dir()) {
                 for entry in tmp.flatten() {
@@ -199,11 +197,6 @@ pub fn run() {
             commands::profiles::get_active_profile,
             commands::profiles::activate_profile,
             commands::profiles::restore_previous,
-            commands::watchers::get_watchers,
-            commands::watchers::add_watcher,
-            commands::watchers::update_watcher,
-            commands::watchers::delete_watcher,
-            commands::watchers::toggle_watcher,
         ])
         .run(tauri::generate_context!())
         .expect("error while running CTRL");

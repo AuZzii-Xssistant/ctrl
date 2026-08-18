@@ -236,8 +236,7 @@ async fn run_step_notify(app: &tauri::AppHandle, step: &Step) -> Result<(bool, S
 }
 
 /// Fire a Windows toast via the shell — the one notification mechanism in CTRL,
-/// shared by workflow "notify" steps and watchers (Roadmap item 4). No new
-/// notification plugin needed, this already works.
+/// used by workflow "notify" steps.
 pub async fn send_toast(app: &tauri::AppHandle, title: &str, body: &str) -> Result<(), String> {
     let ps = format!(
         r#"$null=[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime];

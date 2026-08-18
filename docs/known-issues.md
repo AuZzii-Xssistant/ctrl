@@ -13,6 +13,12 @@
 
 ## Active
 
+### Watchers removed (2026-08-18)
+The Watchers feature (roadmap item 4 — disk/process/CPU polling, tray toast or workflow trigger on alert) was pulled entirely: nav page, `watchers.js`, `commands/watchers.rs`, and its scheduler. Product decision — a dedicated page for so little functionality didn't earn its keep; the plan is to fold equivalent conditions into Workflows later instead of maintaining a separate feature. The `watchers` DB table stays in the schema (unused, harmless) since migrations here are additive-only, never destructive.
+
+### Profiles — full nav page removed, backend/modal kept dormant (2026-08-18)
+The Profiles nav page (list, create/edit CRUD) was pulled — too much page for what it did. `src/modules/profiles.js` and the full Rust backend (`commands/profiles.rs`: CRUD, `activate_profile`, `restore_previous`) are untouched and still work, just not reachable from the UI right now. The topbar active-profile chip is now display-only (its click handler, which used to navigate to the removed page, was removed too — it would have thrown trying to activate a pane that no longer exists). Plan: replace with a lightweight quick-switcher overlay off the chip, or pre-shipped profile *scripts* (Gaming/Work/Personal) that don't need a dedicated page at all — not decided yet, deliberately not built this pass. The three Profile limitation entries above (audio endpoint, refresh rate, Restore Previous app-relaunch) still apply whenever this is wired back up.
+
 ### Builder — Autounattend output is unverified against real install media
 `export_autounattend` generates a Windows `unattend.xml` answer file, ported line-for-line from WinScript's own template. The XML structure, escaping, and PowerShell blocks were traced by hand against WinScript's `unattend.js` and are believed correct, but this dev environment has no way to actually boot a VM or USB from generated install media — the output has never been tested on a real Windows setup. Treat it as experimental until confirmed working on real install media.
 
@@ -21,12 +27,6 @@ Windows has no built-in cmdlet to change the default playback device. The `audio
 
 ### Profiles — refresh rate switching is unverified and best-effort
 No built-in PowerShell cmdlet changes display refresh rate either. The `refresh_rate` item uses an inline `Add-Type` P/Invoke call to `ChangeDisplaySettings`, wrapped in try/catch so a failure can't break the rest of activation — but this was written and reviewed, never run against real display hardware (this dev environment can't run the Tauri app or touch a real Windows session). Treat it as experimental until confirmed working on a real machine.
-
-### Watchers — cpu_sustained streak resets on app restart
-The consecutive-over-threshold counter behind `cpu_sustained` is in-memory only (`watchers.rs::cpu_streaks`), not a DB table — restarting >_ CTRL mid-streak drops the count back to 0, so a sustained-CPU alert that was 4 of 5 minutes in has to start over. Deliberate scope cut per the roadmap ("keep it the simplest thing that works, not a new DB table") — an app restart losing a few minutes of streak progress isn't worth a schema addition.
-
-### Watchers — unverified end-to-end
-Same limitation as System Profiles: this dev environment can't run the Tauri app or a live Windows session. `cargo check`/`cargo clippy` are clean and the poll loop/PowerShell follow the exact patterns of the already-shipped, presumably-working workflow scheduler and notify step — but the watcher scheduler, the toast firing, and `Get-Process`-based `process_down` detection were never executed against a real machine.
 
 ### Profiles — killed apps aren't relaunched on Restore Previous
 The snapshot only remembers process names for apps the profile *itself started* (so it can stop them on revert) — apps the profile killed have no stored launch path, so restore can't bring them back automatically. Deliberate scope cut, documented rather than silently missing. Process names are derived from `start_apps` item file paths (executable stem) rather than from `Start-Process -PassThru` output, since the apply step runs elevated and its stdout is not captured back into Rust.

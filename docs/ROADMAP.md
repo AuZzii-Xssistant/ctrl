@@ -22,7 +22,9 @@ Files touched: `src-tauri/src/commands/tray.rs` (new), `src-tauri/src/commands/d
 
 **Not done**: the hotkey combo isn't user-configurable yet (hardcoded `Ctrl+Shift+Space`) — a Settings toggle for this is a small follow-up, not blocking anything else on this roadmap.
 
-## ✅ 3. System Profiles (done, this branch)
+## 🟡 3. System Profiles (backend built, nav page pulled — 2026-08-18)
+
+**Update:** the full CRUD nav page below shipped, then was removed as a product decision — too much page for what it did. `commands/profiles.rs` and `src/modules/profiles.js` are untouched and functional, just not reachable from the UI. See `docs/known-issues.md` for the current plan (quick-switcher overlay off the topbar chip, or pre-shipped profile scripts, neither built yet).
 
 Named machine-state presets (Work/Gaming/Streaming/Presentation): power plan, background apps to kill/start, DNS server, audio endpoint, display refresh rate, optional custom PowerShell block. Activating snapshots current values first (fresh every time, never reused stale) so Restore Previous is always safe.
 
@@ -35,18 +37,9 @@ Files touched: `src-tauri/src/db.rs` (`profiles`/`profile_items`/`profile_snapsh
 
 **Not verified**: this session cannot run the Tauri dev server or a real Windows session, so the `powercfg`/`netsh`/`Get-DnsClientServerAddress`/P-Invoke refresh-rate/`AudioDeviceCmdlets` PowerShell was written against documented behavior and reviewed carefully, but never executed against a live machine. Compiles clean, `cargo clippy` clean — the untested part is the PowerShell content itself, not the Rust wiring around it.
 
-## ✅ 4. Watchers → real alerting (done, this branch)
+## ❌ 4. Watchers → real alerting (built, then removed — 2026-08-18)
 
-New `watchers` table + background poll loop (mirrors `workflows.rs::start_workflow_scheduler`) checking every 30s, plus a Watchers nav page (list, add/edit/delete, enable toggle, last-triggered timestamp).
-
-- 3 condition types only, as scoped: `disk_below` (drive + free % threshold, reuses `get_perf_stats`), `process_down` (named process via `Get-Process`), `cpu_sustained` (% threshold sustained for N minutes, reuses `get_perf_stats`).
-- No new notification dependency — reused the existing toast mechanism from `workflows.rs::run_step_notify`, pulled out into a shared `send_toast()`.
-- Only fires on the ok→alert transition (`last_state` persisted per watcher) so a persisting condition doesn't renotify every 30s.
-- `cpu_sustained`'s rolling window is an in-memory per-watcher counter (`watchers.rs::cpu_streaks`, a `HashMap<i64,u32>` behind `OnceLock`), not a new DB table — resets on app restart, documented trade-off.
-
-Files touched: `src-tauri/src/db.rs` (`watchers` table), `src-tauri/src/commands/watchers.rs` (new), `src-tauri/src/commands/workflows.rs` (`send_toast` extracted for reuse), `src-tauri/src/commands/mod.rs`, `src-tauri/src/lib.rs` (command registration, scheduler start), `src/modules/watchers.js` (new), `src/index.html` (nav button + pane), `src/app.js` (pane loader wiring), `docs/api.md`, `docs/db-schema.md`, `README.md`.
-
-**Not verified**: this session cannot run the Tauri dev server or a live Windows session — the PowerShell (`Get-Process`, the toast notifier) and the poll loop compile clean and follow the exact patterns of the already-shipped workflow scheduler and workflow notify step, but were never executed end-to-end. See `docs/known-issues.md`.
+Built as scoped (3 condition types, background poll loop, nav page), then pulled entirely as a product decision: a dedicated page for so little functionality didn't earn its keep. `send_toast()` (extracted from `workflows.rs::run_step_notify` for shared use) stayed since workflows still uses it. The `watchers` DB table stays in the schema, unused. Plan: fold equivalent conditions into Workflows later instead of maintaining a separate feature — not scoped yet.
 
 ## ✅ 5. Real history page (done, this branch)
 
