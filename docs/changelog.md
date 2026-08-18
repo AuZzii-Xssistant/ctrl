@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Documented a CLI arg-parsing edge case (not fixed)
+
+`ctrl-cli`'s `parse_flags()` distinguishes `--flag value` from boolean-only flags (`--admin`, `--pause`) by peeking at whether the next token starts with `--`. A value that itself starts with `--` (e.g. a `--cmd` containing another tool's own double-dash flags) misparses. Documented in `docs/known-issues.md` rather than rewritten — narrow edge case, and no way to test the CLI live in this environment to verify a fix.
+
 ## 2026-08-18 — Fixed a double-backtick markdown typo in api.md
 
 Found via a full registered-commands-vs-documented diff: `` ``activate_profile` `` had a stray extra backtick, breaking the table cell's markdown rendering. Swept the rest of docs/*.md and README.md for the same pattern — no other instances.

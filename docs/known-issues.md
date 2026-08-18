@@ -2,7 +2,7 @@
 
 ## CLI / GUI parity (audited 2026-08-17)
 
-`ctrl-cli.exe` was checked line-by-line against the current schema and the GUI's feature set. Table names and columns it touches are all correct — `custom_tweaks`, `backup_jobs`, `scripts`, `fixes`, `tools`, `snippets`, `projects`, `workflows` all match `db-schema.md`. One real bug found and fixed, one small gap closed, several capability gaps documented (not bugs — the CLI was never meant to be full parity, but they weren't written down anywhere before):
+`ctrl-cli.exe` was checked line-by-line against the current schema and the GUI's feature set. Table names and columns it touches are all correct — `custom_tweaks`, `backup_jobs`, `scripts`, `fixes`, `tools`, `snippets`, `projects`, `workflows` all match `db-schema.md`. Real bugs found and fixed, a capability gap closed, and several deliberate limitations documented (not bugs — the CLI was never meant to be full parity, but they weren't written down anywhere before) — plus one narrow parsing edge case found later and documented rather than risked without live testing:
 
 - **✅ Fixed: `add workflow --steps JSON` was documented but not implemented.** The top-of-file usage comment advertised it; the actual `add_workflow()` function ignored any `--steps` flag and always inserted `'[]'`. Now reads and JSON-validates it.
 - **✅ Fixed: `add script` had no way to set the "Pause Script" flag.** Added `--pause`, mapping to the same `scripts.interactive` column the app's edit modal uses.
@@ -10,6 +10,7 @@
 - **No CLI access to**: Dashboard pins (`pinned` table), Environment Variables, Quick Launch items (`ql_items`), external Apps (`external_apps`), or run history (`run_log`). All GUI-only.
 - **`update <table> --id N --field value` blindly patches any column name** via `format!("UPDATE {table} SET {key}=?1 ...")` — this is a deliberate escape hatch (lets you set `run_as_admin`, `interactive`, `master_disabled`, etc. even without a dedicated flag), not a bug. No injection risk in practice: it's a local single-user CLI, not a network-facing service, and the *values* are parameterized — only the column name is interpolated, and a bad column name just fails the query rather than executing arbitrary SQL.
 - **`update_field()`'s `_name_col` parameter is unused (dead code)** — passed by every call site (`update_field(&conn, "scripts", "name", &flags)` etc.) but never read in the function body. Harmless, cosmetic. Not worth a signature change across 5 call sites for zero behavior change.
+- **`parse_flags()` misparses a value that itself starts with `--`.** It distinguishes `--flag value` from a boolean-only `--flag` by peeking at whether the next token starts with `--` — deliberate, since boolean flags (`--admin`, `--pause`, `--confirm`) need that to work without a value. But `ctrl-cli add fix --name X --cmd "docker run --rm ..."` would misparse: `--cmd` gets treated as boolean (`"true"`), and `"docker run --rm ..."` never gets attached to it, then the loop tries to parse `--rm` as its own (nonexistent, harmlessly ignored) flag. Found via code review, not fixed — narrow edge case (double-dash content in a flag *value*), and a correct fix needs a real per-flag boolean/valued distinction rather than a content heuristic; not confident enough to rewrite the parser without being able to run the CLI live in this environment.
 
 ## Active
 
