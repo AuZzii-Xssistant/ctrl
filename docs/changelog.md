@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Documented that Tweaks never log to run_log (not fixed)
+
+`run_tweak_cmd` (built-in and custom tweaks) runs the same `exec_run`/`exec_elevated` pattern Fixes use, but never writes to `run_log` — invisible in History, doesn't count in Settings' run stat. Documented rather than fixed: a real scope decision (History doesn't even list `tweak` as a filterable type), not an obvious bug to blind-fix.
+
 ## 2026-08-18 — Fixed Profile export/import silently dropping "Pause Script"
 
 `SsExportScript` never had an `interactive` field, and the import path's `INSERT` didn't include the column either — every script with "Pause Script" enabled lost that setting on export → import, even round-tripping on the same machine. Real data loss, not a display bug. Added the field to both sides.

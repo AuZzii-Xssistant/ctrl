@@ -14,6 +14,9 @@
 
 ## Active
 
+### Tweaks (built-in and custom) never log to run_log
+`run_tweak_cmd` runs through the same `exec_run`/`exec_elevated` pattern Fixes use and returns a real `RunResult{success, output}`, but never inserts into `run_log` — the same command Fixes/Scripts/Workflows/Backup all log through. Custom tweaks (`custom_tweaks` table, real DB rows with IDs, just like Fixes) run through this same path, so a user running a custom tweak sees no trace of it in History or in the Settings run-count stat. Not fixing blind: this changes observable app-wide surface area (History's filter dropdown doesn't even list `tweak` as a type, run counts would shift) — a real gap, but a scope decision, not obviously "broken." Flagging for a decision rather than silently changing behavior.
+
 ### ~~Exporting/importing a ScriptStash profile silently dropped "Pause Script"~~ ✅ Resolved (2026-08-18)
 `SsExportScript` (the JSON shape `ss_export_profile`/`ss_import_profile` round-trip) never had an `interactive` field at all — export never wrote it, and `ss_import_profile`'s `INSERT INTO scripts` didn't include the column either, so it always fell back to the schema default (`0`/off). Every script with "Pause Script" enabled silently lost that setting on export → import, even round-tripping on the same machine. Real data loss, not just a display bug — this is exactly the setting the project already fixed once for persistence (see the ScriptStash hardening entry below), just missed in the export/import path specifically. Added the field to the export struct (with `#[serde(default)]` so old exports without it still import cleanly, just without the setting they never captured) and the import INSERT.
 
