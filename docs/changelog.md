@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Autounattend line-ending double-CR fix
+
+`export_autounattend`'s `.replace('\n', "\r\n")` would double up any already-CRLF line into `\r\r\n`, corrupting the XML. Currently unreachable (Builder's combined script is JS-built with bare `\n`) but a real risk if that ever changes — normalizes to `\n` first now.
+
 ## 2026-08-18 — Dangling Quick Launch pins slipped through the earlier cleanup
 
 The `"ql"` branch of `resolve_item` (dashboard.rs) was the one exception to the dangling-pin cleanup fixed 2026-08-17 — it fell back to a placeholder name instead of empty, so a pin to a deleted Quick Launch item was never caught. Harmless until this session added `delete_ql_item`; now live. Fixed to fall back to empty like every other item type, matching the shared `get_pinned`/`fetch_pinned` cleanup.

@@ -32,6 +32,8 @@ The Profiles nav page (list, create/edit CRUD) was pulled — too much page for 
 ### Builder — Autounattend output is unverified against real install media
 `export_autounattend` generates a Windows `unattend.xml` answer file, ported line-for-line from WinScript's own template. The XML structure, escaping, and PowerShell blocks were traced by hand against WinScript's `unattend.js` and are believed correct, but this dev environment has no way to actually boot a VM or USB from generated install media — the output has never been tested on a real Windows setup. Treat it as experimental until confirmed working on real install media.
 
+**Fixed 2026-08-18** (found in a bug-hunt pass, not by testing): line-ending normalization was `.replace('\n', "\r\n")` alone, which would double up any line already CRLF (e.g. script content copied from a Windows file) into `\r\r\n`. Currently unreachable in practice — the Builder's combined script is JS-built with bare `\n` — but a real corruption risk if that ever changes. Now normalizes to `\n` first, then converts uniformly.
+
 ### Profiles — audio endpoint switching needs a third-party PowerShell module
 Windows has no built-in cmdlet to change the default playback device. The `audio` profile item shells out to `Set-AudioDevice` from the community `AudioDeviceCmdlets` module — if it isn't installed, the item fails with a PowerShell warning in the activation output and the rest of the profile still applies. Not a bug, not fixable without bundling a third-party module (or shipping a signed native helper), which is out of scope for this pass. Workaround: `Install-Module AudioDeviceCmdlets` once, manually, if you want this item to work.
 

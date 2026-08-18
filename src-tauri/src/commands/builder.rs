@@ -448,7 +448,11 @@ $scripts = @(
 #[tauri::command]
 pub async fn export_autounattend(app: tauri::AppHandle, script: String) -> Result<bool, String> {
     use tauri_plugin_dialog::DialogExt;
+    // Normalize to bare \n first — .replace('\n', "\r\n") alone would double up
+    // any line that's already CRLF (e.g. content copied from a Windows file)
+    // into \r\r\n, corrupting the answer file.
     let escaped = script
+        .replace("\r\n", "\n")
         .replace('\n', "\r\n")
         .replace('&', "&amp;")
         .replace('<', "&lt;")
