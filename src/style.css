@@ -575,16 +575,15 @@ details.ws-group[open] .ws-chevron { transform: rotate(180deg); }
 #builder-presets { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg2); flex-shrink: 0; flex-wrap: wrap; }
 .preset-label { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-right: 4px; }
 .preset-btn {
-  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 118px; padding: 7px 10px; flex-shrink: 0;
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
   color: var(--text); cursor: pointer; font-family: var(--sans); font-size: 12px;
   transition: border-color .12s, background .12s;
 }
 .preset-btn:hover { border-color: var(--amber); background: var(--bg4); }
 .preset-btn i { font-size: 14px; color: var(--amber); flex-shrink: 0; }
-.preset-btn div { display: flex; flex-direction: column; }
-.preset-btn strong { font-size: 12px; font-weight: 600; color: var(--text); }
-.preset-btn span { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.preset-btn strong { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Script view */
 #builder-script-view { flex: 1; display: none; flex-direction: column; overflow: hidden; }
