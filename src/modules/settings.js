@@ -27,7 +27,7 @@ export async function load() {
 
     <div class="settings-card">
       <div class="settings-app-name">&gt;_ CTRL</div>
-      <div class="settings-version">Version 0.1.0 &mdash; Local-first personal control centre</div>
+      <div class="settings-version">Version 0.1.1 &mdash; Local-first personal control centre</div>
       <div class="settings-tagline">Tauri v2 &bull; Rust &bull; SQLite &bull; Portable</div>
       ${statHtml}
     </div>
