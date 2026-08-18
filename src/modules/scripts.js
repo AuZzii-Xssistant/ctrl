@@ -1,4 +1,4 @@
-import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun } from '../app.js';
+import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun, recordStep } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -619,6 +619,7 @@ async function _runQueue(scriptIds, forceAdmin) {
     if (_stopQueue) break;
     S.progress++; _patchStatusBar();
     toast(`Running: ${s.name}`, 'info');
+    recordStep({ type: 'script', id: s.id, label: s.name });
     try {
       const r = await inv('run_script', { id: s.id, forceAdmin: forceAdmin || false });
       showOutput(r.output, r.success);

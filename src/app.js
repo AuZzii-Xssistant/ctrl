@@ -257,6 +257,13 @@ export function isRecording() { return _recording; }
 export function recordedStepCount() { return _recordedSteps.length; }
 export function startRecording() { _recording = true; _recordedSteps = []; }
 export function stopRecording() { const s = _recordedSteps; _recording = false; _recordedSteps = []; return s; }
+// For batch runs (Run Selected/Run All) that call acquireRun() once for the whole
+// queue — records one step per item without re-triggering tab-lock logic.
+export function recordStep(meta) {
+  if (_recording && meta && (meta.type === 'script' || meta.type === 'fix')) {
+    _recordedSteps.push({ step_type: meta.type, item_id: meta.id, label: meta.label });
+  }
+}
 
 // ── Run queue — per-tab locking, spawns new tab if active is busy ─────────────
 // meta = { type: 'script'|'fix', id, label } — optional, only used to append to
