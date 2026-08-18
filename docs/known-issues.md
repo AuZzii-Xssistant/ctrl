@@ -14,6 +14,9 @@
 
 ## Active
 
+### Stop button's cancel flag is global, not per-tab — can cancel the wrong run
+`RUN_CANCELLED` (`exec.rs`) is a single `static AtomicBool`, shared across every concurrent run in the app. The frontend's Stop button calls `stop_current_run` with no tab or run ID at all (`src/app.js`: `invoke('stop_current_run')`). The app explicitly supports running something in a second terminal tab while the first is still busy (a documented, intentional feature) — with two runs polling `RUN_CANCELLED.swap(false, ...)` concurrently every 150ms, whichever poll loop happens to check the flag first consumes it, resetting it back to `false` for the other. Clicking Stop on tab B's run could non-deterministically cancel tab A's unrelated run instead, leaving the one the user actually meant to stop still running. Narrow (needs 2+ concurrent elevated/PTY runs to trigger) but real. Not fixed: needs per-run cancel tokens (e.g. a `HashMap<tab_id, AtomicBool>`) touching `exec.rs`'s `run`/`run_elevated`, every caller (scripts/fixes/tweaks/workflows), and the frontend's Stop wiring to pass a target — a moderate architectural change I can't verify against real concurrent runs in this environment.
+
 ### Tweaks (built-in and custom) never log to run_log
 `run_tweak_cmd` runs through the same `exec_run`/`exec_elevated` pattern Fixes use and returns a real `RunResult{success, output}`, but never inserts into `run_log` — the same command Fixes/Scripts/Workflows/Backup all log through. Custom tweaks (`custom_tweaks` table, real DB rows with IDs, just like Fixes) run through this same path, so a user running a custom tweak sees no trace of it in History or in the Settings run-count stat. Not fixing blind: this changes observable app-wide surface area (History's filter dropdown doesn't even list `tweak` as a type, run counts would shift) — a real gap, but a scope decision, not obviously "broken." Flagging for a decision rather than silently changing behavior.
 

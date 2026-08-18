@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Documented a Stop-button race between concurrent tab runs (not fixed)
+
+`RUN_CANCELLED` is a single global flag with no tab/run targeting — with two tabs each running something (an explicitly supported feature), Stop on one could non-deterministically cancel the *other* tab's unrelated run instead, based on poll timing. Documented rather than fixed: needs per-run cancel tokens, a moderate architectural change touching every runner and the frontend's Stop wiring, not verifiable against real concurrent runs here.
+
 ## 2026-08-18 — Documented that Tweaks never log to run_log (not fixed)
 
 `run_tweak_cmd` (built-in and custom tweaks) runs the same `exec_run`/`exec_elevated` pattern Fixes use, but never writes to `run_log` — invisible in History, doesn't count in Settings' run stat. Documented rather than fixed: a real scope decision (History doesn't even list `tweak` as a filterable type), not an obvious bug to blind-fix.
