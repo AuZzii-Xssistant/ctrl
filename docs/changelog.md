@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-18 — Removed dead code: unused src/modules/terminal.js
+
+Leftover from an earlier single-terminal architecture (bare `pty-data`/`pty-exit` events, no tab scoping) — the current app uses per-tab `pty-data-{tabId}`/`pty-exit-{tabId}` events handled inline in `app.js`. Confirmed zero importers anywhere in `src/` before removing 122 lines.
+
 ## 2026-08-18 — "Open DB location" was silently opening the wrong folder
 
 Both Settings buttons ("Open data folder" / "Open DB location") called the same `open_data_folder` command, which always opens the exe's folder regardless of `CTRL_DB` (the env var `sandbox.bat` uses to redirect the database). Added `db::resolve_path()`, shared by startup and a new `open_db_folder` command, so the DB-location button actually opens where the DB really is.
