@@ -128,9 +128,10 @@ pub async fn launch_tool(
     };
 
     if run_as_admin {
+        let esc_path = path.replace('\'', "''");
         app.shell()
             .command("powershell")
-            .args(["-Command", &format!("Start-Process '{}' -Verb RunAs", path)])
+            .args(["-Command", &format!("Start-Process '{}' -Verb RunAs", esc_path)])
             .spawn()
             .map_err(|e| e.to_string())?;
     } else {

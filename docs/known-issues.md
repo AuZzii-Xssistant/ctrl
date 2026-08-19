@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Tools — elevated launch could break on a path containing a single quote~~ ✅ Resolved (2026-08-19)
+`launch_tool`'s `run_as_admin` branch spliced the tool's saved `path` directly into a single-quoted PowerShell `Start-Process '{path}' -Verb RunAs` string with no escaping — a path containing `'` (rare on Windows, but the path field is free-text with no validation) would break the quoting and could misparse the command. Same bug class already fixed in `profiles.rs`'s `refresh_rate` handler and already escaped everywhere in `exec.rs` (`esc_ps_path`). Fixed by escaping `'` → `''` before interpolation, matching the established pattern.
+
 ### ~~CLI-added projects without --status became invisible in the Projects page~~ ✅ Resolved (2026-08-19)
 `ctrl-cli add project` defaulted `--status` to `"active"` — not one of the app's 6 valid statuses (`idea`/`prototype`/`working`/`stable`/`deprecated`/`replaced`, see README's "Valid project statuses"). `projects.js`'s render loop only ever iterates the known `STATUS_ORDER` list, so a project grouped under an unrecognized status was silently never rendered at all — it existed in the DB, `get_projects` returned it, but the Projects page just never showed it. Two fixes: the CLI default is now `idea` (matching the DB schema's own default), and — since `ctrl-cli update project --status <anything>` still has zero validation and could reintroduce this — the frontend now also renders any unrecognized status group under its own label instead of silently dropping it, so this class of bug can't recur from any future code path either.
 

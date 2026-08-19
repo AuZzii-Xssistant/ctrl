@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Tools elevated launch unescaped PowerShell path (real bug)
+
+`launch_tool`'s `run_as_admin` branch spliced a tool's saved path unescaped into a single-quoted PowerShell string. A path with an embedded `'` would break quoting. Fixed by escaping, matching the pattern already used in `exec.rs`/`profiles.rs`.
+
 ## 2026-08-19 — known-issues.md's global search note said 4 categories, actually 8
 
 `global_search` grew from 4 categories to 8 (added workflows/snippets/quick_launch/apps) since this entry was written, but the note still said "tools/scripts/fixes/projects." Corrected. Checked the adjacent "Run As Admin" and "schedule trigger drift" entries too — both still accurate, no changes needed.
