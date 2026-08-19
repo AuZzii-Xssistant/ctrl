@@ -186,3 +186,11 @@ Copy both to your portable >_ CTRL folder alongside `ctrl.db`.
 | [`docs/known-issues.md`](docs/known-issues.md) | Known limitations and workarounds |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Proposed power-user features, ranked by leverage |
 | [`docs/superpowers/specs/2026-08-13-ctrl-shell-design.md`](docs/superpowers/specs/2026-08-13-ctrl-shell-design.md) | Original v1 design spec (historical) |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Dev setup, code style, PR expectations |
+| [`SECURITY.md`](SECURITY.md) | Vulnerability reporting, what's in/out of scope |
+
+---
+
+## License
+
+>_ CTRL is licensed under the [GNU General Public License v3.0](LICENSE).

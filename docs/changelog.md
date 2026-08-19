@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Added SECURITY.md, CONTRIBUTING.md, README License section
+
+Documentation-completeness pass: README had a `LICENSE` file (GPLv3) but never mentioned it — added a License section. Added `SECURITY.md` (vulnerability reporting, explicit in/out-of-scope given this app runs elevated system commands) and `CONTRIBUTING.md` (dev setup, code style, PR expectations) since neither existed and the repo is heading public. Both linked from README's Docs table. Skipped `CODE_OF_CONDUCT.md` — bureaucratic overhead for a small personal-tool repo, not a real gap.
+
 ## 2026-08-19 — Fixed a dormant Profiles bug: bad refresh_rate could break the whole activation
 
 `build_activate_script`'s `refresh_rate` handler spliced the saved value directly as a bare unquoted PowerShell token — its own `try`/`catch` can't catch a parse error, so a non-numeric value (the field is free-text, unvalidated) would fail the entire activation script, not just that one item. Currently unreachable (Profiles' nav page is removed, backend kept dormant), but fixed since the backend is intact and could be reactivated. Now validates as `u32` before emitting the block.
