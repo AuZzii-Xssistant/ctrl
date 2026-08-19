@@ -250,7 +250,10 @@ fn add_project(conn: &Connection, flags: HashMap<String, String>) {
     let name = require(&flags, "name");
     let path = get(&flags, "path", "");
     let kind = get(&flags, "type", "other");
-    let status = get(&flags, "status", "active");
+    // "active" was never a valid status (see README's enumerated list / projects.js's
+    // STATUS_ORDER) -- a project added without --status silently became invisible in
+    // the GUI, since the render loop only walks the known status groups.
+    let status = get(&flags, "status", "idea");
     let tags = get(&flags, "tags", "");
     let notes = get(&flags, "notes", "");
     conn.execute(

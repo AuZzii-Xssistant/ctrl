@@ -26,7 +26,13 @@ function _render(el, projects) {
   if (!projects.length) {
     html = emptyState('ti-archive', 'No projects tracked yet.', '+ Add Project', 'window._showProjectModal(null)');
   } else {
-    for (const status of STATUS_ORDER) {
+    // Any status not in STATUS_ORDER (e.g. from `ctrl-cli update project --status
+    // <anything>`, which has no validation) used to just vanish from this page --
+    // the render loop only ever walked the known list. Render those too, under
+    // whatever label they actually have, instead of silently hiding them.
+    const knownStatuses = new Set(STATUS_ORDER);
+    const orderedStatuses = [...STATUS_ORDER, ...Object.keys(groups).filter(s => !knownStatuses.has(s))];
+    for (const status of orderedStatuses) {
       const items = groups[status];
       if (!items?.length) continue;
       html += sectionHdr(status, items.length) + '<div class="row-list">';

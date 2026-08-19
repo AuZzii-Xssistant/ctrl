@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — CLI-added projects without --status vanished from the Projects page
+
+Found while checking README's CLI docs against `ctrl_cli.rs`: `add project`'s `--status` default was `"active"`, not one of the app's 6 valid statuses. `projects.js`'s render loop only ever walks the known status list, so an unrecognized-status project just silently never appeared — no error, no indication anything was wrong, it just wasn't there. Fixed the CLI default to `idea` (matching the DB schema's own default), and made the frontend render any unrecognized status under its own label too, since `update project --status` still has no validation and could reintroduce the same class of bug.
+
 ## 2026-08-19 — api.md's CustomTweak type claimed a field that isn't returned
 
 `sort_order` exists as a DB column (used only in `ORDER BY`) but the `CustomTweak` struct never selects or returns it — the doc claimed it was part of the response shape. Fixed. Spot-checked `Snippet`/`BackupJob`/`PinnedItem`/`SysInfo`/`ShellInfo` against their structs too — all accurate, no further fixes needed.
