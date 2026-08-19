@@ -56,7 +56,7 @@ Hand-writing workflow steps via the JSON-step UI had real friction. A Record tog
 
 - Pulsing red-dot badge + live step count while recording (`.wf-rec-row`/`.rec-dot`, reuses the existing `out-pulse` keyframe from the output drawer's new-activity dot).
 - Only `script`/`fix` type runs are recorded, matching what `run_workflow`'s `Step` struct actually executes — no `notify`/`wait` steps get synthesized.
-- Workflow runs, tweak runs, and script/fix **queue** runs (`_runQueue` in `scripts.js`, one `acquireRun` call wrapping N items) are not individually captured — documented limitation, not a bug.
+- Workflow runs and tweak runs are not individually captured. Script/fix **queue** runs (`_runQueue` in `scripts.js`, Run Selected/Run All) originally weren't either — that was a real bug (a multi-script recording session produced an empty workflow with no error), fixed the same day via a `recordStep()` export called per item in the queue loop, without re-triggering `acquireRun`'s tab-lock logic.
 
 Files touched: `src/app.js` (`acquireRun` optional `meta` arg, `isRecording`/`startRecording`/`stopRecording`/`recordedStepCount`), `src/modules/workflows.js` (`_recRowHtml`, `window._toggleRecording`), `src/modules/scripts.js` (`_runOne` passes `meta`), `src/modules/fixes.js` (`_run` passes `meta`), `src/style.css` (`.wf-rec-row`, `.rec-dot`), `README.md`.
 
