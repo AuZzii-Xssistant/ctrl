@@ -142,6 +142,8 @@ ctrl-cli --db "E:\CTRL\ctrl.db" list projects
 | `update script` | `--id` | any column name to patch (see `docs/db-schema.md`'s `scripts` table for what's settable) |
 | `update fix` | `--id` | any column name to patch |
 | `update tweak` | `--id` | any column name to patch |
+| `update tool` | `--id` | any column name to patch |
+| `update snippet` | `--id` | any column name to patch |
 
 `add script` also takes `--pause` (sets the "Pause Script" flag — the terminal holds open at the end instead of closing immediately).
 
