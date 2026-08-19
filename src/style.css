@@ -490,10 +490,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   flex-shrink: 0;
 }
 .bab-logo {
-  width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-weight: 700; font-size: 20px; letter-spacing: 0.5px; color: #fff;
-  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  width: 64px; height: 64px; object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3));
 }
 .bab-hero h1 { margin: 0; font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
 .bab-tagline { margin: 0; font-size: 13px; color: rgba(255,255,255,0.85); max-width: 420px; }
