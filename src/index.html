@@ -82,7 +82,11 @@
         <div id="builder-nav">
           <div id="builder-nav-items"></div>
           <div class="bnav-spacer"></div>
-          <a class="bnav-source-pill" id="builder-source-pill" title="Builder is a ported sub-module — open the original WinScript source on GitHub">
+          <button class="bnav-item" id="builder-about-tab" data-tab="__about__">
+            <i class="ti ti-info-circle"></i>
+            <span class="bnav-label">About</span>
+          </button>
+          <a class="bnav-source-pill" id="builder-source-pill" title="Builder is an imported sub-module of WinScript — click to find the original project on GitHub">
             <i class="ti ti-brand-github"></i>
             <span>WinScript</span>
           </a>
@@ -99,6 +103,22 @@
             <button class="clear-tab-btn" id="builder-clear-tab" title="Clear All"><i class="ti ti-x"></i> Clear All</button>
           </div>
           <div id="builder-toggles"></div>
+          <div id="builder-about-view">
+            <div class="bab-inner">
+              <h2><i class="ti ti-wand"></i> Builder</h2>
+              <p>Builder is an imported sub-module of <strong>WinScript</strong> — working state, ported into &gt;_ CTRL rather than designed for it from scratch. The category toggles, presets, and script generation you see here all trace back to that project.</p>
+              <p>Because it's an import, behaviour can drift from the original over time: &gt;_ CTRL may add, change, or fix things WinScript doesn't have (or vice versa) as each project evolves on its own.</p>
+              <div class="bab-links">
+                <a class="bab-pill" id="bab-github" title="Open the WinScript repo on GitHub">
+                  <i class="ti ti-brand-github"></i> WinScript on GitHub
+                </a>
+                <a class="bab-pill" id="bab-kofi" title="Support the WinScript developer">
+                  <i class="ti ti-coffee"></i> Support on Ko-fi
+                </a>
+              </div>
+              <p class="bab-footer">You don't need the standalone WinScript app to use Builder — everything here runs in &gt;_ CTRL, just head to <strong>Run Script</strong> below to build and run a script. But if Builder's been useful to you, consider stopping by WinScript's page to support the developer who originally built it.</p>
+            </div>
+          </div>
           <div id="builder-script-view">
             <div id="builder-presets">
               <span class="preset-label">Presets</span>

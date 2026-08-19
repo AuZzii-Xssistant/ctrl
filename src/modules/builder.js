@@ -55,6 +55,11 @@ function _wsIcon(iconPath) {
 // ── Load ─────────────────────────────────────────────────────────────────────
 document.getElementById('builder-source-pill')?.addEventListener('click', () =>
   inv('open_path', { path: 'https://github.com/flick9000/winscript' }));
+document.getElementById('bab-github')?.addEventListener('click', () =>
+  inv('open_path', { path: 'https://github.com/flick9000/winscript' }));
+document.getElementById('bab-kofi')?.addEventListener('click', () =>
+  inv('open_path', { path: 'https://ko-fi.com/flick9000' }));
+document.getElementById('builder-about-tab')?.addEventListener('click', () => _setTab('__about__'));
 
 export async function load() {
   try {
@@ -118,17 +123,27 @@ function _setTab(tabId) {
   _activeTab = tabId;
   const togglesEl = document.getElementById('builder-toggles');
   const scriptEl = document.getElementById('builder-script-view');
+  const aboutEl = document.getElementById('builder-about-view');
   const catHdr = document.getElementById('builder-cat-header');
+
+  document.getElementById('builder-about-tab')?.classList.toggle('active', tabId === '__about__');
 
   if (tabId === '__run__') {
     togglesEl.style.display = 'none';
     catHdr.style.display = 'none';
+    aboutEl.classList.remove('active');
     scriptEl.classList.add('active');
     _rebuildPreview();
+  } else if (tabId === '__about__') {
+    togglesEl.style.display = 'none';
+    catHdr.style.display = 'none';
+    scriptEl.classList.remove('active');
+    aboutEl.classList.add('active');
   } else {
     togglesEl.style.display = '';
     catHdr.style.display = '';
     scriptEl.classList.remove('active');
+    aboutEl.classList.remove('active');
 
     if (tabId === 'apps' && _appsCat) {
       document.getElementById('builder-cat-title').textContent = _appsCat.label;

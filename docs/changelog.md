@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Builder gets an About panel, source pill refined
+
+Follow-up to the source-pill feedback round: the pill is now less rounded and has a gap before the Run Script button instead of touching it, plus a fuller hover tooltip. Added an "About" nav entry above the pill — opens a readme-style panel (same pattern as the Run Script special view) explaining Builder is an imported WinScript sub-module, that behaviour can drift from the original over time, links to WinScript's GitHub and Ko-fi, and a closing note that Builder works standalone in >_ CTRL (no need for the WinScript app) but the original dev is worth supporting if it's been useful.
+
 ## 2026-08-20 — Builder credits WinScript with a source pill
 
 Requested by the WinScript dev via feedback. Added a small pill above the "Run Script" nav button in Builder — GitHub icon + "WinScript" — linking to https://github.com/flick9000/winscript, the project Builder was ported from. Uses the same `open_path` external-link pattern as the existing bug-report/ko-fi buttons in app.js.

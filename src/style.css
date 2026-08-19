@@ -473,12 +473,27 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .bnav-run:hover { color: var(--amber); }
 .bnav-source-pill {
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  margin: 8px 10px 0; padding: 5px 0; border-radius: 12px;
+  margin: 4px 10px 10px; padding: 5px 0; border-radius: 5px;
   background: var(--bg3); border: 1px solid var(--border2); color: var(--text3);
   font-size: 11px; text-decoration: none; cursor: pointer; transition: background 0.1s, color 0.1s;
 }
 .bnav-source-pill:hover { background: var(--border); color: var(--text); }
 .bnav-source-pill i { font-size: 13px; }
+#builder-about-tab { margin-top: 6px; }
+#builder-about-view { flex: 1; display: none; flex-direction: column; overflow-y: auto; }
+#builder-about-view.active { display: flex; }
+.bab-inner { max-width: 560px; margin: 0 auto; padding: 32px 24px; }
+.bab-inner h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; color: var(--text); margin: 0 0 14px; }
+.bab-inner p { font-size: 12.5px; line-height: 1.6; color: var(--text2); margin: 0 0 14px; }
+.bab-links { display: flex; gap: 10px; margin: 4px 0 18px; }
+.bab-pill {
+  display: flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 5px;
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text2);
+  font-size: 12px; font-weight: 600; text-decoration: none; cursor: pointer; transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.bab-pill:hover { background: var(--border); color: var(--text); border-color: var(--amber); }
+.bab-pill i { font-size: 14px; }
+.bab-footer { color: var(--text3); border-top: 1px solid var(--border2); padding-top: 14px; }
 .bnav-empty { padding: 14px 12px; font-size: 11px; color: var(--text3); line-height: 1.7; }
 .bnav-empty code { font-family: var(--mono); color: var(--amber); font-size: 10px; display: block; margin-top: 4px; }
 #builder-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
