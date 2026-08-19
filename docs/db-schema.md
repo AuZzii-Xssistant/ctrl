@@ -3,7 +3,9 @@
 SQLite database at `ctrl.db` (next to the exe, portable).
 WAL mode enabled. All tables use `INTEGER PRIMARY KEY` autoincrement IDs unless noted.
 
-This file reflects `src-tauri/src/db.rs` as of 2026-08-18 (`create_tables()` + all `migrate_*`/`ALTER TABLE` calls run at startup, each independently idempotent).
+This file reflects `src-tauri/src/db.rs` as of 2026-08-19 (`create_tables()` + all `migrate_*`/`ALTER TABLE` calls run at startup, each independently idempotent).
+
+**A note on timestamp columns:** every `created_at`, `ran_at`, `last_run(_at)`, `captured_at`, `active_since` — any `TEXT` column holding a "when did this happen" value — is populated via SQL's `datetime('now')` unless its row explicitly says otherwise (e.g. `scripts.last_run`, which is a Unix-epoch-seconds string, not this format). `datetime('now')` produces `"YYYY-MM-DD HH:MM:SS"` — UTC, but **not** true ISO 8601 (no `T` separator, no timezone marker). `new Date()` in JS parses that exact format as *local* time, not UTC, which was a real bug (see `docs/known-issues.md`'s "Every 'X ago' timestamp..." entry) — any frontend code reading one of these columns must convert via `isoStr.replace(' ', 'T') + 'Z'` before parsing, the way `timeAgo()` in `src/app.js` now does.
 
 ---
 
@@ -30,7 +32,7 @@ Registered executables and shortcuts (Tools page).
 | `tags` | TEXT | Comma-separated |
 | `notes` | TEXT | Free-form description |
 | `run_as_admin` | INTEGER | 0/1 boolean |
-| `created_at` | TEXT | ISO 8601 timestamp |
+| `created_at` | TEXT | SQLite datetime string, UTC (see note above) |
 
 ---
 
@@ -145,7 +147,7 @@ Execution history (scripts, fixes, workflows).
 | `item_name` | TEXT | Denormalized so history survives the source item being renamed/deleted |
 | `exit_code` | INTEGER | 0 = success |
 | `output` | TEXT | Combined stdout/stderr, or a formatted multi-step summary for workflows |
-| `ran_at` | TEXT | ISO 8601 timestamp |
+| `ran_at` | TEXT | SQLite datetime string, UTC (see note above) |
 
 ---
 
@@ -243,7 +245,7 @@ Named System Profiles (Roadmap item 3) — a machine-state preset activated as a
 | `name` | TEXT | |
 | `description` | TEXT | |
 | `icon` | TEXT | Tabler icon class, default `ti-user-cog` |
-| `created_at` | TEXT | ISO 8601 timestamp |
+| `created_at` | TEXT | SQLite datetime string, UTC (see note above) |
 
 ## `profile_items`
 
@@ -263,7 +265,7 @@ One row per setting type per profile. `ON DELETE CASCADE` from `profiles`.
 - `start_apps` — newline-separated paths/commands, passed to `Start-Process`
 - `dns` — `dhcp` (reset to DHCP) or comma-separated DNS server IPs
 - `audio` — playback device name substring (best-effort — see `docs/known-issues.md`)
-- `refresh_rate` — target Hz (best-effort — see `docs/known-issues.md`)
+- `refresh_rate` — target Hz, must parse as a non-negative integer or the item is skipped with a warning at activation (best-effort even when valid — see `docs/known-issues.md`)
 - `script` — raw custom PowerShell block, runs last, elevated
 
 ## `profile_snapshots`
@@ -279,7 +281,7 @@ Pre-activation state, captured fresh on every `activate_profile` call (not reuse
 | `dns_servers` | TEXT | Comma-separated IPs, empty = was DHCP |
 | `audio_device` | TEXT | Playback device name before activation (empty if unreadable) |
 | `started_apps` | TEXT | Comma-separated process names the profile itself started, for revert-by-stopping |
-| `captured_at` | TEXT | ISO 8601 timestamp |
+| `captured_at` | TEXT | SQLite datetime string, UTC (see note above) |
 
 ## `profile_state`
 
@@ -289,7 +291,7 @@ Single-row table (`id` fixed at 1) tracking which profile is currently active �
 |---|---|---|
 | `id` | INTEGER PK | Always `1` (`CHECK (id = 1)`) |
 | `active_profile_id` | INTEGER | NULL when no profile is active |
-| `active_since` | TEXT | ISO 8601 timestamp, NULL when inactive |
+| `active_since` | TEXT | SQLite datetime string, UTC (see note above), NULL when inactive |
 
 ## `watchers` (unused — feature removed 2026-08-18)
 

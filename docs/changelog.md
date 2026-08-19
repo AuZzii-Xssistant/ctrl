@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — db-schema.md's "ISO 8601 timestamp" label was itself wrong
+
+Found while reconciling docs against the `timeAgo()` UTC-parsing fix: 5 columns were labeled "ISO 8601 timestamp," but SQLite's `datetime('now')` (what actually populates them) produces `"YYYY-MM-DD HH:MM:SS"` — UTC, but not true ISO 8601 (no `T`, no timezone marker), which is exactly the distinction that caused that bug. Replaced the per-column labels with a single explanatory note at the top of the file instead of repeating a long caveat 5 times, and generalized it to cover every timestamp-shaped column (several others had no note at all), noting the one real exception (`scripts.last_run`, Unix epoch seconds). Also refreshed `refresh_rate`'s value-format note to mention the numeric validation added this session, and bumped the file's date stamp.
+
 ## 2026-08-19 — Added SECURITY.md, CONTRIBUTING.md, README License section
 
 Documentation-completeness pass: README had a `LICENSE` file (GPLv3) but never mentioned it — added a License section. Added `SECURITY.md` (vulnerability reporting, explicit in/out-of-scope given this app runs elevated system commands) and `CONTRIBUTING.md` (dev setup, code style, PR expectations) since neither existed and the repo is heading public. Both linked from README's Docs table. Skipped `CODE_OF_CONDUCT.md` — bureaucratic overhead for a small personal-tool repo, not a real gap.
