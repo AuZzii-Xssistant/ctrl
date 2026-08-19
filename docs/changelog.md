@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — About panel redesigned, About tab is now a pill
+
+Follow-up: having a category-styled "About" button next to the pill-styled source link looked mismatched, so About is now a second pill stacked above the GitHub one (small gap, not touching). Redesigned the About panel itself as a marketing-style hero: purple gradient banner (WinScript's brand colors), a "WS" monogram badge, a big heading, larger body text — followed by the same explanation/disclaimer, GitHub + Ko-fi pills, and closing note as before.
+
 ## 2026-08-20 — Builder gets an About panel, source pill refined
 
 Follow-up to the source-pill feedback round: the pill is now less rounded and has a gap before the Run Script button instead of touching it, plus a fuller hover tooltip. Added an "About" nav entry above the pill — opens a readme-style panel (same pattern as the Run Script special view) explaining Builder is an imported WinScript sub-module, that behaviour can drift from the original over time, links to WinScript's GitHub and Ko-fi, and a closing note that Builder works standalone in >_ CTRL (no need for the WinScript app) but the original dev is worth supporting if it's been useful.

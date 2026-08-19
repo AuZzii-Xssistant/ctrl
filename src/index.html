@@ -82,9 +82,9 @@
         <div id="builder-nav">
           <div id="builder-nav-items"></div>
           <div class="bnav-spacer"></div>
-          <button class="bnav-item" id="builder-about-tab" data-tab="__about__">
+          <button class="bnav-source-pill" id="builder-about-tab" title="Builder is an imported sub-module of WinScript — click to learn more">
             <i class="ti ti-info-circle"></i>
-            <span class="bnav-label">About</span>
+            <span>About</span>
           </button>
           <a class="bnav-source-pill" id="builder-source-pill" title="Builder is an imported sub-module of WinScript — click to find the original project on GitHub">
             <i class="ti ti-brand-github"></i>
@@ -104,15 +104,19 @@
           </div>
           <div id="builder-toggles"></div>
           <div id="builder-about-view">
+            <div class="bab-hero">
+              <div class="bab-logo">WS</div>
+              <h1>Powered by WinScript</h1>
+              <p class="bab-tagline">Builder is an imported sub-module of WinScript, built into &gt;_ CTRL.</p>
+            </div>
             <div class="bab-inner">
-              <h2><i class="ti ti-wand"></i> Builder</h2>
-              <p>Builder is an imported sub-module of <strong>WinScript</strong> — working state, ported into &gt;_ CTRL rather than designed for it from scratch. The category toggles, presets, and script generation you see here all trace back to that project.</p>
-              <p>Because it's an import, behaviour can drift from the original over time: &gt;_ CTRL may add, change, or fix things WinScript doesn't have (or vice versa) as each project evolves on its own.</p>
+              <p>The category toggles, presets, and script generation you see here all trace back to <strong>WinScript</strong> — a standalone Windows debloat/privacy/tweak tool. Builder ports that engine into &gt;_ CTRL rather than reinventing it.</p>
+              <p>Because it's an import, behaviour can drift from the original over time: &gt;_ CTRL may add, change, or fix things WinScript doesn't have (or vice versa) as each project keeps evolving on its own.</p>
               <div class="bab-links">
                 <a class="bab-pill" id="bab-github" title="Open the WinScript repo on GitHub">
                   <i class="ti ti-brand-github"></i> WinScript on GitHub
                 </a>
-                <a class="bab-pill" id="bab-kofi" title="Support the WinScript developer">
+                <a class="bab-pill bab-pill-kofi" id="bab-kofi" title="Support the WinScript developer">
                   <i class="ti ti-coffee"></i> Support on Ko-fi
                 </a>
               </div>
