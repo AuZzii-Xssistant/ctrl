@@ -105,7 +105,7 @@ Extension-to-icon mapping added: `.exe` → device-desktop, `.lnk` → link, `.p
 `run_backup` stored robocopy's raw exit code (0-7 are all "success", e.g. 1 = files copied) directly in `run_log.exit_code`. Every reader of that column — `get_recent_activity`, run-history, and the per-item last-run check — treats it as a plain `exit_code = 0` success flag, so any backup that copied files (code 1+) showed up as a failed run on the Dashboard even though it succeeded. Now normalized to `0` on success, raw code preserved only on real failure (8+).
 
 ### Global search — max 5 results per category
-`global_search` hard-caps at 5 results per table (tools/scripts/fixes/projects). Enough for quick nav; not a full search engine. Expected behaviour.
+`global_search` hard-caps at 5 results per category — 8 categories now (tools/scripts/fixes/projects/workflows/snippets/quick_launch/apps), grown from the original 4 as more panes got search coverage; this note was stale. Enough for quick nav; not a full search engine. Expected behaviour.
 
 ### Pane-level filter — no cross-pane search
 The inline filter in each pane searches only that pane's data. Use `Ctrl+K` global search for cross-pane queries.

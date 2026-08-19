@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — known-issues.md's global search note said 4 categories, actually 8
+
+`global_search` grew from 4 categories to 8 (added workflows/snippets/quick_launch/apps) since this entry was written, but the note still said "tools/scripts/fixes/projects." Corrected. Checked the adjacent "Run As Admin" and "schedule trigger drift" entries too — both still accurate, no changes needed.
+
 ## 2026-08-19 — ROADMAP.md still described the macro-recorder queue bug as unfixed
 
 Item 6 claimed script/fix queue runs (Run Selected/Run All) "are not individually captured — documented limitation, not a bug," but that was actually a real bug fixed the same day via `recordStep()`. Corrected the text to describe what actually happened instead of the stale pre-fix claim.
