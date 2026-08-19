@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Scripts pane error toasts silently unstyled (real bug)
+
+`toast()` only styles `'ok'`/`'err'`/`'info'`. 6 call sites in `scripts.js` passed `'error'` — a typo — so those error toasts rendered with no red border/icon. Fixed all 6, swept for the same typo elsewhere (none found).
+
 ## 2026-08-19 — Env Variables Save button broke on an apostrophe in the var name (real bug)
 
 `_showEnvModal`'s Save button interpolated the variable name into an inline `onclick` JS string via `esc()`, which doesn't escape `'`. Switched to a plain button id + `addEventListener` closing over the value directly, matching every other modal's pattern.

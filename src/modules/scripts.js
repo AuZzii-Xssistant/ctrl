@@ -147,7 +147,7 @@ async function _addProfile() {
   const name = await _prompt('New Profile', 'Profile name:', '');
   if (!name) return;
   const p = await inv('ss_add_profile', { name }).catch(() => null);
-  if (!p) return toast('Failed to create profile', 'error');
+  if (!p) return toast('Failed to create profile', 'err');
   S.profileId = p.id;
   _reload();
 }
@@ -165,7 +165,7 @@ async function _duplicateProfile() {
   const name = await _prompt('Duplicate Profile', 'New profile name:', (cur?.name || 'Profile') + ' (copy)');
   if (!name) return;
   const newp = await inv('ss_duplicate_profile', { id: S.profileId, newName: name }).catch(() => null);
-  if (!newp) return toast('Failed to duplicate profile', 'error');
+  if (!newp) return toast('Failed to duplicate profile', 'err');
   _reload();
 }
 async function _deleteProfile() {
@@ -550,7 +550,7 @@ function _openScriptModal(s) {
 
   const save = async () => {
     const name = document.getElementById('sm-name').value.trim();
-    if (!name) { document.getElementById('sm-name').focus(); return toast('Name is required', 'error'); }
+    if (!name) { document.getElementById('sm-name').focus(); return toast('Name is required', 'err'); }
     const data = {
       name,
       type:        document.getElementById('sm-type').value,
@@ -643,15 +643,15 @@ async function _runAll(admin) {
 async function _importProfile() {
   const json = await inv('ss_import_pick_file').catch(() => null);
   if (json === null) return;
-  if (!json) return toast('Could not read file', 'error');
+  if (!json) return toast('Could not read file', 'err');
   const added = await inv('ss_import_profile', { profileId: S.profileId, json }).catch(() => -1);
-  if (added < 0) return toast('Import failed', 'error');
+  if (added < 0) return toast('Import failed', 'err');
   toast(`Imported ${added} script(s)`, 'ok');
   _reload();
 }
 async function _exportProfile() {
   const json = await inv('ss_export_profile', { profileId: S.profileId }).catch(() => null);
-  if (!json) return toast('Export failed', 'error');
+  if (!json) return toast('Export failed', 'err');
   const cur = S.profiles.find(p => p.id === S.profileId);
   const suggested = `${(cur?.name || 'master').toLowerCase().replace(/\s+/g,'_')}_export.json`;
   const ok = await inv('ss_export_pick_file', { json, suggested }).catch(() => false);

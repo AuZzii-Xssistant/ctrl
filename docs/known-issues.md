@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Scripts pane — 6 error toasts rendered with no red styling~~ ✅ Resolved (2026-08-20)
+`toast(msg, type)` only recognizes `'ok'`/`'err'`/`'info'` — the icon map and every `#toast.t-*` CSS rule are keyed on those three. Six call sites in `scripts.js` (profile create/duplicate failures, script-name-required validation, import/export failures) passed `'error'` instead of `'err'`, so those toasts silently fell back to the default info icon and got no matching CSS class at all — an error message with no red border, no error icon, easy to miss. Fixed by correcting all 6 to `'err'`. Swept the rest of the codebase for the same typo — none found elsewhere.
+
 ### ~~Environment Variables — Save button broke on a var name containing an apostrophe~~ ✅ Resolved (2026-08-19)
 The Edit/Add Variable modal's Save button used an inline `onclick="window._saveEnvVar('${esc(name)}',...)"` — `esc()` only escapes `&<>"`, not `'`, so a variable name containing a literal apostrophe closed the JS string early and broke the button (silently, or with a JS console error depending on what followed). No other modal in the codebase does this — everywhere else uses `data-*` attributes read via `addEventListener`, which this now matches: the button has a plain `id`, and the click handler closes over `v.name`/`scope` directly instead of round-tripping through an HTML attribute string.
 
