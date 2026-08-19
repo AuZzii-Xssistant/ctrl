@@ -12,6 +12,7 @@
 //   add snippet  --title TITLE --content CONTENT [--category CAT] [--tags TAGS]
 //   add backup   --name NAME --source PATH --dest PATH
 //   add workflow --name NAME --desc DESC [--steps JSON]
+//   update project|script|fix|tweak|tool|snippet --id N [--field value ...]
 //   list projects|scripts|fixes|tweaks|tools|snippets|backups|workflows
 //
 // The DB is located next to ctrl.exe by default, or override with --db.
