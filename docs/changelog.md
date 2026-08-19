@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Fixed every "X ago" timestamp being wrong for non-UTC users
+
+`timeAgo()` parsed SQLite's `datetime('now')` output (`"YYYY-MM-DD HH:MM:SS"`, UTC, no timezone marker) with a bare `new Date(isoStr)` — confirmed via direct testing that V8 parses that space-separated format as **local** time, not UTC, silently misreading every timestamp by the user's UTC offset. High impact: this is the shared function behind every "X ago" display across Backup, Fixes, History, and Workflows. Fixed by explicitly marking the string as UTC before parsing (`isoStr.replace(' ', 'T') + 'Z'`).
+
 ## 2026-08-19 — Fixed workflow weekday schedules using UTC instead of local time
 
 `check_days` computed the current weekday from UTC epoch seconds while the same trigger's time-of-day check already correctly used local time (`GetLocalTime`) — for any non-UTC user, the day-of-week could be off by one near local midnight. Fixed by reading `SYSTEMTIME.wDayOfWeek` from the same `GetLocalTime` call already being made, instead of a separate UTC-based computation. Unverified against a real non-UTC clock.

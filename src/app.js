@@ -788,9 +788,14 @@ export function scriptIcon(type) {
 }
 
 /** Time-ago helper */
+// SQLite's datetime('now') returns UTC as "YYYY-MM-DD HH:MM:SS" with no
+// timezone marker — `new Date()` on that space-separated (non-ISO) string
+// parses it as LOCAL time in V8, silently misreading every timestamp by the
+// user's UTC offset. Force it: replace the space with 'T' and append 'Z' so
+// it's unambiguously ISO 8601 UTC.
 export function timeAgo(isoStr) {
   if (!isoStr) return '';
-  const diff = Date.now() - new Date(isoStr).getTime();
+  const diff = Date.now() - new Date(isoStr.replace(' ', 'T') + 'Z').getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1)  return 'just now';
   if (m < 60) return `${m}m ago`;
