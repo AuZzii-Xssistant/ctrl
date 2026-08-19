@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Env Variables Save button broke on an apostrophe in the var name (real bug)
+
+`_showEnvModal`'s Save button interpolated the variable name into an inline `onclick` JS string via `esc()`, which doesn't escape `'`. Switched to a plain button id + `addEventListener` closing over the value directly, matching every other modal's pattern.
+
 ## 2026-08-19 — Tools elevated launch unescaped PowerShell path (real bug)
 
 `launch_tool`'s `run_as_admin` branch spliced a tool's saved path unescaped into a single-quoted PowerShell string. A path with an embedded `'` would break quoting. Fixed by escaping, matching the pattern already used in `exec.rs`/`profiles.rs`.

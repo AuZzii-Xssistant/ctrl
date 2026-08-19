@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Environment Variables — Save button broke on a var name containing an apostrophe~~ ✅ Resolved (2026-08-19)
+The Edit/Add Variable modal's Save button used an inline `onclick="window._saveEnvVar('${esc(name)}',...)"` — `esc()` only escapes `&<>"`, not `'`, so a variable name containing a literal apostrophe closed the JS string early and broke the button (silently, or with a JS console error depending on what followed). No other modal in the codebase does this — everywhere else uses `data-*` attributes read via `addEventListener`, which this now matches: the button has a plain `id`, and the click handler closes over `v.name`/`scope` directly instead of round-tripping through an HTML attribute string.
+
 ### ~~Tools — elevated launch could break on a path containing a single quote~~ ✅ Resolved (2026-08-19)
 `launch_tool`'s `run_as_admin` branch spliced the tool's saved `path` directly into a single-quoted PowerShell `Start-Process '{path}' -Verb RunAs` string with no escaping — a path containing `'` (rare on Windows, but the path field is free-text with no validation) would break the quoting and could misparse the command. Same bug class already fixed in `profiles.rs`'s `refresh_rate` handler and already escaped everywhere in `exec.rs` (`esc_ps_path`). Fixed by escaping `'` → `''` before interpolation, matching the established pattern.
 

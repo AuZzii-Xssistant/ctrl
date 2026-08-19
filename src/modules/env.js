@@ -134,8 +134,11 @@ window._showEnvModal = (v, scope = 'User') => {
     </div>
     <div class="form-actions">
       <button class="action-btn btn-ghost" onclick="window._closeEnvModal()">Cancel</button>
-      <button class="action-btn btn-primary" onclick="window._saveEnvVar(${isEdit ? `'${esc(v.name)}','${scope}'` : `null,'${scope}'`})">${isEdit ? 'Save' : 'Add'}</button>
+      <button class="action-btn btn-primary" id="ev-save-btn">${isEdit ? 'Save' : 'Add'}</button>
     </div>`);
+  document.getElementById('ev-save-btn').addEventListener('click', () => {
+    window._saveEnvVar(isEdit ? v.name : null, scope);
+  });
 };
 
 window._openPathEditor = () => inv('open_env_editor').catch(err => toast(String(err), 'err'));
