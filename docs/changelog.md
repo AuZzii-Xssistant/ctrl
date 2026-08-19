@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Fixed History's date filter being shifted by UTC offset
+
+Same root cause as the `timeAgo()` fix, query side: appended local date-picker values straight onto a string compared against UTC-stored `ran_at`. Fixed by converting through JS's local-aware `Date` constructor before formatting to match `ran_at`'s UTC string format.
+
 ## 2026-08-19 — Fixed every "X ago" timestamp being wrong for non-UTC users
 
 `timeAgo()` parsed SQLite's `datetime('now')` output (`"YYYY-MM-DD HH:MM:SS"`, UTC, no timezone marker) with a bare `new Date(isoStr)` — confirmed via direct testing that V8 parses that space-separated format as **local** time, not UTC, silently misreading every timestamp by the user's UTC offset. High impact: this is the shared function behind every "X ago" display across Backup, Fixes, History, and Workflows. Fixed by explicitly marking the string as UTC before parsing (`isoStr.replace(' ', 'T') + 'Z'`).

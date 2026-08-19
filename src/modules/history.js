@@ -4,6 +4,17 @@ const TYPE_ICON = { tool: 'ti-tool', script: 'ti-code', fix: 'ti-bolt', backup: 
 
 const S = { itemType: '', success: '', dateFrom: '', dateTo: '', text: '', rows: [] };
 
+// `<input type=date>` gives a local calendar date (e.g. "2026-08-19"); `ran_at`
+// is stored as SQLite's datetime('now'), which is UTC. Appending " 00:00:00"/
+// "23:59:59" straight to the local date string and string-comparing it against
+// a UTC column shifts the filtered range by the user's UTC offset. Convert
+// through JS's local-aware Date constructor so the boundaries land correctly.
+function _localDayBoundaryUtc(dateStr, endOfDay) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const local = endOfDay ? new Date(y, m - 1, d, 23, 59, 59) : new Date(y, m - 1, d, 0, 0, 0);
+  return local.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 export async function load() {
   const el = document.getElementById('history-scroll');
   el.innerHTML = paneHeader('ti-history', 'History', null, null, null)
@@ -56,8 +67,8 @@ async function _doReload() {
   const args = {
     itemType: S.itemType || null,
     success: S.success === '' ? null : S.success === '1',
-    dateFrom: S.dateFrom ? `${S.dateFrom} 00:00:00` : null,
-    dateTo: S.dateTo ? `${S.dateTo} 23:59:59` : null,
+    dateFrom: S.dateFrom ? _localDayBoundaryUtc(S.dateFrom, false) : null,
+    dateTo: S.dateTo ? _localDayBoundaryUtc(S.dateTo, true) : null,
     text: S.text || null,
     limit: 500,
   };
