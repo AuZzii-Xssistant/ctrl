@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — api.md's CustomTweak type claimed a field that isn't returned
+
+`sort_order` exists as a DB column (used only in `ORDER BY`) but the `CustomTweak` struct never selects or returns it — the doc claimed it was part of the response shape. Fixed. Spot-checked `Snippet`/`BackupJob`/`PinnedItem`/`SysInfo`/`ShellInfo` against their structs too — all accurate, no further fixes needed.
+
 ## 2026-08-19 — api.md: 6 missing type definitions, one confusing naming coincidence clarified
 
 `Profile`, `ProfileItem`, `ProfileData`, `ProfileItemData`, `ActiveProfile` (System Profiles) and `BuilderDefs` had zero type entries despite being real command return/payload shapes. Added all 6. Also clarified a genuinely confusing spot: the Scripts section's historical note about a removed `get_profiles`/`add_profile` pair (old, pre-ScriptStash) sits ~90 lines above the *current*, unrelated System Profiles command pair of the identical name — added a parenthetical so a reader doesn't mistake one for the other.
