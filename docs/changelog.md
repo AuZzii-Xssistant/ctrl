@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Fixed stale module list in the bug report issue template
+
+`.github/ISSUE_TEMPLATE/bug_report.yml`'s "Which module/page?" dropdown still listed "Recent Activity" (removed this session, replaced by History) and was missing "History" entirely. Also bumped the version placeholder from v0.1.0 to v0.1.1.
+
 ## 2026-08-19 — Fixed History's date filter being shifted by UTC offset
 
 Same root cause as the `timeAgo()` fix, query side: appended local date-picker values straight onto a string compared against UTC-stored `ran_at`. Fixed by converting through JS's local-aware `Date` constructor before formatting to match `ran_at`'s UTC string format.
