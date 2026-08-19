@@ -112,7 +112,7 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     TrayIconBuilder::with_id("main")
         .menu(&menu)
         .show_menu_on_left_click(true)
-        .tooltip("CTRL")
+        .tooltip(">_ CTRL")
         .icon(
             app.default_window_icon()
                 .cloned()

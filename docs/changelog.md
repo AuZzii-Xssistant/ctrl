@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Rebrand cleanup: tray tooltip and notify default title
+
+Two more bare "CTRL" strings found via a full sweep: the system tray icon's hover tooltip (`tray.rs`) and the Rust-side fallback title for workflow "notify" steps with no title entered (`workflows.rs`) — both user-visible, both missed in the original rebrand pass. Both now ">_ CTRL".
+
 ## 2026-08-19 — Rebrand cleanup: Cargo.toml description
 
 Updated `Cargo.toml`'s `description` field to ">_ CTRL — personal control centre", matching the rebrand elsewhere. Safe to change (unlike `tauri.conf.json`'s `productName`, which stays "CTRL" for install-path/registry safety) — this is pure descriptive metadata, not used to construct any filesystem or registry path.

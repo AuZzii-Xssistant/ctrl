@@ -228,7 +228,7 @@ async fn run_step_fix(
 }
 
 async fn run_step_notify(app: &tauri::AppHandle, step: &Step) -> Result<(bool, String), String> {
-    let title = step.title.as_deref().unwrap_or("CTRL");
+    let title = step.title.as_deref().unwrap_or(">_ CTRL");
     let body = step.body.as_deref().unwrap_or(step.label.as_str());
     send_toast(app, title, body).await?;
     Ok((true, format!("Notification sent: {}", title)))
