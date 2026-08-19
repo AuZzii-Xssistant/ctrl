@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Builder credits WinScript with a source pill
+
+Requested by the WinScript dev via feedback. Added a small pill above the "Run Script" nav button in Builder — GitHub icon + "WinScript" — linking to https://github.com/flick9000/winscript, the project Builder was ported from. Uses the same `open_path` external-link pattern as the existing bug-report/ko-fi buttons in app.js.
+
 ## 2026-08-20 — Scripts pane error toasts silently unstyled (real bug)
 
 `toast()` only styles `'ok'`/`'err'`/`'info'`. 6 call sites in `scripts.js` passed `'error'` — a typo — so those error toasts rendered with no red border/icon. Fixed all 6, swept for the same typo elsewhere (none found).

@@ -53,6 +53,9 @@ function _wsIcon(iconPath) {
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────────
+document.getElementById('builder-source-pill')?.addEventListener('click', () =>
+  inv('open_path', { path: 'https://github.com/flick9000/winscript' }));
+
 export async function load() {
   try {
     const r = await inv('get_builder_actions');
