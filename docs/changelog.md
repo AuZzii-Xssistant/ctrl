@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Rebrand cleanup: Cargo.toml description
+
+Updated `Cargo.toml`'s `description` field to ">_ CTRL — personal control centre", matching the rebrand elsewhere. Safe to change (unlike `tauri.conf.json`'s `productName`, which stays "CTRL" for install-path/registry safety) — this is pure descriptive metadata, not used to construct any filesystem or registry path.
+
 ## 2026-08-19 — Fixed stale module list in the bug report issue template
 
 `.github/ISSUE_TEMPLATE/bug_report.yml`'s "Which module/page?" dropdown still listed "Recent Activity" (removed this session, replaced by History) and was missing "History" entirely. Also bumped the version placeholder from v0.1.0 to v0.1.1.
