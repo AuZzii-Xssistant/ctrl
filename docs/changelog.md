@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — api.md: 6 missing type definitions, one confusing naming coincidence clarified
+
+`Profile`, `ProfileItem`, `ProfileData`, `ProfileItemData`, `ActiveProfile` (System Profiles) and `BuilderDefs` had zero type entries despite being real command return/payload shapes. Added all 6. Also clarified a genuinely confusing spot: the Scripts section's historical note about a removed `get_profiles`/`add_profile` pair (old, pre-ScriptStash) sits ~90 lines above the *current*, unrelated System Profiles command pair of the identical name — added a parenthetical so a reader doesn't mistake one for the other.
+
 ## 2026-08-19 — db-schema.md's "ISO 8601 timestamp" label was itself wrong
 
 Found while reconciling docs against the `timeAgo()` UTC-parsing fix: 5 columns were labeled "ISO 8601 timestamp," but SQLite's `datetime('now')` (what actually populates them) produces `"YYYY-MM-DD HH:MM:SS"` — UTC, but not true ISO 8601 (no `T`, no timezone marker), which is exactly the distinction that caused that bug. Replaced the per-column labels with a single explanatory note at the top of the file instead of repeating a long caveat 5 times, and generalized it to cover every timestamp-shaped column (several others had no note at all), noting the one real exception (`scripts.last_run`, Unix epoch seconds). Also refreshed `refresh_rate`'s value-format note to mention the numeric validation added this session, and bumped the file's date stamp.

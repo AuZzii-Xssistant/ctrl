@@ -67,7 +67,7 @@ PTY output streams via `pty-data-{tabId}` events (raw terminal bytes), not as a 
 
 ## Scripts
 
-The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptStash port** (`ss_*` commands) below. Only three commands remain from the original pre-port API — everything else in that surface (`add_script`/`update_script`/`delete_script`/`get_profiles`/`add_profile`/`rename_profile`/`remove_profile`/`get_profile_scripts`/`add_to_profile`/`remove_from_profile`/`set_script_disabled`/`reorder_profile_scripts`/`export_profile`/`import_profile`/`open_script_location`/`browse_for_script`/`read_text_file`) was removed 2026-08-17 as dead code with zero frontend callers, fully superseded by `ss_*` equivalents operating on the same tables.
+The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptStash port** (`ss_*` commands) below. Only three commands remain from the original pre-port API — everything else in that surface (`add_script`/`update_script`/`delete_script`/`get_profiles`/`add_profile`/`rename_profile`/`remove_profile`/`get_profile_scripts`/`add_to_profile`/`remove_from_profile`/`set_script_disabled`/`reorder_profile_scripts`/`export_profile`/`import_profile`/`open_script_location`/`browse_for_script`/`read_text_file`) was removed 2026-08-17 as dead code with zero frontend callers, fully superseded by `ss_*` equivalents operating on the same tables. (The `get_profiles`/`add_profile` named here are that old, deleted, Scripts-profile pair — an unrelated *System Profiles* command pair of the same name exists now, see the Profiles section below; the name was reused after the old commands were removed, not a live naming collision.)
 
 | Command | Payload | Returns |
 |---|---|---|
@@ -249,4 +249,10 @@ QlItem       = { id, label, icon, cmd: string }
 ExternalApp  = { id, name, path: string }
 CustomTweak  = { id, category, label, description, apply_cmd, revert_cmd: string, admin: boolean, sort_order: number }
 CustomTweakData = { category?, label, description?, apply_cmd?, revert_cmd?: string, admin?: boolean }
+BuilderDefs  = { categories, presets: any }  // both raw JSON straight from data/builder/*.json — see that folder for actual shape, not worth typing out further
+Profile      = { id, name, description, icon: string, items: ProfileItem[] }  // System Profiles — unrelated to SsProfile (ScriptStash) above, easy to confuse by name
+ProfileItem  = { id, item_type, value: string, enabled: boolean }
+ProfileData  = { name: string, description?, icon?: string, items: ProfileItemData[] }  // payload for add_profile/update_profile
+ProfileItemData = { item_type, value: string, enabled?: boolean }
+ActiveProfile = { id, name: string }  // what get_active_profile returns, or null
 ```
