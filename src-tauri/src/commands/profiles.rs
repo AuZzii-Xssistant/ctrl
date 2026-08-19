@@ -297,6 +297,18 @@ fn build_activate_script(items: &[ProfileItem]) -> String {
             "refresh_rate" => {
                 // Best-effort P/Invoke ChangeDisplaySettingsEx — no built-in cmdlet either.
                 // Untested on real hardware; wrapped so a failure here can't break the rest.
+                // `hz` is spliced in as a bare (unquoted) token, not a quoted string --
+                // the try/catch below can only catch runtime errors, not a PowerShell
+                // *parse* error, and a non-numeric value here (the field is free-text,
+                // no validation) would be a parse error that fails the whole activate
+                // script, not just this one item. Validate before emitting the block.
+                let Ok(hz_num) = it.value.trim().parse::<u32>() else {
+                    s.push_str(&format!(
+                        "Write-Warning 'refresh rate skipped: \"{v}\" is not a number'\n",
+                        v = esc_ps(it.value.trim())
+                    ));
+                    continue;
+                };
                 s.push_str(&format!(
                     "try {{\n\
   Add-Type -Namespace CTRL -Name Disp -MemberDefinition @'\n\
@@ -314,7 +326,7 @@ fn build_activate_script(items: &[ProfileItem]) -> String {
   $__dm.dmDisplayFrequency={hz}; $__dm.dmFields=0x400000\n\
   [CTRL.Disp]::ChangeDisplaySettings([ref]$__dm,0) | Out-Null\n\
 }} catch {{ Write-Warning \"refresh rate change failed: $_\" }}\n",
-                    hz = esc_ps(it.value.trim())
+                    hz = hz_num
                 ));
             }
             "script" => {

@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-19 — Fixed a dormant Profiles bug: bad refresh_rate could break the whole activation
+
+`build_activate_script`'s `refresh_rate` handler spliced the saved value directly as a bare unquoted PowerShell token — its own `try`/`catch` can't catch a parse error, so a non-numeric value (the field is free-text, unvalidated) would fail the entire activation script, not just that one item. Currently unreachable (Profiles' nav page is removed, backend kept dormant), but fixed since the backend is intact and could be reactivated. Now validates as `u32` before emitting the block.
+
 ## 2026-08-19 — Rebrand cleanup: tray tooltip and notify default title
 
 Two more bare "CTRL" strings found via a full sweep: the system tray icon's hover tooltip (`tray.rs`) and the Rust-side fallback title for workflow "notify" steps with no title entered (`workflows.rs`) — both user-visible, both missed in the original rebrand pass. Both now ">_ CTRL".

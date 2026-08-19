@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Profiles — a non-numeric refresh_rate value could break the whole activation script~~ ✅ Resolved (2026-08-19)
+`build_activate_script`'s `refresh_rate` handler spliced the item's saved value directly into PowerShell as a *bare, unquoted* token (`$__dm.dmDisplayFrequency={hz}`), not a quoted string. Its own `try`/`catch` only catches runtime errors — a non-numeric value here (the frontend field is free-text with no validation) produces a PowerShell *parse* error instead, which fails the entire activation script before any of it runs, not just the refresh-rate item. Since Profiles' nav page is currently removed (backend/modal kept dormant — see "Profiles — full nav page removed" further down), this had zero live reach right now, but the backend is intact and could be reactivated. Fixed by validating the value parses as `u32` before emitting the block at all — a non-numeric value now just warns and skips that one item, matching what the existing comment already claimed (incorrectly) was already happening.
+
 ### ~~History's date-range filter was shifted by the user's UTC offset~~ ✅ Resolved (2026-08-19)
 Same root cause as the `timeAgo()` fix above, on the query side instead of display: History's date filter appended `" 00:00:00"`/`" 23:59:59"` straight onto the local `<input type=date>` value and string-compared that against `ran_at` (stored UTC). For any non-UTC user, the filtered "day" boundary was off by their UTC offset — e.g. a UTC-5 user filtering for "today" would miss the last few hours of their actual local day (which fall into tomorrow UTC) and pick up a few hours of yesterday evening instead. Fixed by converting through JS's local-aware `Date` constructor (which correctly interprets multi-arg `new Date(y,m,d,hh,mm,ss)` as local time) before formatting to the UTC string `ran_at` actually uses.
 
