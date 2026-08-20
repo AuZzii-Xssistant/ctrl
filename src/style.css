@@ -911,7 +911,11 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
   overflow:hidden;
 }
 #ql-panel-header {
+  /* min-height matches .pane-header's total rendered height (10px+12px padding
+     plus the ~25px row height its search input/button impose) so this panel's
+     divider lines up with the main Tools header's divider on the left. */
   display:flex; align-items:center; gap:7px; flex-shrink:0;
+  min-height:47px;
   padding:10px 10px 12px;
   font-size:13px; font-weight:600; color:var(--text);
 }
