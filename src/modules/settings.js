@@ -60,11 +60,10 @@ export async function load() {
     <div class="settings-card">
       <pre class="settings-tree">CTRL/
   ctrl.exe       ← the app
-  ctrl.db        ← all your data
+  ctrl-cli.exe   ← command-line interface
+  ctrl.db        ← all your data (scripts included — no data/scripts/ folder)
   data/
-    builder/     ← action JSON files
-    scripts/     ← script storage
-    backups/     ← future: backup sets</pre>
+    builder/     ← action JSON files</pre>
     </div>
 
   </div>

@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Settings page's portable-structure diagram was stale
+
+Missing `ctrl-cli.exe`, claimed a nonexistent `data/scripts/` folder (scripts live in `ctrl.db`), and called Backup "future" when it's a working feature. Rewrote to match README's already-correct version.
+
 ## 2026-08-20 — Lines starting with ">_ CTRL" rendered as a Markdown blockquote
 
 `>` at the start of a line is a Markdown blockquote marker — any paragraph that opened with the app's own name (`>_ CTRL replaces...`) silently rendered as an indented blockquote instead of normal text. Found 3 in README.md (intro paragraph, License section) and 1 in SECURITY.md (intro paragraph). Fixed by escaping to `\>_ CTRL`. Headings (`# >_ CTRL`) were already fine — the `#` consumes the line first, so `>` there was never ambiguous. Swept every doc's first line and all remaining `^>_` occurrences — nothing else affected.

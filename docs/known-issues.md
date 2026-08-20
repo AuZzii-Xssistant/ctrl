@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Settings page's "Portable structure" tree was stale and wrong~~ ✅ Resolved (2026-08-20)
+The in-app Settings page (not just README) showed its own "Portable structure" diagram, and it had drifted: missing `ctrl-cli.exe` entirely, claimed a `data/scripts/` folder that has never existed (scripts live in `ctrl.db`'s `content` column — README already documents this correctly), and listed `data/backups/` as "future: backup sets" even though Backup jobs work today via arbitrary user-picked source/dest folders, not an app-managed `data/backups/` directory. Rewrote to match README's already-correct version.
+
 ### ~~Docs — paragraphs starting with ">_ CTRL" rendered as a blockquote~~ ✅ Resolved (2026-08-20)
 Markdown treats a leading `>` as a blockquote marker. Any paragraph opening with the app's own name — `>_ CTRL replaces...` — silently rendered as an indented blockquote instead of a normal paragraph on GitHub/any Markdown renderer. Found in 3 spots (README's intro + License section, SECURITY.md's intro). Fixed by escaping to `\>_ CTRL`. Headings (`# >_ CTRL`) were never affected since `#` already claims the line first.
 
