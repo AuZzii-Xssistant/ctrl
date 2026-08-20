@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — README credits WinScript, releases now always pre-release
+
+Added GitHub + Ko-fi badges for WinScript/flick9000 to README, under the module table. Republished v0.1.1 (same version, refreshed build) as a proper GitHub pre-release instead of "Latest" — `republish.bat` had stale v0.1.0-beta tag/NSIS-filename references from before v0.1.1 existed, fixed those and added `--prerelease` permanently, matching the project's actual maturity.
+
 ## 2026-08-20 — Real WinScript logo replaces the CSS "WS" monogram
 
 Downloaded WinScript's actual favicon (their GitHub repo, `website/public/favicon.ico`), extracted the 256px PNG, trimmed the transparent border, resized to 128px, and bundled it as `src/assets/winscript-logo.png` — no CDN reference, matches the app's offline-asset rule. Swapped the placeholder "WS" monogram badge for the real logo in the About hero. The source .ico already had a transparent background (no white matte to strip), so this is a straight drop-in.
