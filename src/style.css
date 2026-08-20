@@ -472,8 +472,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 .bnav-run { border-top: 1px solid var(--border); font-weight: 600; padding: 0 12px; height: 52px; color: var(--amber); }
 .bnav-run:hover { color: var(--amber); }
 .bnav-source-pill {
-  display: flex; align-items: center; justify-content: center; gap: 6px; width: calc(100% - 20px);
-  margin: 4px 10px 10px; padding: 5px 0; border-radius: 5px; font-family: inherit;
+  display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: calc(100% - 20px);
+  margin: 4px 10px 10px; padding: 5px 10px; border-radius: 5px; font-family: inherit;
   background: var(--bg3); border: 1px solid var(--border2); color: var(--text3);
   font-size: 11px; text-decoration: none; cursor: pointer; transition: background 0.1s, color 0.1s;
 }
