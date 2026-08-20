@@ -104,7 +104,11 @@ function _renderQlPanel() {
   const panel = document.getElementById('ql-panel-body');
   if (!panel) return;
   const q = document.getElementById('ql-filter')?.value.trim().toLowerCase() || '';
-  const items = q ? _qls.filter(x => x.label.toLowerCase().includes(q)) : _qls;
+  // Match against the full name too (e.g. "maintenance" should find "Security
+  // & Maint." even though the abbreviated pill label alone doesn't contain it).
+  const items = q ? _qls.filter(x =>
+    x.label.toLowerCase().includes(q) || (QL_FULL_NAME[x.label] || '').toLowerCase().includes(q)
+  ) : _qls;
 
   if (!items.length) {
     panel.innerHTML = `<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 4px">${q ? 'No matches' : 'Nothing yet'}</div>`;
