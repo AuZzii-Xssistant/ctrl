@@ -52,6 +52,11 @@ function _wtweakRow(t) {
   const state = _wstate[t.id] || 'unknown';
   const dotCls = STATE_DOT[state];
   const adminBadge = t.admin ? '<span class="badge-admin" title="Requires administrator"><i class="ti ti-shield"></i> admin</span>' : '';
+  // Some tweaks are apply-only (an InvokeScript with no UndoScript, and no
+  // registry entries to set back) -- Revert on those would run a trivial
+  // no-op script and still report "Done", implying it reverted something
+  // it didn't.
+  const canRevert = (t.registry && t.registry.length) || t.undoScript;
   return `<div class="tweak-row" data-wtid="${esc(t.id)}">
     <div class="tweak-info">
       <div class="tweak-label" style="display:flex;align-items:center;gap:6px">
@@ -62,7 +67,7 @@ function _wtweakRow(t) {
     </div>
     <div class="tweak-btns">
       <button class="tweak-btn apply${state === 'on' ? ' tweak-btn-active' : ''}" data-id="${esc(t.id)}" data-action="apply">${state === 'on' ? '✓ Applied' : 'Apply'}</button>
-      <button class="tweak-btn revert" data-id="${esc(t.id)}" data-action="revert">Revert</button>
+      ${canRevert ? `<button class="tweak-btn revert" data-id="${esc(t.id)}" data-action="revert">Revert</button>` : ''}
     </div>
   </div>`;
 }

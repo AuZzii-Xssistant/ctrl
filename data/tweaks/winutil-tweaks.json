@@ -561,7 +561,7 @@
     "label": "File Explorer Home and Gallery - Disable",
     "description": "Removes the Home and Gallery from Explorer and sets This PC as default.",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Classes\\CLSID\\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}",
@@ -716,7 +716,7 @@
     "label": "End Task With Right Click - Enable",
     "description": "Enables option to end task when right clicking a program in the taskbar.",
     "category": "Essential Tweaks",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings",
@@ -733,7 +733,7 @@
     "label": "Storage Sense - Disable",
     "description": "Storage Sense deletes temp files automatically.",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
@@ -835,7 +835,7 @@
     "label": "System Tray Notifications & Calendar - Disable",
     "description": "Disables all Notifications INCLUDING Calendar.",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\Explorer",
@@ -952,7 +952,7 @@
     "label": "Background Apps - Disable",
     "description": "Disables all Microsoft Store apps from running in the background, which has to be done individually since Windows 11.",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications",
@@ -1003,7 +1003,7 @@
     "label": "System Tray Battery Percentage",
     "description": "Shows numeric battery percentage next to the battery icon in the system tray.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
@@ -1101,7 +1101,7 @@
     "label": "Microsoft Outlook New Version",
     "description": "This will ensures the classic Outlook application is used.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\SOFTWARE\\Microsoft\\Office\\16.0\\Outlook\\Preferences",
@@ -1139,7 +1139,7 @@
     "label": "Scrollbars Always Visible",
     "description": "If enabled, scrollbars will always be visible. If disabled, Windows will automatically hide scrollbars when not in use.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Control Panel\\Accessibility",
@@ -1180,7 +1180,7 @@
     "label": "Mouse Acceleration",
     "description": "Makes it so Cursor movement is affected by the speed of your physical mouse movements.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Control Panel\\Mouse",
@@ -1235,7 +1235,7 @@
     "label": "Window Snapping",
     "description": "Toggles the window snapping feature when dragging windows.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Control Panel\\Desktop",
@@ -1252,7 +1252,7 @@
     "label": "S0 Sleep Network Connectivity",
     "description": "Toggles network connectivity during S0 Sleep which is low power idle in modern laptops.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\SOFTWARE\\Policies\\Microsoft\\Power\\PowerSettings\\f15576e8-98b7-4186-b944-eafa664402d9",
@@ -1286,7 +1286,7 @@
     "label": "Settings Home Page",
     "description": "Toggles the Home Page in the Windows Settings app.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
@@ -1303,7 +1303,7 @@
     "label": "Start Menu Bing Search",
     "description": "Toggles Bing web search results in Windows Search.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
@@ -1387,7 +1387,7 @@
     "label": "Sticky Keys",
     "description": "Toggles the Sticky Keys, which activate when clicking shift rapidly.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Control Panel\\Accessibility\\StickyKeys",
@@ -1423,7 +1423,7 @@
     "label": "Taskbar Search Icon",
     "description": "Toggles the Search Button on the Taskbar.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
@@ -1440,7 +1440,7 @@
     "label": "Taskbar Task View Icon",
     "description": "Toggles the Task View Button in the Taskbar.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
@@ -1457,7 +1457,7 @@
     "label": "Game Mode",
     "description": "Toggles Windows prioritizes gaming performance by allocating system resources to games.",
     "category": "Customize Preferences",
-    "admin": true,
+    "admin": false,
     "registry": [
       {
         "path": "HKCU:\\Software\\Microsoft\\GameBar",

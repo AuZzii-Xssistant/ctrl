@@ -8,7 +8,7 @@
 //! registry) can't be generically detected — those honestly report "unknown"
 //! rather than guessing.
 
-use crate::commands::exec::{run_elevated as exec_elevated, Shell};
+use crate::commands::exec::{run as exec_run, run_elevated as exec_elevated, Shell};
 use crate::commands::scripts::RunResult;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -223,14 +223,24 @@ async fn run_tweak(app: AppHandle, id: String, revert: bool) -> Result<RunResult
         .ok_or_else(|| "Tweak not found".to_string())?;
 
     let mut s = build_tweak_script(&t, revert);
-    // Every tweak runs elevated -- Windows UAC means that's a separate external
-    // console (see docs/known-issues.md's "Run As Admin" entry), which -File
-    // closes the instant the script finishes with no way to read what happened.
-    // User-reported: ran a tweak, it failed, and the window was already gone
-    // before they could see why. Pause so results are actually readable.
-    s.push_str("\nWrite-Host ''; Write-Host 'Press Enter to close...' -NoNewline; Read-Host | Out-Null\n");
 
-    let result = exec_elevated(&app, &s, &Shell::PowerShell, "wtweak").await?;
+    // Only tweaks that actually touch HKLM/HKU/etc. (or run a script) are
+    // marked admin=true in the ported data -- a purely-HKCU tweak needs no
+    // elevation at all and should run in CTRL's own embedded terminal like
+    // any other non-admin action, not force a UAC prompt it doesn't need.
+    let result = if t.admin && !crate::commands::exec::running_as_admin() {
+        // Elevated runs open a separate external console (Windows UAC --
+        // see docs/known-issues.md's "Run As Admin" entry), which -File
+        // closes the instant the script finishes with no way to read what
+        // happened. User-reported: a tweak failed and the window was
+        // already gone before they could see why. Pause so results are
+        // actually readable -- only needed here, not for the embedded-
+        // terminal non-admin path below, which stays visible on its own.
+        s.push_str("\nWrite-Host ''; Write-Host 'Press Enter to close...' -NoNewline; Read-Host | Out-Null\n");
+        exec_elevated(&app, &s, &Shell::PowerShell, "wtweak").await?
+    } else {
+        exec_run(&app, &s, &Shell::PowerShell).await?
+    };
     Ok(RunResult {
         success: result.success,
         output: String::new(),

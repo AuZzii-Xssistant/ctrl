@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — WinUtil tweaks forced unnecessary UAC prompts on HKCU-only tweaks (self-caught)
+
+Found during a re-review right after the port: `admin` was hardcoded true for all 66 tweaks, and `run_tweak` ignored the field anyway. Fixed both — 17 HKCU-only tweaks now correctly run without elevation, and the admin path picked up the "skip elevation if CTRL is already admin" check every other elevated command has. Also fixed a real UX bug: 8 tweaks have no revert mechanism at all (no registry, no undo script) but the Revert button showed anyway and reported fake success — now hidden when there's nothing to revert.
+
 ## 2026-08-20 — Tweaks: context menu, preview-before-running, elevated console pause
 
 Follow-up after the WinUtil port. Three user-reported gaps: (1) no way to inspect or hide a ported tweak — added a right-click context menu (Preview command, Learn more, Hide from list — a local exclude-list, doesn't touch the data file). (2) elevated tweak runs closed their console before results could be read after one failed silently — appended a `Read-Host` pause to the end of every tweak's elevated script. (3) a tweak's actual effect didn't match its label closely enough, causing an unintended change — added a read-only Preview modal showing the exact Apply/Revert PowerShell before running, built from the same `build_tweak_script` function that executes it (so preview can't drift from reality). New command: `preview_winutil_tweak`.
