@@ -9,6 +9,22 @@ function _toolIcon(path) {
   return EXT_ICON[ext] || 'ti-app-window';
 }
 
+// Seeded Quick Launch labels are shortened to fit the pill (see db.rs's seed
+// list) -- the tooltip should say what the shortcut actually is, not just
+// repeat the same abbreviation back. Only covers labels that are genuinely
+// truncated; anything not listed here already reads as a full name.
+const QL_FULL_NAME = {
+  'MSConfig':            'System Configuration (MSConfig)',
+  'Security & Maint.':   'Security and Maintenance',
+  'Programs & Features': 'Programs and Features',
+  'Region':              'Region Settings',
+  'Time and Date':       'Date and Time',
+  'Firewall':            'Windows Defender Firewall',
+  'Printers':            'Printers Folder',
+  'Virtual Memory':      'Advanced System Properties — Virtual Memory',
+  'Visual Effects':      'Performance Options — Visual Effects',
+};
+
 
 let _qls = [];
 
@@ -96,7 +112,7 @@ function _renderQlPanel() {
   }
   panel.innerHTML = '<div class="ql-grid">' + items.map(item => `
     <div class="ql-pill-wrap" data-ql-id="${item.id}">
-      <button class="ql-pill" data-cmd="${esc(item.cmd)}" title="${esc(item.label)}">
+      <button class="ql-pill" data-cmd="${esc(item.cmd)}" title="${esc(QL_FULL_NAME[item.label] || item.label)}">
         <i class="ti ${item.icon}"></i>${esc(item.label)}
       </button>
       <button class="ql-pin-btn" data-ql-id="${item.id}" title="Pin to Dashboard"><i class="ti ti-pin"></i></button>
