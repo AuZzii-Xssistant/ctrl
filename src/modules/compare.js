@@ -58,15 +58,30 @@ function _runDiff() {
         else                    additions.push(hunks[i].rText);
         i++;
       }
-      const pairs = Math.min(removals.length, additions.length);
-      for (let p = 0; p < pairs; p++) {
-        const { lHtml, rHtml } = _charDiff(removals[p], additions[p]);
+      // Pair each removal with its most similar addition (longest common prefix+suffix),
+      // not by array index — an unrelated inserted line sharing the hunk with the real
+      // paired edit would otherwise get char-diffed against it, finding almost no common
+      // text and marking nearly the whole line instead of just the actual change.
+      const usedAdd = new Set();
+      const matched = [];
+      for (let ri = 0; ri < removals.length; ri++) {
+        let best = -1, bestScore = -1;
+        for (let ai = 0; ai < additions.length; ai++) {
+          if (usedAdd.has(ai)) continue;
+          const score = _similarity(removals[ri], additions[ai]);
+          if (score > bestScore) { bestScore = score; best = ai; }
+        }
+        if (best >= 0) { usedAdd.add(best); matched.push([ri, best]); }
+      }
+      for (const [ri, ai] of matched) {
+        const { lHtml, rHtml } = _charDiff(removals[ri], additions[ai]);
         _lines.push({ cls: 'cmp-chg', lHtml, rHtml });
       }
-      for (let p = pairs; p < removals.length; p++)
-        _lines.push({ cls: 'cmp-rem-only', lHtml: _esc(removals[p]), rHtml: '' });
-      for (let p = pairs; p < additions.length; p++)
-        _lines.push({ cls: 'cmp-add-only', lHtml: '', rHtml: _esc(additions[p]) });
+      const matchedR = new Set(matched.map(([ri]) => ri));
+      for (let p = 0; p < removals.length; p++)
+        if (!matchedR.has(p)) _lines.push({ cls: 'cmp-rem-only', lHtml: _esc(removals[p]), rHtml: '' });
+      for (let p = 0; p < additions.length; p++)
+        if (!usedAdd.has(p)) _lines.push({ cls: 'cmp-add-only', lHtml: '', rHtml: _esc(additions[p]) });
     }
   }
 
@@ -180,6 +195,15 @@ function _lineDiff(L, R) {
 }
 
 // ── Char diff — prefix/suffix first, LCS only on changed middle ──────────────
+
+function _similarity(a, b) {
+  const min = Math.min(a.length, b.length);
+  let pre = 0;
+  while (pre < min && a[pre] === b[pre]) pre++;
+  let suf = 0;
+  while (suf < min - pre && a[a.length-1-suf] === b[b.length-1-suf]) suf++;
+  return pre + suf;
+}
 
 function _charDiff(lStr, rStr) {
   const L = [...lStr], R = [...rStr];

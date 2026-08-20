@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Compare — a changed line sharing its hunk with an unrelated insertion got mispaired and fully highlighted~~ ✅ Resolved (2026-08-20)
+User-reported via screenshot: editing a line (e.g. `return total - discount;` → `return total - discount + tax;`) while ALSO inserting an unrelated new line nearby (`tax = total * 0.15;`) landed both changes in the same diff hunk. `_runDiff` paired removals with additions **by array index**, not by which lines actually corresponded — so the real edit got char-diffed against the unrelated inserted line instead of its actual counterpart, found almost no common text, and highlighted nearly the entire line instead of just the real change (`+ tax`). Fixed by pairing each removal with its most-similar addition (longest common prefix+suffix) via a greedy match, leaving genuinely unmatched lines as pure add/remove. Verified with a standalone Node script replaying the exact reported scenario plus a regression check on the simple single-pair case (the `if (total > 100)` → `if (total > 150)` line) — both now correctly mark only the actual differing text.
+
 ### ~~Settings page's "Portable structure" tree was stale and wrong~~ ✅ Resolved (2026-08-20)
 The in-app Settings page (not just README) showed its own "Portable structure" diagram, and it had drifted: missing `ctrl-cli.exe` entirely, claimed a `data/scripts/` folder that has never existed (scripts live in `ctrl.db`'s `content` column — README already documents this correctly), and listed `data/backups/` as "future: backup sets" even though Backup jobs work today via arbitrary user-picked source/dest folders, not an app-managed `data/backups/` directory. Rewrote to match README's already-correct version.
 

@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Compare view mispaired changed lines sharing a hunk with an unrelated insertion (real bug)
+
+User-reported: a real line edit landing in the same diff hunk as an unrelated nearby insertion got char-diffed against the wrong line (paired by array index, not by actual correspondence), highlighting almost the entire line instead of just the real change. Fixed with similarity-based pairing (longest common prefix+suffix). Verified with a standalone test replaying the exact reported case.
+
 ## 2026-08-20 — Settings page's portable-structure diagram was stale
 
 Missing `ctrl-cli.exe`, claimed a nonexistent `data/scripts/` folder (scripts live in `ctrl.db`), and called Backup "future" when it's a working feature. Rewrote to match README's already-correct version.
