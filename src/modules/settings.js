@@ -63,7 +63,8 @@ export async function load() {
   ctrl-cli.exe   ← command-line interface
   ctrl.db        ← all your data (scripts included — no data/scripts/ folder)
   data/
-    builder/     ← action JSON files</pre>
+    builder/     ← action JSON files
+    tweaks/      ← winutil-tweaks.json</pre>
     </div>
 
   </div>

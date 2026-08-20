@@ -16,4 +16,5 @@ pub mod tools;
 pub mod tray;
 pub mod tweaks;
 pub mod window;
+pub mod winutil_tweaks;
 pub mod workflows;

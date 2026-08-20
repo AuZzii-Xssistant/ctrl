@@ -42,7 +42,7 @@ Every module is present and runs — none of them crash or are placeholder stubs
 | Projects | `ti-archive` | 🟡 Functional | Track projects by status (idea → stable → deprecated) |
 | Workflows | `ti-player-play` | 🟡 Functional | Chain scripts and fixes into ordered sequences, with manual/startup/scheduled triggers. Macro recorder: hit Record, run scripts/fixes as normal, Stop & Save turns the run history into a workflow |
 | Backup | `ti-device-floppy` | 🟡 Functional | Folder→folder backup jobs using robocopy (incremental) |
-| Tweaks | `ti-adjustments` | 🟡 Functional | Built-in Windows tweaks + user-defined custom tweaks |
+| Tweaks | `ti-adjustments` | 🟡 Functional | 66 tweaks ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT), state read from the registry on load rather than a client-side guess — plus user-defined custom tweaks |
 | Environment | `ti-list-details` | 🟡 Functional | User environment variables (add/edit/delete) + system vars (UAC elevation to edit) |
 | Snippets | `ti-blockquote` | 🟡 Functional | Reusable text/command snippets — one-click copy, categories, tags |
 | Compare | `ti-arrows-diff` | 🟡 Functional | Side-by-side text diff with synced scroll |
@@ -53,6 +53,8 @@ Every module is present and runs — none of them crash or are placeholder stubs
 > 🟢 Solid — I actually rely on this day to day. 🟡 Functional — works, wired up correctly, just hasn't accumulated the same real-world mileage yet, and the design may still shift. This table will keep moving items up (or down) as usage tells me more — it's a snapshot, not a promise.
 
 **Builder credit:** ported from [WinScript](https://github.com/flick9000/winscript) by flick9000 — same "About" panel and credit pill are built into the app itself (Builder → About).
+
+**Tweaks credit:** the built-in tweak list is ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) by Chris Titus Tech (MIT licensed) — `data/tweaks/winutil-tweaks.json` is a reshaped copy of their `config/tweaks.json`, re-detected against the registry rather than tracked client-side.
 
 [![WinScript on GitHub](https://img.shields.io/badge/GitHub-flick9000%2Fwinscript-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/flick9000/winscript)
 [![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support_flick9000-FF5E5B?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/flick9000)
@@ -82,6 +84,7 @@ CTRL/
   ctrl.db        ← all your data (SQLite)
   data/
     builder/     ← action JSON files (add your own)
+    tweaks/      ← winutil-tweaks.json (edit/override on disk)
 ```
 
 Scripts live in `ctrl.db` (the `content` column), not as loose files on disk — no `data/scripts/` folder.

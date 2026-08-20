@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Tweaks page tracked "applied" state via localStorage, not reality~~ ✅ Resolved (2026-08-20)
+User-flagged design flaw: the old built-in tweak list (a hardcoded JS array) tracked whether each tweak was "applied" purely via a `localStorage` flag set when the Apply button was clicked — it never actually read the registry. If a user changed the same setting manually (or a Windows update reset it), CTRL's toggle state silently lied, and hitting Revert could clobber something CTRL never actually set. Full redesign: replaced the built-in list entirely with 66 tweaks ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT), reshaped so every registry-backed tweak carries its own detection for free — apply sets `value`, revert sets `originalValue` (or removes the entry when that's the `<RemoveEntry>` sentinel), and current state is just reading the same registry key and comparing. A new batched command (`check_winutil_tweaks`) reads every tweak's state in one PowerShell call on page load instead of trusting a cache. Tweaks with no structured registry data (script-only, ~16 of the 66) and all user-added Custom Tweaks honestly report **Unknown** rather than guessing — there's nothing to read for an opaque command string. See `docs/api.md`'s WinUtil Tweaks section.
+
 ### ~~ScriptStash — importing on Master silently also enrolled scripts in an unrelated profile~~ ✅ Resolved (2026-08-20)
 `ss_import_profile` with `profile_id=None` (importing while viewing Master) fell back to "attach the imported scripts to the first existing profile, or fabricate a new 'Imported' profile if none exist" — even though Master visibility only needs `in_master=1` (the default on insert) and never needed profile membership at all. A user importing "for Master" got their scripts silently enrolled in some unrelated profile too, with zero indication anywhere it happened. Fixed: Master imports now skip the `ss_script_profile` insert entirely.
 

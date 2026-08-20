@@ -57,10 +57,27 @@ PTY output streams via `pty-data-{tabId}` events (raw terminal bytes), not as a 
 | `launch_external` | `{path}` | void |
 | `pick_exe_file` | — | `string\|null` |
 
-## Custom Tweaks
+## WinUtil Tweaks
+Ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT) — `data/tweaks/winutil-tweaks.json`, 66 tweaks reshaped into CTRL's schema. Not DB-backed; loaded from the bundled/disk JSON same as Builder's action files (`winutil_tweaks.rs::load_tweaks`, mirrors `builder.rs::load_categories`'s disk-first-else-embedded pattern).
+
 | Command | Payload | Returns |
 |---|---|---|
-| `get_custom_tweaks` | — | `CustomTweak[]` — user-defined tweaks, rendered below the built-in (non-DB-backed) ones on the Tweaks page |
+| `get_winutil_tweaks` | — | `WinutilTweak[]` |
+| `check_winutil_tweaks` | — | `Record<string, 'on'\|'off'\|'unknown'>` — one batched PowerShell call reads every registry-backed tweak's current value and compares against its known on/off state. Tweaks with no `registry` entries (script-only) always report `'unknown'` — there's nothing to read. |
+| `apply_winutil_tweak` | `{id}` | `RunResult` |
+| `revert_winutil_tweak` | `{id}` | `RunResult` |
+
+```
+WinutilTweak = { id, label, description, category, admin: boolean, registry?: RegEntry[], invokeScript?, undoScript?: string }
+RegEntry = { path, name, value, type, originalValue: string }  // originalValue may be the sentinel "<RemoveEntry>", meaning "off" = key/value absent
+```
+
+## Custom Tweaks
+User-defined tweaks, added via the Tweaks page's "Custom Tweak" button — kept separate from the WinUtil set above. State is **not** checked for these (shown as `unknown`) — there's no structured registry data to read, only an opaque apply/revert command string.
+
+| Command | Payload | Returns |
+|---|---|---|
+| `get_custom_tweaks` | — | `CustomTweak[]` |
 | `add_custom_tweak` | `{data: CustomTweakData}` | `i64` |
 | `update_custom_tweak` | `{id, data: CustomTweakData}` | void |
 | `delete_custom_tweak` | `{id}` | void |

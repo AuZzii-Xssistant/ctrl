@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Tweaks page rebuilt on real registry state, WinUtil-ported (66 tweaks)
+
+User-directed redesign: the old built-in tweak list faked its "applied" indicator via localStorage, which could drift from reality (manual changes, Windows updates) and made Revert unsafe. Replaced the built-in list entirely with 66 tweaks ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT) — every registry-backed tweak now gets real on/off/unknown state read live from the registry, no separate detection script to author per tweak. Custom user-added tweaks (opaque commands) honestly show Unknown rather than guessing. New commands: `get_winutil_tweaks`, `check_winutil_tweaks`, `apply_winutil_tweak`, `revert_winutil_tweak`.
+
 ## 2026-08-20 — Quick Launch moved to a right-side panel on the Tools page
 
 Requested by user. Quick Launch pills used to live inline at the top of the Tools grid, sharing the Tools search box (which didn't even filter them — it only re-fetched Tools). Moved into a dedicated right panel (same 190px width/style as the Dashboard's Live panel) with its own filter input, independent of the Tools search.
