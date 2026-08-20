@@ -2,6 +2,8 @@
 
 `data/tweaks/winutil-tweaks.json` is a reshaped copy of [WinUtil](https://github.com/ChrisTitusTech/winutil)'s `config/tweaks.json` (MIT). This file tracks correctness problems found in that ported data — **flagged for a future pass, not fixed yet**, per explicit instruction. Don't edit `winutil-tweaks.json` based on this file without checking in first.
 
+**Summary:** 9 tweaks confirmed broken to some degree (6 unresolvable private-function calls, 2 dropped `service` fields, 1 dropped entirely — Combobox type), 9 more flagged lower-confidence, 1 minor data smell. That's ~14% of the 66 ported tweaks with a real gap, out of a full re-read of WinUtil's own application logic (`Invoke-WinUtilTweaks.ps1`) and every raw JSON key actually in use across the source data.
+
 ## Confirmed bug: 6 tweaks call a WinUtil-private function that doesn't exist in CTRL
 
 **User-reported root cause**, traced 2026-08-20: ran `WPFToggleTaskbarAlignment` ("Taskbar Centered Icons"), taskbar visually centered, and manually reverting the setting again didn't fix it back to left-aligned.
@@ -32,6 +34,21 @@ All 6 affected tweaks:
 `WPFToggleDarkMode` also calls `Invoke-WinutilThemeChange` (a second private function, not yet inspected in detail — same class of problem).
 
 **Suggested fix (not applied):** either (a) inline the two small `Invoke-WinUtilExplorerUpdate` implementations above directly into `build_tweak_script`'s output when a tweak's script references them (string-replace at generation time), or (b) add a real `-restart`/`-refresh` helper to CTRL's own generated script preamble and rewrite these 6 tweaks' `invokeScript`/`undoScript` to call that instead of the WinUtil name.
+
+## Confirmed bug: 2 tweaks use a `service` field the port dropped entirely
+
+Found while re-reading WinUtil's own `Invoke-WinUtilTweaks.ps1` for a correctness gut-check — it applies THREE possible pieces per tweak (`service`, `registry`, `InvokeScript`/`UndoScript`), each independent. My conversion script only ever read `registry` and `InvokeScript`/`UndoScript` — the `service` array (`Set-WinUtilService -Name X -StartupType Y`) was silently dropped for both tweaks that use it:
+
+- **`WPFTweaksServices`** ("Services - Set to Manual" — the exact tweak visible in the original screenshot) has **zero registry entries and no script** in WinUtil's source — it is *purely* a `service` list (5 services: CscService, DiagTrack, MapsBroker, StorSvc, SharedAccess, all set Disabled/Manual). In CTRL's current port this tweak has an empty `registry: []` and no invoke/undo script — **Apply does literally nothing** and still reports fake "Done" success. State shows "Unknown" (correctly, since there's nothing to check) but that masks the real problem: there's nothing to check because there's nothing here at all.
+- **`WPFTweaksLocation`** ("Location Tracking - Disable") has 3 registry entries (correctly ported) *plus* a service entry disabling `lfsvc` (the Geolocation service) that got dropped. The registry part works, but the tweak doesn't fully do what it claims — the actual location service stays running.
+
+**Suggested fix (not applied):** add a `service?: {name, startupType, originalType}[]` field to `WinutilTweak`/`RegEntry`-adjacent struct, re-run the conversion to capture it, and have `build_tweak_script` emit `Set-Service -Name X -StartupType Y` per entry (apply) / `OriginalType` (revert) — plus `check_winutil_tweaks` would need a matching `Get-Service` read for detection, same free-detection principle as registry entries.
+
+## Confirmed bug: 1 tweak (`WPFchangedns`, DNS selector) has no data to execute at all
+
+`WPFchangedns` ("DNS - Set to:") is a WinUtil **Combobox**-type control, not a checkbox — its actual DNS-setting logic lives in a separate WinUtil function keyed off which dropdown option is selected, not in this JSON entry at all. The entry itself has no `registry`, no `InvokeScript`, nothing executable. In CTRL's port this renders as a normal tweak row that does nothing when clicked. `WPFMultiplaneOverlay` (also `Type: Combobox`) was handled during conversion by collapsing its 3-way `Values` dict to a binary on/off using `registry`, so it does have real content — `WPFchangedns` has no equivalent fallback since it never had registry data to collapse.
+
+**Not a quick fix** — this one genuinely needs its own UI (a dropdown, not a toggle) and its own backend command wired to whichever provider is selected; out of scope for a drop-in fix like the others above.
 
 ## Lower-confidence: 9 more Explorer/taskbar-affecting tweaks with *no* refresh step at all
 
