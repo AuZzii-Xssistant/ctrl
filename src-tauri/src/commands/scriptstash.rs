@@ -750,21 +750,14 @@ pub fn ss_import_profile(
 
     let db = state.0.lock().map_err(|e| e.to_string())?;
 
-    // Pick target profile: specified, or first available, or create one
-    let target_pid = if let Some(pid) = profile_id {
-        pid
-    } else {
-        let first: Option<i64> = db
-            .query_row("SELECT id FROM ss_profiles LIMIT 1", [], |r| r.get(0))
-            .ok();
-        if let Some(p) = first {
-            p
-        } else {
-            db.execute("INSERT INTO ss_profiles (name) VALUES ('Imported')", [])
-                .map_err(|e| e.to_string())?;
-            db.last_insert_rowid()
-        }
-    };
+    // Importing on Master (profile_id=None) needs no profile membership at all --
+    // in_master defaults to 1 on insert below, which is already sufficient for the
+    // script to show up there (query_ss_scripts's Master branch doesn't join
+    // ss_script_profile). This used to fall back to "first existing profile, or
+    // fabricate a new 'Imported' one" and silently enroll the imported scripts
+    // there too -- polluting an unrelated profile the user never chose, with no
+    // indication anywhere that it happened.
+    let target_pid: Option<i64> = profile_id;
 
     let mut added = 0i64;
     for s in raw_scripts {
@@ -821,17 +814,19 @@ pub fn ss_import_profile(
         ).map_err(|e| e.to_string())?;
         let sid = db.last_insert_rowid();
 
-        let max_ord: i64 = db
-            .query_row(
-                "SELECT COALESCE(MAX(sort_order)+1,0) FROM ss_script_profile WHERE profile_id=?1",
-                params![target_pid],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-        db.execute(
-            "INSERT OR IGNORE INTO ss_script_profile (script_id,profile_id,sort_order) VALUES (?1,?2,?3)",
-            params![sid, target_pid, max_ord]
-        ).map_err(|e| e.to_string())?;
+        if let Some(pid) = target_pid {
+            let max_ord: i64 = db
+                .query_row(
+                    "SELECT COALESCE(MAX(sort_order)+1,0) FROM ss_script_profile WHERE profile_id=?1",
+                    params![pid],
+                    |r| r.get(0),
+                )
+                .unwrap_or(0);
+            db.execute(
+                "INSERT OR IGNORE INTO ss_script_profile (script_id,profile_id,sort_order) VALUES (?1,?2,?3)",
+                params![sid, pid, max_ord]
+            ).map_err(|e| e.to_string())?;
+        }
         added += 1;
     }
     Ok(added)

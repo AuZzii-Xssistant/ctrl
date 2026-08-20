@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Importing scripts on Master silently polluted an unrelated profile (real bug)
+
+`ss_import_profile` fell back to "first existing profile, or fabricate 'Imported'" when importing on Master, even though Master doesn't need profile membership at all. Fixed to skip profile enrollment entirely for Master imports.
+
 ## 2026-08-20 — Deleting/removing Scripts profile members silently left orphaned dead rows (real bug, 2 sites)
 
 `ss_remove_profile` and `ss_remove_scripts`'s named-profile branch both promise (in their confirm dialogs) that scripts exclusive to that profile get deleted, but neither actually checked for orphaning — no FK cascade meant those scripts became permanently invisible (not in Master, not in any profile) while staying in the DB forever. Fixed both.

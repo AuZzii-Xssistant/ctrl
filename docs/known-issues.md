@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~ScriptStash — importing on Master silently also enrolled scripts in an unrelated profile~~ ✅ Resolved (2026-08-20)
+`ss_import_profile` with `profile_id=None` (importing while viewing Master) fell back to "attach the imported scripts to the first existing profile, or fabricate a new 'Imported' profile if none exist" — even though Master visibility only needs `in_master=1` (the default on insert) and never needed profile membership at all. A user importing "for Master" got their scripts silently enrolled in some unrelated profile too, with zero indication anywhere it happened. Fixed: Master imports now skip the `ss_script_profile` insert entirely.
+
 ### ~~ScriptStash — deleting a profile, or removing scripts from one, left orphaned scripts as permanently invisible dead rows~~ ✅ Resolved (2026-08-20)
 Two call sites had the same bug. `ss_remove_profile`'s confirm dialog says "Scripts only in this profile will also be deleted," and `ss_remove_scripts`'s named-profile branch says "Scripts not in any other profile are also deleted" — but neither actually checked for orphaning. There's no FK cascade on `ss_script_profile`, so a script whose sole membership was the profile being deleted (or the scripts being removed) lost its only pointer: not in Master (`in_master=0`), not in any remaining profile, but still sitting in the `scripts` table forever with no way to reach it from the UI. Found by a full code-read-through of scriptstash.rs, not live testing. Fixed both: delete scripts that are joined only to the target (not in Master, no other profile membership) before/alongside removing the join rows. `cargo check`/`cargo clippy` clean on both.
 
