@@ -907,17 +907,21 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
   width:190px; flex-shrink:0;
   border-left:1px solid var(--border);
   background:var(--bg2);
-  padding:12px 10px;
-  display:flex; flex-direction:column; gap:8px;
-  overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column;
+  overflow:hidden;
 }
 #ql-panel-header {
-  display:flex; align-items:center; gap:6px; flex-shrink:0;
-  font-family:var(--mono); font-size:10px; color:var(--text3);
-  letter-spacing:.1em; text-transform:uppercase;
+  display:flex; align-items:center; gap:7px; flex-shrink:0;
+  padding:10px 10px 12px;
+  font-size:13px; font-weight:600; color:var(--text);
 }
-#ql-panel-header i { color:var(--amber); font-size:12px; }
-#ql-filter { font-size:11px; padding:5px 8px; }
+#ql-panel-header i { font-size:15px; color:var(--amber); }
+#ql-panel-divider { height:1px; background:var(--border); flex-shrink:0; }
+#ql-panel-scroll {
+  flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+  padding:12px 10px; display:flex; flex-direction:column; gap:8px;
+}
+#ql-filter { font-size:11px; padding:5px 8px; flex-shrink:0; }
 #ql-panel-body .ql-grid { grid-template-columns:1fr; margin-bottom:0; }
 
 #dash-perf {
