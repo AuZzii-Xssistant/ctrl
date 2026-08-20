@@ -1,6 +1,6 @@
 # Security Policy
 
->_ CTRL is a local-first Windows desktop app. It runs PowerShell/batch/Python commands you configure, some elevated (UAC), against your own machine — there's no server, no network service, no account system. Most "security" concerns here are about what a malicious *script or fix entry* could do if imported from an untrusted source, not about attacking CTRL itself over a network.
+\>_ CTRL is a local-first Windows desktop app. It runs PowerShell/batch/Python commands you configure, some elevated (UAC), against your own machine — there's no server, no network service, no account system. Most "security" concerns here are about what a malicious *script or fix entry* could do if imported from an untrusted source, not about attacking CTRL itself over a network.
 
 ## Reporting a vulnerability
 

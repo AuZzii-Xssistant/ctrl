@@ -2,7 +2,7 @@
 
 **Your personal Windows control centre. Portable. Local. No BS.**
 
->_ CTRL replaces the scattered mess of scripts, shortcuts, batch files, and AutoHotkey hacks that every power user accumulates — and puts everything in one dark, fast, offline-capable desktop app.
+\>_ CTRL replaces the scattered mess of scripts, shortcuts, batch files, and AutoHotkey hacks that every power user accumulates — and puts everything in one dark, fast, offline-capable desktop app.
 
 Drop the folder on a USB drive. Copy it to a new PC. Run it anywhere. No installer. No admin rights needed. No internet. No telemetry. Everything local, everything yours.
 
@@ -200,4 +200,4 @@ Copy both to your portable >_ CTRL folder alongside `ctrl.db`.
 
 ## License
 
->_ CTRL is licensed under the [GNU General Public License v3.0](LICENSE).
+\>_ CTRL is licensed under the [GNU General Public License v3.0](LICENSE).

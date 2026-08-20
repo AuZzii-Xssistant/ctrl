@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~Docs — paragraphs starting with ">_ CTRL" rendered as a blockquote~~ ✅ Resolved (2026-08-20)
+Markdown treats a leading `>` as a blockquote marker. Any paragraph opening with the app's own name — `>_ CTRL replaces...` — silently rendered as an indented blockquote instead of a normal paragraph on GitHub/any Markdown renderer. Found in 3 spots (README's intro + License section, SECURITY.md's intro). Fixed by escaping to `\>_ CTRL`. Headings (`# >_ CTRL`) were never affected since `#` already claims the line first.
+
 ### ~~Scripts pane — 6 error toasts rendered with no red styling~~ ✅ Resolved (2026-08-20)
 `toast(msg, type)` only recognizes `'ok'`/`'err'`/`'info'` — the icon map and every `#toast.t-*` CSS rule are keyed on those three. Six call sites in `scripts.js` (profile create/duplicate failures, script-name-required validation, import/export failures) passed `'error'` instead of `'err'`, so those toasts silently fell back to the default info icon and got no matching CSS class at all — an error message with no red border, no error icon, easy to miss. Fixed by correcting all 6 to `'err'`. Swept the rest of the codebase for the same typo — none found elsewhere.
 
