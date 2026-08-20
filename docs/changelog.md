@@ -1,8 +1,8 @@
 # >_ CTRL Changelog
 
-## 2026-08-20 — Deleting a Scripts profile silently left orphaned dead rows (real bug)
+## 2026-08-20 — Deleting/removing Scripts profile members silently left orphaned dead rows (real bug, 2 sites)
 
-`ss_remove_profile`'s confirm dialog promises scripts exclusive to that profile get deleted, but the backend only ever removed the join table rows — no FK cascade meant those scripts became permanently invisible (not in Master, not in any profile) while staying in the DB forever. Fixed to actually delete them.
+`ss_remove_profile` and `ss_remove_scripts`'s named-profile branch both promise (in their confirm dialogs) that scripts exclusive to that profile get deleted, but neither actually checked for orphaning — no FK cascade meant those scripts became permanently invisible (not in Master, not in any profile) while staying in the DB forever. Fixed both.
 
 ## 2026-08-20 — Compare view mispaired changed lines sharing a hunk with an unrelated insertion (real bug)
 

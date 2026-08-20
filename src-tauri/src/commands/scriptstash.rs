@@ -418,11 +418,34 @@ pub fn ss_remove_scripts(
     let db = state.0.lock().map_err(|e| e.to_string())?;
     for sid in &ids {
         if let Some(pid) = profile_id {
+            // The confirm dialog (scripts.js) promises "scripts not in any other
+            // profile are also deleted" — true only when the script is also NOT
+            // in Master. A script created directly under a profile (in_master=0,
+            // no other membership) would otherwise lose its only join row here
+            // and become a permanently invisible dead row, same bug class as
+            // ss_remove_profile below.
+            let in_master: i64 = db
+                .query_row(
+                    "SELECT COALESCE(in_master,1) FROM scripts WHERE id=?1",
+                    params![sid],
+                    |r| r.get(0),
+                )
+                .unwrap_or(1);
+            let other_profiles: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM ss_script_profile WHERE script_id=?1 AND profile_id<>?2",
+                    params![sid, pid],
+                    |r| r.get(0),
+                )
+                .unwrap_or(0);
             db.execute(
                 "DELETE FROM ss_script_profile WHERE script_id=?1 AND profile_id=?2",
                 params![sid, pid],
             )
             .map_err(|e| e.to_string())?;
+            if in_master == 0 && other_profiles == 0 {
+                let _ = db.execute("DELETE FROM scripts WHERE id=?1", params![sid]);
+            }
         } else {
             // Master = global delete
             db.execute(
@@ -434,7 +457,6 @@ pub fn ss_remove_scripts(
                 .map_err(|e| e.to_string())?;
         }
     }
-    // Removing from a named profile does not orphan — script stays in Master
     Ok(true)
 }
 
