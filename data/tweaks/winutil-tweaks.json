@@ -27,7 +27,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/activity"
   },
   {
     "id": "WPFTweaksHiber",
@@ -52,7 +53,8 @@
       }
     ],
     "invokeScript": "powercfg.exe /hibernate off",
-    "undoScript": "powercfg.exe /hibernate on"
+    "undoScript": "powercfg.exe /hibernate on",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/hiber"
   },
   {
     "id": "WPFTweaksWidget",
@@ -60,7 +62,8 @@
     "description": "Removes the annoying widgets in the bottom left of the Taskbar.",
     "category": "Essential Tweaks",
     "admin": true,
-    "invokeScript": "\n      # Sometimes if you dont stop the Widgets process the removal may fail\n\n      Get-Process *Widget* | Stop-Process\n      Get-AppxPackage Microsoft.WidgetsPlatformRuntime -AllUsers | Remove-AppxPackage -AllUsers\n      Get-AppxPackage MicrosoftWindows.Client.WebExperience -AllUsers | Remove-AppxPackage -AllUsers\n\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      Write-Host \"Removed widgets\"\n      "
+    "invokeScript": "\n      # Sometimes if you dont stop the Widgets process the removal may fail\n\n      Get-Process *Widget* | Stop-Process\n      Get-AppxPackage Microsoft.WidgetsPlatformRuntime -AllUsers | Remove-AppxPackage -AllUsers\n      Get-AppxPackage MicrosoftWindows.Client.WebExperience -AllUsers | Remove-AppxPackage -AllUsers\n\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      Write-Host \"Removed widgets\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/widget"
   },
   {
     "id": "WPFTweaksRevertStartMenu",
@@ -76,7 +79,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/revertstartmenu"
   },
   {
     "id": "WPFTweaksDisableStoreSearch",
@@ -85,7 +89,8 @@
     "category": "Essential Tweaks",
     "admin": true,
     "invokeScript": "icacls \"$Env:LocalAppData\\Packages\\Microsoft.WindowsStore_8wekyb3d8bbwe\\LocalState\\store.db\" /deny Everyone:F",
-    "undoScript": "icacls \"$Env:LocalAppData\\Packages\\Microsoft.WindowsStore_8wekyb3d8bbwe\\LocalState\\store.db\" /grant Everyone:F"
+    "undoScript": "icacls \"$Env:LocalAppData\\Packages\\Microsoft.WindowsStore_8wekyb3d8bbwe\\LocalState\\store.db\" /grant Everyone:F",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/disablestoresearch"
   },
   {
     "id": "WPFTweaksLocation",
@@ -115,7 +120,8 @@
         "type": "DWord",
         "originalValue": "1"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/location"
   },
   {
     "id": "WPFTweaksServices",
@@ -123,7 +129,8 @@
     "description": "Sets some services to Manual startup and adjusts the SvcHostSplitThresholdInKB registry value to better match system memory, which can significantly reduce the number of svchost.exe processes.",
     "category": "Essential Tweaks",
     "admin": true,
-    "invokeScript": "\n      $Memory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1KB\n      Set-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\" -Name SvcHostSplitThresholdInKB -Value $Memory\n      "
+    "invokeScript": "\n      $Memory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1KB\n      Set-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\" -Name SvcHostSplitThresholdInKB -Value $Memory\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/services"
   },
   {
     "id": "WPFTweaksBraveDebloat",
@@ -216,7 +223,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/bravedebloat"
   },
   {
     "id": "WPFTweaksDisableWarningForUnsignedRdp",
@@ -239,7 +247,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/disablewarningforunsignedrdp"
   },
   {
     "id": "WPFTweaksEdgeDebloat",
@@ -367,7 +376,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/edgedebloat"
   },
   {
     "id": "WPFTweaksConsumerFeatures",
@@ -383,7 +393,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/consumerfeatures"
   },
   {
     "id": "WPFTweaksTelemetry",
@@ -478,7 +489,8 @@
       }
     ],
     "invokeScript": "\n      # Disable Defender Auto Sample Submission\n      Set-MpPreference -SubmitSamplesConsent 2\n\n      # Disable (Connected User Experiences and Telemetry) Service\n      Set-Service -Name diagtrack -StartupType Disabled\n\n      # Disable (Windows Error Reporting Manager) Service\n      Set-Service -Name wermgr -StartupType Disabled\n\n      # Disable PowerShell 7 telemetry\n      [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')\n\n      Remove-ItemProperty -Path \"HKCU:\\Software\\Microsoft\\Siuf\\Rules\" -Name PeriodInNanoSeconds\n      ",
-    "undoScript": "\n      # Enable Defender Auto Sample Submission\n      Set-MpPreference -SubmitSamplesConsent 1\n\n      # Enable (Connected User Experiences and Telemetry) Service\n      Set-Service -Name diagtrack -StartupType Automatic\n\n      # Enable (Windows Error Reporting Manager) Service\n      Set-Service -Name wermgr -StartupType Automatic\n\n      # Enable PowerShell 7 telemetry\n      [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '', 'Machine')\n      "
+    "undoScript": "\n      # Enable Defender Auto Sample Submission\n      Set-MpPreference -SubmitSamplesConsent 1\n\n      # Enable (Connected User Experiences and Telemetry) Service\n      Set-Service -Name diagtrack -StartupType Automatic\n\n      # Enable (Windows Error Reporting Manager) Service\n      Set-Service -Name wermgr -StartupType Automatic\n\n      # Enable PowerShell 7 telemetry\n      [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '', 'Machine')\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/telemetry"
   },
   {
     "id": "WPFTweaksDeliveryOptimization",
@@ -494,7 +506,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/deliveryoptimization"
   },
   {
     "id": "WPFTweaksRemoveEdge",
@@ -503,7 +516,8 @@
     "category": "z__Advanced Tweaks - CAUTION",
     "admin": true,
     "invokeScript": "\n      $Path = Resolve-Path -Path \"$Env:ProgramFiles (x86)\\Microsoft\\Edge\\Application\\*\\Installer\\setup.exe\" | Select-Object -Last 1\n\n      if (Test-Path $Path) {\n          New-Item -Path \"$Env:SystemRoot\\SystemApps\\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\\MicrosoftEdge.exe\" -Force\n          Start-Process -FilePath $Path -ArgumentList \"--uninstall --system-level --force-uninstall --delete-profile\" -Wait\n          Write-Host \"Microsoft Edge was removed\"\n      } else {\n          Write-Host \"Microsoft Edge is not installed\"\n      }\n      ",
-    "undoScript": "\n      Write-Host \"Installing Microsoft Edge...\"\n      winget install Microsoft.Edge --source winget\n      "
+    "undoScript": "\n      Write-Host \"Installing Microsoft Edge...\"\n      winget install Microsoft.Edge --source winget\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/removeedge"
   },
   {
     "id": "WPFTweaksDisableBitLocker",
@@ -512,7 +526,8 @@
     "category": "Essential Tweaks",
     "admin": true,
     "invokeScript": "Disable-BitLocker -MountPoint $Env:SystemDrive",
-    "undoScript": "Enable-BitLocker -MountPoint $Env:SystemDrive"
+    "undoScript": "Enable-BitLocker -MountPoint $Env:SystemDrive",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/disablebitlocker"
   },
   {
     "id": "WPFTweaksUTC",
@@ -528,7 +543,8 @@
         "type": "QWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/utc"
   },
   {
     "id": "WPFTweaksRemoveOneDrive",
@@ -537,7 +553,8 @@
     "category": "z__Advanced Tweaks - CAUTION",
     "admin": true,
     "invokeScript": "\n      # Deny permission to remove OneDrive folder\n      icacls $Env:OneDrive /deny \"Administrators:(D,DC)\"\n\n      Write-Host \"Uninstalling OneDrive...\"\n      Start-Process -FilePath (Join-Path $Env:SystemRoot \"System32\\OneDriveSetup.exe\") -ArgumentList '/uninstall' -Wait\n\n      # Some of OneDrive files use explorer, and OneDrive uses FileCoAuth\n      Write-Host \"Removing leftover OneDrive Files...\"\n\n      Stop-Process -Name FileCoAuth,Explorer\n\n      Remove-Item \"$Env:LocalAppData\\Microsoft\\OneDrive\" -Recurse -Force\n      Remove-Item \"$Env:ProgramData\\Microsoft OneDrive\" -Recurse -Force\n\n      # Grant back permission to access OneDrive folder\n      icacls $Env:OneDrive /grant \"Administrators:(D,DC)\"\n\n      if (-not (Get-ChildItem -Path $Env:OneDrive)) {\n          Remove-Item -Path $Env:OneDrive -Recurse\n          [Environment]::SetEnvironmentVariable('OneDrive', $null, 'User')\n      }\n\n      # Disable OneSyncSvc\n      Set-Service -Name OneSyncSvc -StartupType Disabled\n      ",
-    "undoScript": "\n      Write-Host \"Installing OneDrive\"\n      winget install Microsoft.Onedrive --source winget\n\n      # Enabled OneSyncSvc\n      Set-Service -Name OneSyncSvc -StartupType Automatic\n      "
+    "undoScript": "\n      Write-Host \"Installing OneDrive\"\n      winget install Microsoft.Onedrive --source winget\n\n      # Enabled OneSyncSvc\n      Set-Service -Name OneSyncSvc -StartupType Automatic\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/removeonedrive"
   },
   {
     "id": "WPFTweaksRemoveHomeAndGallery",
@@ -567,7 +584,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/removehomeandgallery"
   },
   {
     "id": "WPFTweaksDisplay",
@@ -662,7 +680,8 @@
       }
     ],
     "invokeScript": "Set-ItemProperty -Path \"HKCU:\\Control Panel\\Desktop\" -Name \"UserPreferencesMask\" -Type Binary -Value ([byte[]](144,18,3,128,16,0,0,0))",
-    "undoScript": "Remove-ItemProperty -Path \"HKCU:\\Control Panel\\Desktop\" -Name \"UserPreferencesMask\""
+    "undoScript": "Remove-ItemProperty -Path \"HKCU:\\Control Panel\\Desktop\" -Name \"UserPreferencesMask\"",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/display"
   },
   {
     "id": "WPFTweaksReservedStorage",
@@ -671,7 +690,8 @@
     "category": "z__Advanced Tweaks - CAUTION",
     "admin": true,
     "invokeScript": "DISM /Online /Set-ReservedStorageState /State:Disabled",
-    "undoScript": "DISM /Online /Set-ReservedStorageState /State:Enabled"
+    "undoScript": "DISM /Online /Set-ReservedStorageState /State:Enabled",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/reservedstorage"
   },
   {
     "id": "WPFTweaksRestorePoint",
@@ -688,7 +708,8 @@
         "originalValue": "1440"
       }
     ],
-    "invokeScript": "\n      if (-not (Get-ComputerRestorePoint)) {\n          Enable-ComputerRestore -Drive $Env:SystemDrive\n      }\n\n      Checkpoint-Computer -Description \"System Restore Point created by WinUtil\" -RestorePointType MODIFY_SETTINGS\n      Write-Host \"System Restore Point Created Successfully\" -ForegroundColor Green\n      "
+    "invokeScript": "\n      if (-not (Get-ComputerRestorePoint)) {\n          Enable-ComputerRestore -Drive $Env:SystemDrive\n      }\n\n      Checkpoint-Computer -Description \"System Restore Point created by WinUtil\" -RestorePointType MODIFY_SETTINGS\n      Write-Host \"System Restore Point Created Successfully\" -ForegroundColor Green\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/restorepoint"
   },
   {
     "id": "WPFTweaksEndTaskOnTaskbar",
@@ -704,7 +725,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/endtaskontaskbar"
   },
   {
     "id": "WPFTweaksStorage",
@@ -720,7 +742,8 @@
         "type": "DWord",
         "originalValue": "1"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/storage"
   },
   {
     "id": "WPFTweaksWindowsAI",
@@ -744,7 +767,8 @@
         "originalValue": "<RemoveEntry>"
       }
     ],
-    "invokeScript": "\n      $Appx = (Get-AppxPackage MicrosoftWindows.Client.CoreAI).PackageFullName\n      $Sid = (Get-LocalUser $Env:UserName).Sid.Value\n\n      New-Item \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\EndOfLife\\$Sid\\$Appx\" -Force\n\n      Get-AppxPackage -AllUsers \"*Copilot*\" | Remove-AppxPackage -AllUsers\n      winget uninstall -e --name \"Copilot\" --silent --force --accept-source-agreements 2>$null\n      Get-AppxPackage -AllUsers Microsoft.MicrosoftOfficeHub | Remove-AppxPackage -AllUsers\n\n      if ($Appx) {\n          Remove-AppxPackage $Appx\n      }\n\n      Set-Service -Name WSAIFabricSvc -StartupType Disabled\n      Disable-WindowsOptionalFeature -FeatureName Recall -Online -NoRestart\n\n      Write-Host \"Windows AI Disabled\"\n      "
+    "invokeScript": "\n      $Appx = (Get-AppxPackage MicrosoftWindows.Client.CoreAI).PackageFullName\n      $Sid = (Get-LocalUser $Env:UserName).Sid.Value\n\n      New-Item \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\EndOfLife\\$Sid\\$Appx\" -Force\n\n      Get-AppxPackage -AllUsers \"*Copilot*\" | Remove-AppxPackage -AllUsers\n      winget uninstall -e --name \"Copilot\" --silent --force --accept-source-agreements 2>$null\n      Get-AppxPackage -AllUsers Microsoft.MicrosoftOfficeHub | Remove-AppxPackage -AllUsers\n\n      if ($Appx) {\n          Remove-AppxPackage $Appx\n      }\n\n      Set-Service -Name WSAIFabricSvc -StartupType Disabled\n      Disable-WindowsOptionalFeature -FeatureName Recall -Online -NoRestart\n\n      Write-Host \"Windows AI Disabled\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/windowsai"
   },
   {
     "id": "WPFTweaksWPBT",
@@ -760,7 +784,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/wpbt"
   },
   {
     "id": "WPFTweaksPreventDeviceMetadataFromNetwork",
@@ -776,7 +801,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/preventdevicemetadatafromnetwork"
   },
   {
     "id": "WPFTweaksRazerBlock",
@@ -801,7 +827,8 @@
       }
     ],
     "invokeScript": "\n      $RazerPath = \"$Env:SystemRoot\\Installer\\Razer\"\n\n      if (Test-Path $RazerPath) {\n        Remove-Item $RazerPath\\* -Recurse -Force\n      } else {\n        New-Item -Path $RazerPath -ItemType Directory\n      }\n\n      icacls $RazerPath /deny \"Everyone:(W)\"\n      ",
-    "undoScript": "\n      icacls \"$Env:SystemRoot\\Installer\\Razer\" /remove:d Everyone\n      "
+    "undoScript": "\n      icacls \"$Env:SystemRoot\\Installer\\Razer\" /remove:d Everyone\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/razerblock"
   },
   {
     "id": "WPFTweaksDisableNotifications",
@@ -824,7 +851,8 @@
         "type": "DWord",
         "originalValue": "1"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/disablenotifications"
   },
   {
     "id": "WPFTweaksBlockAdobeNet",
@@ -833,7 +861,8 @@
     "category": "z__Advanced Tweaks - CAUTION",
     "admin": true,
     "invokeScript": "\n      $hostsUrl = Invoke-RestMethod -Uri https://github.com/Ruddernation-Designs/Adobe-URL-Block-List/raw/refs/heads/master/hosts\n      Add-Content -Path \"$Env:SystemRoot\\System32\\drivers\\etc\\hosts\" -Value $hostsUrl\n\n      ipconfig /flushdns\n      Write-Host 'Added Adobe url block list from host file'\n      ",
-    "undoScript": "\n      Set-Content \"$Env:SystemRoot\\System32\\drivers\\etc\\hosts\" (\n          (Get-Content \"$Env:SystemRoot\\System32\\drivers\\etc\\hosts\") -join \"`n\" -replace '(?s)#New Ver.*', ''\n      )\n\n      ipconfig /flushdns\n      Write-Host 'Removed Adobe url block list from host file'\n      "
+    "undoScript": "\n      Set-Content \"$Env:SystemRoot\\System32\\drivers\\etc\\hosts\" (\n          (Get-Content \"$Env:SystemRoot\\System32\\drivers\\etc\\hosts\") -join \"`n\" -replace '(?s)#New Ver.*', ''\n      )\n\n      ipconfig /flushdns\n      Write-Host 'Removed Adobe url block list from host file'\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/blockadobenet"
   },
   {
     "id": "WPFTweaksRightClickMenu",
@@ -842,7 +871,8 @@
     "category": "z__Advanced Tweaks - CAUTION",
     "admin": true,
     "invokeScript": "\n      New-Item -Path \"HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\" -Name InprocServer32 -Value \"\" -Force\n      Stop-Process -Name explorer\n      ",
-    "undoScript": "Remove-Item -Path \"HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\" -Recurse"
+    "undoScript": "Remove-Item -Path \"HKCU:\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\" -Recurse",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/rightclickmenu"
   },
   {
     "id": "WPFTweaksDiskCleanup",
@@ -850,7 +880,8 @@
     "description": "Runs Disk Cleanup on Drive C: and removes old Windows Updates.",
     "category": "Essential Tweaks",
     "admin": true,
-    "invokeScript": "\n      cleanmgr.exe /d C: /VERYLOWDISK\n      Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase\n      "
+    "invokeScript": "\n      cleanmgr.exe /d C: /VERYLOWDISK\n      Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/diskcleanup"
   },
   {
     "id": "WPFTweaksDeleteTempFiles",
@@ -858,7 +889,8 @@
     "description": "Erases TEMP Folders.",
     "category": "Essential Tweaks",
     "admin": true,
-    "invokeScript": "\n      Remove-Item -Path \"$Env:Temp\\*\" -Recurse -Force\n      Remove-Item -Path \"$Env:SystemRoot\\Temp\\*\" -Recurse -Force\n      "
+    "invokeScript": "\n      Remove-Item -Path \"$Env:Temp\\*\" -Recurse -Force\n      Remove-Item -Path \"$Env:SystemRoot\\Temp\\*\" -Recurse -Force\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/deletetempfiles"
   },
   {
     "id": "WPFTweaksIPv46",
@@ -874,7 +906,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/ipv46"
   },
   {
     "id": "WPFTweaksTeredo",
@@ -892,7 +925,8 @@
       }
     ],
     "invokeScript": "netsh interface teredo set state disabled",
-    "undoScript": "netsh interface teredo set state default"
+    "undoScript": "netsh interface teredo set state default",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/teredo"
   },
   {
     "id": "WPFTweaksDisableIPv6",
@@ -910,7 +944,8 @@
       }
     ],
     "invokeScript": "Disable-NetAdapterBinding -Name * -ComponentID ms_tcpip6",
-    "undoScript": "Enable-NetAdapterBinding -Name * -ComponentID ms_tcpip6"
+    "undoScript": "Enable-NetAdapterBinding -Name * -ComponentID ms_tcpip6",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/disableipv6"
   },
   {
     "id": "WPFTweaksDisableBGapps",
@@ -926,7 +961,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/disablebgapps"
   },
   {
     "id": "WPFTweaksDisableExplorerAutoDiscovery",
@@ -935,7 +971,8 @@
     "category": "Essential Tweaks",
     "admin": true,
     "invokeScript": "\n      # Previously detected folders\n      $bags = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\"\n\n      # Folder types lookup table\n      $bagMRU = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU\"\n\n      # Flush Explorer view database\n      Remove-Item -Path $bags -Recurse -Force\n      Write-Host \"Removed $bags\"\n\n      Remove-Item -Path $bagMRU -Recurse -Force\n      Write-Host \"Removed $bagMRU\"\n\n      # Every folder\n      $allFolders = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\\AllFolders\\Shell\"\n\n      if (!(Test-Path $allFolders)) {\n        New-Item -Path $allFolders -Force\n        Write-Host \"Created $allFolders\"\n      }\n\n      # Generic view\n      New-ItemProperty -Path $allFolders -Name \"FolderType\" -Value \"NotSpecified\" -PropertyType String -Force\n      Write-Host \"Set FolderType to NotSpecified\"\n\n      Write-Host Please sign out and back in, or restart your computer to apply the changes!\n      ",
-    "undoScript": "\n      # Previously detected folders\n      $bags = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\"\n\n      # Folder types lookup table\n      $bagMRU = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU\"\n\n      # Flush Explorer view database\n      Remove-Item -Path $bags -Recurse -Force\n      Write-Host \"Removed $bags\"\n\n      Remove-Item -Path $bagMRU -Recurse -Force\n      Write-Host \"Removed $bagMRU\"\n\n      Write-Host Please sign out and back in, or restart your computer to apply the changes!\n      "
+    "undoScript": "\n      # Previously detected folders\n      $bags = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\Bags\"\n\n      # Folder types lookup table\n      $bagMRU = \"HKCU:\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\BagMRU\"\n\n      # Flush Explorer view database\n      Remove-Item -Path $bags -Recurse -Force\n      Write-Host \"Removed $bags\"\n\n      Remove-Item -Path $bagMRU -Recurse -Force\n      Write-Host \"Removed $bagMRU\"\n\n      Write-Host Please sign out and back in, or restart your computer to apply the changes!\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/disableexplorerautodiscovery"
   },
   {
     "id": "WPFToggleDetailedBSoD",
@@ -958,7 +995,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/detailedbsod"
   },
   {
     "id": "WPFToggleBatteryPercentage",
@@ -974,7 +1012,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/batterypercentage"
   },
   {
     "id": "WPFToggleDarkMode",
@@ -999,7 +1038,8 @@
       }
     ],
     "invokeScript": "\n      Invoke-WinUtilExplorerUpdate\n      if ($sync.ThemeButton.Content -eq [char]0xF08C) {\n        Invoke-WinutilThemeChange -theme \"Auto\"\n      }\n      ",
-    "undoScript": "\n      Invoke-WinUtilExplorerUpdate\n      if ($sync.ThemeButton.Content -eq [char]0xF08C) {\n        Invoke-WinutilThemeChange -theme \"Auto\"\n      }\n      "
+    "undoScript": "\n      Invoke-WinUtilExplorerUpdate\n      if ($sync.ThemeButton.Content -eq [char]0xF08C) {\n        Invoke-WinutilThemeChange -theme \"Auto\"\n      }\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/darkmode"
   },
   {
     "id": "WPFToggleShowExt",
@@ -1017,7 +1057,8 @@
       }
     ],
     "invokeScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
-    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      "
+    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/showext"
   },
   {
     "id": "WPFToggleHiddenFiles",
@@ -1035,7 +1076,8 @@
       }
     ],
     "invokeScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
-    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      "
+    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/hiddenfiles"
   },
   {
     "id": "WPFToggleVerboseLogon",
@@ -1051,7 +1093,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/verboselogon"
   },
   {
     "id": "WPFToggleNewOutlook",
@@ -1088,7 +1131,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/newoutlook"
   },
   {
     "id": "WPFToggleScrollbars",
@@ -1104,7 +1148,8 @@
         "type": "DWord",
         "originalValue": "1"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/scrollbars"
   },
   {
     "id": "WPFMultiplaneOverlay",
@@ -1127,7 +1172,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/multiplaneoverlay"
   },
   {
     "id": "WPFToggleMouseAcceleration",
@@ -1157,7 +1203,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/mouseacceleration"
   },
   {
     "id": "WPFToggleNumLock",
@@ -1180,7 +1227,8 @@
         "type": "String",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/numlock"
   },
   {
     "id": "WPFToggleWindowSnapping",
@@ -1196,7 +1244,8 @@
         "type": "String",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/windowsnapping"
   },
   {
     "id": "WPFToggleStandbyFix",
@@ -1212,7 +1261,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/standbyfix"
   },
   {
     "id": "WPFToggleS3Sleep",
@@ -1228,7 +1278,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/s3sleep"
   },
   {
     "id": "WPFToggleHideSettingsHome",
@@ -1244,7 +1295,8 @@
         "type": "String",
         "originalValue": "hide:home"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/hidesettingshome"
   },
   {
     "id": "WPFToggleBingSearch",
@@ -1260,7 +1312,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/bingsearch"
   },
   {
     "id": "WPFToggleLoginBlur",
@@ -1276,7 +1329,8 @@
         "type": "DWord",
         "originalValue": "1"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/loginblur"
   },
   {
     "id": "WPFTweaksDisableLockscreen",
@@ -1292,7 +1346,8 @@
         "type": "DWord",
         "originalValue": "<RemoveEntry>"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/disablelockscreen"
   },
   {
     "id": "WPFToggleStartMenuRecommendations",
@@ -1324,7 +1379,8 @@
       }
     ],
     "invokeScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
-    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      "
+    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/startmenurecommendations"
   },
   {
     "id": "WPFToggleStickyKeys",
@@ -1340,7 +1396,8 @@
         "type": "DWord",
         "originalValue": "58"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/stickykeys"
   },
   {
     "id": "WPFToggleTaskbarAlignment",
@@ -1358,7 +1415,8 @@
       }
     ],
     "invokeScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
-    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      "
+    "undoScript": "\n      Invoke-WinUtilExplorerUpdate -action \"restart\"\n      ",
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/taskbaralignment"
   },
   {
     "id": "WPFToggleTaskbarSearch",
@@ -1374,7 +1432,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/taskbarsearch"
   },
   {
     "id": "WPFToggleTaskView",
@@ -1390,7 +1449,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/taskview"
   },
   {
     "id": "WPFToggleGameMode",
@@ -1413,7 +1473,8 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/gamemode"
   },
   {
     "id": "WPFToggleLongPaths",
@@ -1429,34 +1490,39 @@
         "type": "DWord",
         "originalValue": "0"
       }
-    ]
+    ],
+    "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/longpaths"
   },
   {
     "id": "WPFOOSUbutton",
     "label": "O&O ShutUp10++ - Run",
     "description": "",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true
+    "admin": true,
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/oosubutton"
   },
   {
     "id": "WPFchangedns",
     "label": "DNS - Set to:",
     "description": "",
     "category": "z__Advanced Tweaks - CAUTION",
-    "admin": true
+    "admin": true,
+    "link": "https://winutil.christitus.com/code-reference/tweaks/z--advanced-tweaks---caution/changedns"
   },
   {
     "id": "WPFAddUltPerf",
     "label": "Ultimate Performance Profile - Enable",
     "description": "",
     "category": "Performance Plans - NOT FOR LAPTOPS",
-    "admin": true
+    "admin": true,
+    "link": "https://winutil.christitus.com/code-reference/tweaks/performance-plans---not-for-laptops/addultperf"
   },
   {
     "id": "WPFRemoveUltPerf",
     "label": "Ultimate Performance Profile - Disable",
     "description": "",
     "category": "Performance Plans - NOT FOR LAPTOPS",
-    "admin": true
+    "admin": true,
+    "link": "https://winutil.christitus.com/code-reference/tweaks/performance-plans---not-for-laptops/removeultperf"
   }
 ]

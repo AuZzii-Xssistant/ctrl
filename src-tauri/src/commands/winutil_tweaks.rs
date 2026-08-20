@@ -40,6 +40,8 @@ pub struct WinutilTweak {
     pub invoke_script: Option<String>,
     #[serde(rename = "undoScript", default)]
     pub undo_script: Option<String>,
+    #[serde(default)]
+    pub link: Option<String>,
 }
 
 const EMBEDDED_TWEAKS: &str = include_str!("../../../data/tweaks/winutil-tweaks.json");
@@ -186,13 +188,9 @@ pub async fn check_winutil_tweaks(app: AppHandle) -> Result<HashMap<String, Stri
     Ok(out)
 }
 
-async fn run_tweak(app: AppHandle, id: String, revert: bool) -> Result<RunResult, String> {
-    let tweaks = load_tweaks();
-    let t = tweaks
-        .into_iter()
-        .find(|x| x.id == id)
-        .ok_or_else(|| "Tweak not found".to_string())?;
-
+/// Shared by execution and the Preview panel, so what you preview is exactly
+/// what runs — no separate "explanation" text that could drift from reality.
+fn build_tweak_script(t: &WinutilTweak, revert: bool) -> String {
     let mut s = String::from("[Console]::OutputEncoding=[Text.Encoding]::UTF8\n$ErrorActionPreference='Continue'\n");
     for r in &t.registry {
         let target = if revert { &r.original_value } else { &r.value };
@@ -214,6 +212,23 @@ async fn run_tweak(app: AppHandle, id: String, revert: bool) -> Result<RunResult
         s.push_str(sc);
         s.push('\n');
     }
+    s
+}
+
+async fn run_tweak(app: AppHandle, id: String, revert: bool) -> Result<RunResult, String> {
+    let tweaks = load_tweaks();
+    let t = tweaks
+        .into_iter()
+        .find(|x| x.id == id)
+        .ok_or_else(|| "Tweak not found".to_string())?;
+
+    let mut s = build_tweak_script(&t, revert);
+    // Every tweak runs elevated -- Windows UAC means that's a separate external
+    // console (see docs/known-issues.md's "Run As Admin" entry), which -File
+    // closes the instant the script finishes with no way to read what happened.
+    // User-reported: ran a tweak, it failed, and the window was already gone
+    // before they could see why. Pause so results are actually readable.
+    s.push_str("\nWrite-Host ''; Write-Host 'Press Enter to close...' -NoNewline; Read-Host | Out-Null\n");
 
     let result = exec_elevated(&app, &s, &Shell::PowerShell, "wtweak").await?;
     Ok(RunResult {
@@ -230,4 +245,26 @@ pub async fn apply_winutil_tweak(app: AppHandle, id: String) -> Result<RunResult
 #[tauri::command]
 pub async fn revert_winutil_tweak(app: AppHandle, id: String) -> Result<RunResult, String> {
     run_tweak(app, id, true).await
+}
+
+#[derive(Serialize)]
+pub struct TweakPreview {
+    pub apply: String,
+    pub revert: String,
+}
+
+/// Read-only — shows exactly what Apply/Revert will run, without running it.
+/// Requested after a tweak's label didn't match what the user expected it to
+/// do; this lets you check before clicking instead of finding out after.
+#[tauri::command]
+pub fn preview_winutil_tweak(id: String) -> Result<TweakPreview, String> {
+    let tweaks = load_tweaks();
+    let t = tweaks
+        .into_iter()
+        .find(|x| x.id == id)
+        .ok_or_else(|| "Tweak not found".to_string())?;
+    Ok(TweakPreview {
+        apply: build_tweak_script(&t, false),
+        revert: build_tweak_script(&t, true),
+    })
 }

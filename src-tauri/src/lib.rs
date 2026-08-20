@@ -145,6 +145,7 @@ pub fn run() {
             commands::winutil_tweaks::check_winutil_tweaks,
             commands::winutil_tweaks::apply_winutil_tweak,
             commands::winutil_tweaks::revert_winutil_tweak,
+            commands::winutil_tweaks::preview_winutil_tweak,
             commands::env_vars::get_env_vars,
             commands::env_vars::set_env_var,
             commands::env_vars::delete_env_var,

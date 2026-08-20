@@ -64,8 +64,9 @@ Ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT) — `data
 |---|---|---|
 | `get_winutil_tweaks` | — | `WinutilTweak[]` |
 | `check_winutil_tweaks` | — | `Record<string, 'on'\|'off'\|'unknown'>` — one batched PowerShell call reads every registry-backed tweak's current value and compares against its known on/off state. Tweaks with no `registry` entries (script-only) always report `'unknown'` — there's nothing to read. |
-| `apply_winutil_tweak` | `{id}` | `RunResult` |
+| `apply_winutil_tweak` | `{id}` | `RunResult` — elevated console pauses at the end (`Read-Host`) so results are readable before it closes |
 | `revert_winutil_tweak` | `{id}` | `RunResult` |
+| `preview_winutil_tweak` | `{id}` | `TweakPreview = {apply, revert: string}` — the exact PowerShell Apply/Revert will run, read-only, nothing executed |
 
 ```
 WinutilTweak = { id, label, description, category, admin: boolean, registry?: RegEntry[], invokeScript?, undoScript?: string }

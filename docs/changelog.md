@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Tweaks: context menu, preview-before-running, elevated console pause
+
+Follow-up after the WinUtil port. Three user-reported gaps: (1) no way to inspect or hide a ported tweak — added a right-click context menu (Preview command, Learn more, Hide from list — a local exclude-list, doesn't touch the data file). (2) elevated tweak runs closed their console before results could be read after one failed silently — appended a `Read-Host` pause to the end of every tweak's elevated script. (3) a tweak's actual effect didn't match its label closely enough, causing an unintended change — added a read-only Preview modal showing the exact Apply/Revert PowerShell before running, built from the same `build_tweak_script` function that executes it (so preview can't drift from reality). New command: `preview_winutil_tweak`.
+
 ## 2026-08-20 — Tweaks page rebuilt on real registry state, WinUtil-ported (66 tweaks)
 
 User-directed redesign: the old built-in tweak list faked its "applied" indicator via localStorage, which could drift from reality (manual changes, Windows updates) and made Revert unsafe. Replaced the built-in list entirely with 66 tweaks ported from [WinUtil](https://github.com/ChrisTitusTech/winutil) (MIT) — every registry-backed tweak now gets real on/off/unknown state read live from the registry, no separate detection script to author per tweak. Custom user-added tweaks (opaque commands) honestly show Unknown rather than guessing. New commands: `get_winutil_tweaks`, `check_winutil_tweaks`, `apply_winutil_tweak`, `revert_winutil_tweak`.

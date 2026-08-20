@@ -1,4 +1,4 @@
-import { esc, sectionHdr, paneHeader, toast, showOutput, openModal, closeModal, confirmDialog, acquireRun, releaseRun } from '../app.js';
+import { esc, sectionHdr, paneHeader, toast, showOutput, openModal, closeModal, confirmDialog, showContextMenu, acquireRun, releaseRun } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -17,6 +17,15 @@ const STATE_LABEL = { on: 'On', off: 'Off', unknown: 'Unknown' };
 let _wtweaks = [];   // ported WinUtil tweaks (data/tweaks/winutil-tweaks.json)
 let _wstate = {};    // id -> 'on'|'off'|'unknown'
 let _customTweaks = [];
+
+// Hiding a built-in tweak never touches the ported data file — just a local
+// exclude-list, same idea as the app's other "can't delete this row, but you
+// can stop seeing it" cases. Reversible from the "N hidden" link in the header.
+const HIDDEN_KEY = 'ctrl_hidden_wtweaks';
+function _getHidden() {
+  try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]')); } catch { return new Set(); }
+}
+function _setHidden(set) { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...set])); }
 
 export async function load() {
   const el = document.getElementById('tweaks-scroll');
@@ -43,7 +52,7 @@ function _wtweakRow(t) {
   const state = _wstate[t.id] || 'unknown';
   const dotCls = STATE_DOT[state];
   const adminBadge = t.admin ? '<span class="badge-admin" title="Requires administrator"><i class="ti ti-shield"></i> admin</span>' : '';
-  return `<div class="tweak-row">
+  return `<div class="tweak-row" data-wtid="${esc(t.id)}">
     <div class="tweak-info">
       <div class="tweak-label" style="display:flex;align-items:center;gap:6px">
         <span class="run-dot ${dotCls}" title="${STATE_LABEL[state]}"></span>
@@ -82,10 +91,15 @@ function _render(q) {
   if (!body) return;
   let html = '';
   let total = 0;
+  const hidden = _getHidden();
+
+  if (hidden.size) {
+    html += `<div style="font-size:11px;color:var(--text3);margin-bottom:10px">${hidden.size} tweak${hidden.size===1?'':'s'} hidden — <a href="#" id="wt-unhide-all" style="color:var(--amber)">show all</a></div>`;
+  }
 
   for (const [catKey, catLabel] of CATEGORY_ORDER) {
     const items = _wtweaks
-      .filter(t => t.category === catKey)
+      .filter(t => t.category === catKey && !hidden.has(t.id))
       .filter(t => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
     if (!items.length) continue;
     total += items.length;
@@ -165,6 +179,39 @@ function _render(q) {
       _render(q2);
     });
   });
+
+  document.getElementById('wt-unhide-all')?.addEventListener('click', e => {
+    e.preventDefault();
+    _setHidden(new Set());
+    _render(document.getElementById('tweaks-filter')?.value.toLowerCase().trim() || '');
+  });
+
+  body.querySelectorAll('.tweak-row[data-wtid]').forEach(row => {
+    row.addEventListener('contextmenu', e => {
+      const id = row.dataset.wtid;
+      const t = _wtweaks.find(x => x.id === id);
+      if (!t) return;
+      showContextMenu(e, [
+        { label: 'Preview command', icon: 'ti-eye', fn: () => _previewTweak(t) },
+        ...(t.link ? [{ label: 'Learn more', icon: 'ti-external-link', fn: () => inv('open_path', { path: t.link }) }] : []),
+        '---',
+        { label: 'Hide from list', icon: 'ti-eye-off', fn: () => {
+          const h = _getHidden(); h.add(id); _setHidden(h);
+          _render(document.getElementById('tweaks-filter')?.value.toLowerCase().trim() || '');
+        } },
+      ]);
+    });
+  });
+}
+
+async function _previewTweak(t) {
+  const p = await inv('preview_winutil_tweak', { id: t.id }).catch(e => { toast(String(e), 'err'); return null; });
+  if (!p) return;
+  openModal(`Preview — ${esc(t.label)}`, `
+    <p class="modal-confirm-msg">Exactly what Apply / Revert run — nothing is executed by opening this.</p>
+    <div class="form-row"><label class="form-label">Apply</label><pre class="output-view" style="max-height:160px">${esc(p.apply.trim() || '(nothing — script-only tweak)')}</pre></div>
+    <div class="form-row"><label class="form-label">Revert</label><pre class="output-view" style="max-height:160px">${esc(p.revert.trim() || '(nothing — no revert defined)')}</pre></div>
+    <div class="form-actions"><button class="action-btn btn-ghost" onclick="closeModal()">Close</button></div>`);
 }
 
 window._showCustomTweakModal = (t) => {
