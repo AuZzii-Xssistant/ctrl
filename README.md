@@ -52,6 +52,11 @@ Every module is present and runs — none of them crash or are placeholder stubs
 
 > 🟢 Solid — I actually rely on this day to day. 🟡 Functional — works, wired up correctly, just hasn't accumulated the same real-world mileage yet, and the design may still shift. This table will keep moving items up (or down) as usage tells me more — it's a snapshot, not a promise.
 
+**Builder credit:** ported from [WinScript](https://github.com/flick9000/winscript) by flick9000 — same "About" panel and credit pill are built into the app itself (Builder → About).
+
+[![WinScript on GitHub](https://img.shields.io/badge/GitHub-flick9000%2Fwinscript-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/flick9000/winscript)
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support_flick9000-FF5E5B?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/flick9000)
+
 ---
 
 ## Keyboard Shortcuts

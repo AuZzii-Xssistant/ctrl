@@ -2,10 +2,10 @@
 cd /d "%~dp0"
 setlocal
 
-set TAG=v0.1.0-beta
+set TAG=v0.1.1
 set APP=src-tauri\target\release\ctrl.exe
 set CLI=src-tauri\target\release\ctrl-cli.exe
-set NSIS=src-tauri\target\release\bundle\nsis\CTRL_0.1.0_x64-setup.exe
+set NSIS=src-tauri\target\release\bundle\nsis\CTRL_0.1.1_x64-setup.exe
 
 echo Checking build artifacts...
 if not exist "%APP%"  ( echo MISSING: %APP%  - run build.bat first & pause & exit /b 1 )
@@ -21,10 +21,11 @@ echo Re-tagging and pushing...
 git tag %TAG%
 git push origin %TAG%
 
-echo Creating release...
+echo Creating release (pre-release)...
 gh release create %TAG% "%APP%" "%CLI%" "%NSIS%" ^
   --title "CTRL %TAG%" ^
-  --notes "Early beta - may have a lot of bugs. Use at your own risk."
+  --prerelease ^
+  --notes "Early pre-release - project is still very early, expect bugs. Use at your own risk."
 
 echo.
 echo Republished %TAG%.
