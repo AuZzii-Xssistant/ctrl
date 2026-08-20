@@ -222,6 +222,22 @@ async fn run_tweak(app: AppHandle, id: String, revert: bool) -> Result<RunResult
         .find(|x| x.id == id)
         .ok_or_else(|| "Tweak not found".to_string())?;
 
+    // sandbox.bat sets this and promises "Tweaks/fixes/scripts will NOT run" --
+    // fixes.rs/scripts.rs/tweaks.rs (custom) all check it; this was missing here,
+    // so every ported WinUtil tweak silently bypassed dry-run mode entirely.
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        let preview = build_tweak_script(&t, revert);
+        return Ok(RunResult {
+            success: true,
+            output: format!(
+                "SANDBOX: would {} tweak \"{}\":\n{}",
+                if revert { "revert" } else { "apply" },
+                t.label,
+                preview
+            ),
+        });
+    }
+
     let mut s = build_tweak_script(&t, revert);
 
     // Only tweaks that actually touch HKLM/HKU/etc. (or run a script) are

@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — WinUtil tweaks ignored sandbox.bat's dry-run mode (real safety bug)
+
+`sandbox.bat` sets `CTRL_SANDBOX=1` and promises tweaks/fixes/scripts won't actually run. Fixes/Scripts/custom Tweaks all check that env var; `winutil_tweaks.rs::run_tweak` never got the check when the WinUtil port shipped, so all 66 ported tweaks ran for real even in sandbox mode. Fixed to match the existing pattern.
+
 ## 2026-08-20 — WinUtil tweaks forced unnecessary UAC prompts on HKCU-only tweaks (self-caught)
 
 Found during a re-review right after the port: `admin` was hardcoded true for all 66 tweaks, and `run_tweak` ignored the field anyway. Fixed both — 17 HKCU-only tweaks now correctly run without elevation, and the admin path picked up the "skip elevation if CTRL is already admin" check every other elevated command has. Also fixed a real UX bug: 8 tweaks have no revert mechanism at all (no registry, no undo script) but the Revert button showed anyway and reported fake success — now hidden when there's nothing to revert.

@@ -14,6 +14,9 @@
 
 ## Active
 
+### ~~WinUtil tweak port — ignored CTRL_SANDBOX, real changes ran even in dry-run mode~~ ✅ Resolved (2026-08-20)
+`sandbox.bat` sets `CTRL_SANDBOX=1` and explicitly promises "Tweaks/fixes/scripts will NOT run — dry-run mode active." `fixes.rs`, `scripts.rs`, and `tweaks.rs` (custom tweaks) all check that env var and short-circuit with a preview instead of executing. `winutil_tweaks.rs::run_tweak` — added when the WinUtil port shipped — never got that check, so all 66 ported tweaks silently bypassed dry-run mode and ran for real even when testing against sandbox.db. Found during a routine doc-pass sweep (grepped every command file for `CTRL_SANDBOX` and noticed the new file wasn't in the list). Fixed: same check as the other three, returns a `SANDBOX: would apply/revert...` preview of the generated script instead of executing.
+
 ### ~~WinUtil tweak port — every tweak forced UAC elevation, even HKCU-only ones~~ ✅ Resolved (2026-08-20)
 Self-caught during a re-review of the WinUtil port: the conversion script hardcoded `admin: true` on all 66 tweaks, and `run_tweak` (winutil_tweaks.rs) always called `exec_elevated` regardless of that field anyway — so even the 17 tweaks that only touch `HKCU:\...` (no admin needed at all) triggered an unnecessary UAC prompt. Fixed both: re-derived `admin` per tweak (true only if it has a script, or any registry entry outside `HKCU:\...` — one path was under `HKU:\.Default\...`, the all-user default profile hive, which does need admin despite not being HKLM; first heuristic pass missed that, caught by an assertion check before shipping), and `run_tweak` now actually branches on it — non-admin tweaks route through `exec::run` (embedded terminal, no UAC) same as everything else in the app, admin ones through `exec::run_elevated` with the "skip elevation if CTRL is already admin" check every other elevated path already has, which this was also missing.
 
