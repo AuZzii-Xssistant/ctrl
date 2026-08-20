@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Deleting a Scripts profile silently left orphaned dead rows (real bug)
+
+`ss_remove_profile`'s confirm dialog promises scripts exclusive to that profile get deleted, but the backend only ever removed the join table rows — no FK cascade meant those scripts became permanently invisible (not in Master, not in any profile) while staying in the DB forever. Fixed to actually delete them.
+
 ## 2026-08-20 — Compare view mispaired changed lines sharing a hunk with an unrelated insertion (real bug)
 
 User-reported: a real line edit landing in the same diff hunk as an unrelated nearby insertion got char-diffed against the wrong line (paired by array index, not by actual correspondence), highlighting almost the entire line instead of just the real change. Fixed with similarity-based pairing (longest common prefix+suffix). Verified with a standalone test replaying the exact reported case.

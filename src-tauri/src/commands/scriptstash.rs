@@ -262,11 +262,32 @@ pub fn ss_rename_profile(state: State<AppState>, id: i64, name: String) -> Resul
 #[tauri::command]
 pub fn ss_remove_profile(state: State<AppState>, id: i64) -> Result<bool, String> {
     let db = state.0.lock().map_err(|e| e.to_string())?;
+    // The confirm dialog (scripts.js) promises "scripts only in this profile will
+    // also be deleted" -- but there's no FK cascade on ss_script_profile, so without
+    // this, a script whose sole membership was this profile just lost its only join
+    // row and became permanently invisible (not in Master, not in any profile) while
+    // its row stayed in `scripts` forever. Delete those for real, matching the promise.
+    let orphan_ids: Vec<i64> = {
+        let mut stmt = db.prepare(
+            "SELECT sp.script_id FROM ss_script_profile sp
+             JOIN scripts s ON s.id = sp.script_id
+             WHERE sp.profile_id = ?1
+               AND COALESCE(s.in_master,1) = 0
+               AND NOT EXISTS (SELECT 1 FROM ss_script_profile sp2 WHERE sp2.script_id = sp.script_id AND sp2.profile_id <> ?1)"
+        ).map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map(params![id], |r| r.get::<_, i64>(0))
+            .map_err(|e| e.to_string())?;
+        rows.filter_map(|r| r.ok()).collect()
+    };
     db.execute(
         "DELETE FROM ss_script_profile WHERE profile_id=?1",
         params![id],
     )
     .map_err(|e| e.to_string())?;
+    for sid in orphan_ids {
+        let _ = db.execute("DELETE FROM scripts WHERE id=?1", params![sid]);
+    }
     db.execute("DELETE FROM ss_profiles WHERE id=?1", params![id])
         .map_err(|e| e.to_string())?;
     Ok(true)
