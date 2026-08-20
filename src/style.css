@@ -900,6 +900,26 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 #dash-pane { flex-direction:row !important; }
 #dash-scroll { flex:1; min-width:0; }
 
+/* ── TOOLS LAYOUT (Quick Launch side panel, matches #dash-perf) ── */
+#tools-pane { flex-direction:row !important; }
+#tools-scroll { flex:1; min-width:0; }
+#tools-ql-panel {
+  width:190px; flex-shrink:0;
+  border-left:1px solid var(--border);
+  background:var(--bg2);
+  padding:12px 10px;
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; overflow-x:hidden;
+}
+#ql-panel-header {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  font-family:var(--mono); font-size:10px; color:var(--text3);
+  letter-spacing:.1em; text-transform:uppercase;
+}
+#ql-panel-header i { color:var(--amber); font-size:12px; }
+#ql-filter { font-size:11px; padding:5px 8px; }
+#ql-panel-body .ql-grid { grid-template-columns:1fr; margin-bottom:0; }
+
 #dash-perf {
   width:190px; flex-shrink:0;
   border-left:1px solid var(--border);
