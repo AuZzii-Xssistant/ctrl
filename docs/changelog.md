@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-20 — Builder's Run button no longer self-elevates via a hardcoded external console
+
+Requested by user. The generated script used to self-check admin and spawn a hardcoded external `powershell.exe -Verb RunAs` console, exiting the process CTRL had just started in its own terminal. Since every Builder action needs admin, removed the self-elevation entirely and route `run_built_script` through `exec::run_elevated` instead — same PTY-embedded elevation as Scripts/Fixes/Tweaks, auto-detects `pwsh` over legacy `powershell`. Also fixed `save_built_script`'s hardcoded `run_as_admin=0` (would've silently broken saved Builder scripts now that the self-elevation fallback is gone). Removed `spawn_streaming` (exec.rs), now dead code.
+
 ## 2026-08-20 — Importing scripts on Master silently polluted an unrelated profile (real bug)
 
 `ss_import_profile` fell back to "first existing profile, or fabricate 'Imported'" when importing on Master, even though Master doesn't need profile membership at all. Fixed to skip profile enrollment entirely for Master imports.

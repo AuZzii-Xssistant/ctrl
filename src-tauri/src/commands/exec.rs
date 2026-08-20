@@ -7,7 +7,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::AppHandle;
-use tauri_plugin_shell::ShellExt;
 
 use crate::commands::scripts::RunResult;
 
@@ -102,45 +101,6 @@ fn tmp(label: &str, suffix: &str, ext: &str) -> PathBuf {
 
 fn esc_ps_path(p: &Path) -> String {
     p.to_string_lossy().replace('\'', "''")
-}
-
-/// Stream a process to the frontend via events. Returns (success, full_output).
-/// Emits `run-start` at the start and `run-output` per chunk.
-pub async fn spawn_streaming(
-    app: &AppHandle,
-    program: &str,
-    args: Vec<String>,
-) -> Result<RunResult, String> {
-    use tauri::Emitter;
-    use tauri_plugin_shell::process::CommandEvent;
-
-    let (mut rx, _child) = app
-        .shell()
-        .command(program)
-        .args(&args)
-        .spawn()
-        .map_err(|e| e.to_string())?;
-
-    app.emit("run-start", ()).ok();
-
-    let mut output = String::new();
-    let mut success = false;
-    while let Some(event) = rx.recv().await {
-        match event {
-            CommandEvent::Stdout(chunk) | CommandEvent::Stderr(chunk) => {
-                let s = String::from_utf8_lossy(&chunk).to_string();
-                output.push_str(&s);
-                app.emit("run-output", s).ok();
-            }
-            CommandEvent::Terminated(p) => {
-                success = p.code.map(|c| c == 0).unwrap_or(false);
-                break;
-            }
-            _ => {}
-        }
-    }
-    app.emit("run-done", success).ok();
-    Ok(RunResult { success, output })
 }
 
 /// Run an inline command string non-elevated.
