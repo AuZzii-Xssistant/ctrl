@@ -293,13 +293,29 @@ export function recordStep(meta) {
   }
 }
 
+// The wrapper CTRL types into the PTY (run-pty-cmd) is always PowerShell call-
+// operator syntax — "& 'C:\...\wrap.ps1'". CMD, WSL, and Git Bash tabs don't
+// understand that syntax at all (it's a command separator in cmd, a background
+// operator in bash), so Run silently fails/garbles if one of those happens to be
+// the active tab. Fix isn't "pick a wrapper syntax per script type" — cmd/python
+// scripts already run fine hosted from a PowerShell wrapper (`cmd /c '...'`,
+// `python '...'`) — it's "always find/spawn a shell that understands what CTRL
+// is about to type," which is PowerShell specifically, regardless of which tab
+// the user happens to have focused.
+function _isPsFamily(shell) {
+  return /powershell|pwsh/i.test(shell?.path || shell?.name || '');
+}
+
 // ── Run queue — per-tab locking, spawns new tab if active is busy ─────────────
 // meta = { type: 'script'|'fix', id, label } — optional, only used to append to
 // the macro recorder's step list when recording is active.
 export async function acquireRun(meta) {
   let tab = _activeTab();
-  if (!tab || tab.runLock) {
-    const shell = tab?.shell || _shells[0] || { name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] };
+  if (!tab || !_isPsFamily(tab.shell) || tab.runLock) {
+    tab = _tabs.find(t => _isPsFamily(t.shell) && !t.runLock);
+  }
+  if (!tab) {
+    const shell = _shells.find(_isPsFamily) || _shells[0] || { name: 'Windows PowerShell', path: 'powershell', args: ['-NoLogo'] };
     tab = await _spawnTab(shell);
     _openDrawer();
   }
