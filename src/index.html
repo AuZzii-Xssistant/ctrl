@@ -261,15 +261,20 @@
           <i class="ti ti-terminal" style="font-size:13px;color:var(--text3);flex-shrink:0"></i>
           <span class="output-title">terminal</span>
           <span id="output-new-dot" style="display:none"></span>
-          <div style="flex:1"></div>
-          <div id="term-shell-toggle"><!-- new-tab shell buttons filled by JS --></div>
-          <button id="output-clear"     title="Clear">clear</button>
-          <button id="output-copy"      title="Copy selection">copy</button>
-          <button id="term-admin-shell" title="Open elevated terminal (UAC)"><i class="ti ti-shield" style="font-size:11px"></i> admin</button>
         </div>
         <div id="output-main">
-          <div id="output-body"></div>
-          <div id="term-tab-sidebar"><!-- tab chips filled by JS --></div>
+          <div id="output-content">
+            <div id="output-body"></div>
+            <div id="output-footer">
+              <button id="output-clear"     title="Clear">clear</button>
+              <button id="output-copy"      title="Copy selection">copy</button>
+              <button id="term-admin-shell" title="Open elevated terminal (UAC)"><i class="ti ti-shield" style="font-size:11px"></i> admin</button>
+            </div>
+          </div>
+          <div id="term-tab-panel">
+            <div id="term-shell-toggle"><!-- new-tab shell buttons filled by JS --></div>
+            <div id="term-tab-sidebar"><!-- tab chips filled by JS --></div>
+          </div>
         </div>
       </div>
 

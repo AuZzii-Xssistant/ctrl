@@ -294,7 +294,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 /* ── OUTPUT DRAWER ── */
 /* Output drawer — always visible, collapses to header bar */
 /* ── Terminal tab sidebar (right panel, VSCode-style) ───────────────────── */
-#term-tab-sidebar { width: 190px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px; gap: 1px; }
+/* New-terminal shell buttons live above the tab list, inside the same panel */
+#term-tab-panel { width: 190px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+#term-tab-sidebar { flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: flex-start; padding: 4px 3px; gap: 1px; }
 #term-tab-sidebar::-webkit-scrollbar { width: 4px; }
 #term-tab-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .term-tab { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 9px; height: 28px; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 11px; color: var(--text3); font-family: var(--mono); transition: background 0.1s, color 0.1s; user-select: none; }
@@ -317,7 +319,10 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
 #output-header:hover { background: var(--bg3); }
 #output-main { display: flex; height: 0; overflow: hidden; transition: height 0.2s ease; }
 #output-drawer.open #output-main { height: 260px; }
+#output-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #output-body { flex: 1; background: #0d0d0d; min-width: 0; overflow: hidden; }
+/* Clear/copy/admin — actions on the terminal itself, so they sit right under it */
+#output-footer { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg2); border-top: 1px solid var(--border); flex-shrink: 0; }
 /* Rotate chevron when open */
 /* New-output pulse dot */
 #output-new-dot {
@@ -1057,7 +1062,7 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 .xterm { font-feature-settings: "liga" 0; }
 
 /* ── TERMINAL DRAWER ADDITIONS ── */
-#term-shell-toggle { display:flex; gap:2px; margin:0 4px; }
+#term-shell-toggle { display:flex; flex-wrap:wrap; gap:2px; padding:6px 6px 5px; border-bottom:1px solid var(--border); }
 .term-sh-btn { background:var(--bg4); border:1px solid var(--border); color:var(--text3); border-radius:3px; padding:1px 7px; font-size:10px; font-family:var(--mono); cursor:pointer; transition:all 100ms; }
 .term-sh-btn.active,.term-sh-btn:hover { border-color:var(--accent); color:var(--accent); }
 #term-new-shell   { background:none; border:none; color:var(--text3); font-size:11px; cursor:pointer; padding:0 4px; }

@@ -1,5 +1,11 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Terminal drawer reorganized, Scripts run buttons paired by scope
+
+User-directed layout changes:
+- **Terminal drawer**: the new-terminal shell buttons (PS7/PS5/CMD/WSL/Bash) moved from the top header down into the tab panel, above the tab list — more logical next to the tabs they create. Clear/copy/admin moved from the header down to a new footer strip directly under the terminal content — they act on the terminal, so they now sit next to it instead of sharing a header row with tab-spawning controls. The header itself is now just the title bar.
+- **Scripts toolbar**: Run Selected/Run Sel. Admin and Run All/Run All Admin were grouped by elevation (both normal runs together, both admin runs together). Regrouped by scope instead — Run Selected sits next to its admin variant, Run All next to its admin variant. Also dropped the redundant "Admin" word from the two admin buttons' labels (both now just say "Run Selected"/"Run All") since the purple color and shield icon already convey that.
+
 ## 2026-08-22 — Tray menu missed the ">_ CTRL" rename
 
 "Show CTRL"/"Quit CTRL" still had the old plain naming while every other UI surface (window title, tray tooltip, ROADMAP.md's own documented description) already said ">_ CTRL". Fixed both menu item labels.

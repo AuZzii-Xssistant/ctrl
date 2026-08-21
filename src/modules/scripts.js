@@ -204,10 +204,10 @@ function _renderToolbar() {
 <button class="sc-btn sc-btn-danger" id="tb-remove" title="Remove [Del]" ${!hasSel?'disabled':''}><i class="ti ti-trash"></i> Remove</button>
 <div class="sc-sep"></div>
 <button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Ctrl+Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
-<button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
+<button class="sc-btn sc-btn-admin" id="tb-rsa" title="Run selected as Administrator" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Selected</button>
 <div class="sc-sep"></div>
-<button class="sc-btn sc-btn-admin" id="tb-rsa" title="Run selected (Admin)" ${!hasSel||r?'disabled':''}><i class="ti ti-shield"></i> Run Sel. Admin</button>
-<button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
+<button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
+<button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all as Administrator" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All</button>
 <button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
 <button class="sc-btn" id="tb-open-editor" title="Open in default editor" ${!S.sel.size?'disabled':''}><i class="ti ti-external-link"></i> Open in Editor</button>`;
