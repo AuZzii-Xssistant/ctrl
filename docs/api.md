@@ -114,7 +114,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | `ss_export_profile` | `{profileId: i64\|null}` | `string` (JSON) |
 | `ss_import_profile` | `{json: string}` | `SsProfile` |
 | `ss_export_pick_file` / `ss_import_pick_file` | — | `string\|null` (file dialog, JSON profile import/export) |
-| `ss_import_script_file` | — | `ImportedScriptFile{name,script_type,content}\|null` — native file dialog filtered to script extensions, reads the picked file back so the Add Script modal can prefill from an existing script on disk |
+| `ss_import_script_file` | — | `ImportedScriptFile\|null` — native file dialog filtered to script extensions, reads the picked file back so the Add Script modal can prefill from an existing script on disk |
 | `stop_current_run` | — | void — sets the cancel flag `exec::run`/`run_elevated` poll each tick |
 | `kill_process` | `{pid: u32}` | void — `taskkill /PID /T /F`, used to kill an external elevated console on Stop |
 
@@ -244,6 +244,7 @@ Script       = { id, name, description, category, file_path, script_type, tags, 
 SsScript     = { id, name, description, type, content?: string, runAsAdmin, interactive, inMaster, enabled: boolean, lastRun?, lastStatus, lastError?: string, order: number, inProfiles: number[] }  // the live Scripts-pane shape — no category/file_path/status/tags/icon
 SsScriptData = { name: string, description?, type?, content?: string, runAsAdmin?, interactive?: boolean }  // payload for ss_add_script/ss_edit_script
 SsProfile    = { id, name: string, scriptCount: number }
+ImportedScriptFile = { name, script_type, content: string }  // ss_import_script_file's result — name from filename (no ext), script_type from extension
 RunResult    = { success: boolean, output: string }
 EnvVar       = { name: string, value: string }
 EnvVars      = { user: EnvVar[], system: EnvVar[] }
