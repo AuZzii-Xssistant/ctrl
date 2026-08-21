@@ -1,5 +1,27 @@
 # >_ CTRL Changelog
 
+## 2026-08-21 — CTRL_SANDBOX sweep: Builder, env vars, Backup, and Profiles all silently ignored sandbox mode
+
+`sandbox.bat` promises "no real system changes," but only Fixes/Scripts/Tweaks (and WinUtil-tweaks, fixed the day before) actually checked `CTRL_SANDBOX`. A full grep sweep across every command file found four more real gaps: Builder's elevated script runner (HKLM writes), all three env-var mutators (real User/System environment changes), Backup (real robocopy file copies), and Profiles' activate/restore (dormant backend — real power-plan/DNS/app-kill changes). All four now short-circuit before doing anything. Follow-on fix: the env-var mutators' `Ok(())` no-op looked like a full success to the user (green toast, list refresh) with zero indication anything was skipped — changed to an `Err` with a SANDBOX message, the only channel that void return type has to actually inform the user.
+
+## 2026-08-21 — Redundant UAC prompts: Builder, env vars, and Profiles never skipped elevation even when CTRL was already admin
+
+Same missing check, different symptom: Fixes/Scripts/Tweaks/WinUtil-tweaks all skip the elevation dance when `exec::running_as_admin()` is already true, avoiding an unnecessary external console popup. Builder, env-var Machine-scope edits, and Profiles' activate/restore never made that check — always spawned a fresh elevated console even when CTRL's own process already had the needed privileges. Fixed all four call sites with the same branch.
+
+## 2026-08-21 — Quick Launch items opened via global search launched the literal text "Quick Launch"
+
+User-reported: searching (Ctrl+Shift+K) and running "Open Registry Editor" gave "Windows cannot find 'Quick Launch'". `global_search`'s query for `ql_items` selected the string literal `'Quick Launch'` as its result-meta column instead of the row's actual `cmd` column — every other section's query puts something real there. The frontend uses that field directly as the launch payload for QL search results, so every Quick Launch item found via search (not the Tools page's own panel, which reads `cmd` correctly) launched the literal text "Quick Launch" instead of `regedit`/`ms-settings:...`/etc, 100% of the time since the app shipped. Fixed the query to select `cmd`.
+
+## 2026-08-21 — Run always targets a real PowerShell-family tab, not whatever's focused
+
+User-reported: CTRL types its generated wrapper invocation (`& 'C:\...\wrap.ps1'`) straight into whatever output tab is currently active — that's deliberate, output stays live in the real shell instead of a separate capture pane. But that syntax is only valid PowerShell; a CMD, WSL, or Git Bash tab doesn't understand it at all, so Run silently broke whenever one of those happened to be focused. Fixed by making `acquireRun()` always find or spawn a PowerShell-family tab regardless of which tab is active — cmd/python scripts already ran fine hosted from a PS wrapper, so this only changes tab *selection*, not how anything actually executes. Follow-on fix found immediately after: `run-output`/`run-done` still wrote to whatever tab was active instead of the run's real target tab, so once this fix widened how often those two could differ, elevated-run status output could land on the wrong tab. DRY'd the 3 separate lookups into one `_runTab()` helper.
+
+(Two earlier attempts at the terminal-invocation problem were tried and reverted before landing on the above: clearing extra wrapped terminal rows addressed on-screen clutter, not the actual complaint — which turned out to be Up-arrow history recall pulling up the ugly temp path. That was fixed separately below.)
+
+## 2026-08-21 — Typed temp-wrapper invocations polluted PSReadLine history
+
+Every script/fix/tweak run types `& 'C:\...\ctrl_..._wrap.ps1'` into the real PTY, which means it lands in PSReadLine's history too — hitting Up recalled the ugly wrapper path instead of anything useful. Fixed by launching PowerShell tabs with an `AddToHistoryHandler` that excludes lines matching the wrapper pattern from history entirely (session buffer and persisted file) — output still runs live in the real shell exactly as before, only the ugly invocation is excluded from recall.
+
 ## 2026-08-20 — WinUtil tweaks ignored sandbox.bat's dry-run mode (real safety bug)
 
 `sandbox.bat` sets `CTRL_SANDBOX=1` and promises tweaks/fixes/scripts won't actually run. Fixes/Scripts/custom Tweaks all check that env var; `winutil_tweaks.rs::run_tweak` never got the check when the WinUtil port shipped, so all 66 ported tweaks ran for real even in sandbox mode. Fixed to match the existing pattern.
