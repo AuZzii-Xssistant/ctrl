@@ -89,6 +89,12 @@ pub async fn run_backup(
         )
         .map_err(|e| e.to_string())?
     };
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would robocopy {source} -> {dest}"),
+        });
+    }
     // robocopy exit codes 0-7 are success (8+ are errors)
     let out = app
         .shell()

@@ -444,6 +444,12 @@ pub async fn activate_profile(
 
     // Phase 2: apply elevated (fire-and-forget -- stdout not captured).
     let apply_script = build_activate_script(&items);
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would activate profile \"{name}\":\n{apply_script}"),
+        });
+    }
     // Skip the redundant UAC prompt when CTRL itself is already elevated — same
     // check every other elevated path (Fixes/Scripts/Tweaks/Builder) already makes.
     let result = if crate::commands::exec::running_as_admin() {
@@ -505,6 +511,12 @@ pub async fn restore_previous(
     };
 
     let script = build_restore_script(&snap);
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would restore previous state:\n{script}"),
+        });
+    }
     let result = if crate::commands::exec::running_as_admin() {
         crate::commands::exec::run(&app, &script, &Shell::PowerShell).await?
     } else {
