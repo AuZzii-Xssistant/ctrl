@@ -79,7 +79,7 @@ pub fn global_search(state: State<AppState>, query: String) -> Result<SearchResu
         projects:     search("SELECT 'project',id,name,status FROM projects WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),
         workflows:    search("SELECT 'workflow',id,name,description FROM workflows WHERE lower(name) LIKE ?1 OR lower(description) LIKE ?1"),
         snippets:     search("SELECT 'snippet',id,title,category FROM snippets WHERE lower(title) LIKE ?1 OR lower(tags) LIKE ?1 OR lower(content) LIKE ?1"),
-        quick_launch: search("SELECT 'ql',id,label,'Quick Launch' FROM ql_items WHERE lower(label) LIKE ?1 OR lower(cmd) LIKE ?1"),
+        quick_launch: search("SELECT 'ql',id,label,cmd FROM ql_items WHERE lower(label) LIKE ?1 OR lower(cmd) LIKE ?1"),
         apps:         search("SELECT 'app',id,name,path FROM external_apps WHERE lower(name) LIKE ?1 OR lower(path) LIKE ?1"),
     })
 }
