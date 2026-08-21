@@ -15,6 +15,12 @@ Contributions and issues are welcome. This is a small, actively-changing persona
 - **Build:** `build.bat` (produces `ctrl.exe` + `ctrl-cli.exe`)
 - **Database:** SQLite, schema in [`docs/db-schema.md`](docs/db-schema.md), migrations are additive-only in `src-tauri/src/db.rs` — never a destructive schema change.
 
+Other scripts in the repo root:
+- **`sandbox.bat`** — runs against a separate `sandbox.db` with `CTRL_SANDBOX=1` set, which makes fixes/scripts/tweaks return a dry-run preview instead of actually executing. Use this to poke around without touching your real system.
+- **`update-winscript.bat`** — regenerates `data/builder/*.json` from a WinScript reference checkout (`tools/winscript-import.py` + `tools/winscript-converter.js`); only relevant if you're re-syncing Builder's ported action set.
+- **`republish.bat`** — deletes and recreates the current version's GitHub release/tag from a fresh local build, always as a pre-release. Maintainer-only.
+- **`commit.bat`** — a thin `git add -A && git commit && git push` convenience wrapper.
+
 ## Code style
 
 - **Rust:** `cargo fmt`, `cargo clippy` clean before you open a PR.
