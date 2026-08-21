@@ -1124,7 +1124,6 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 .sc-filter-bar { display:flex; align-items:center; gap:8px; padding:6px 16px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg1); }
 .sc-search { flex:1; min-width:0; }
 .sc-type-sel { width:100px; flex-shrink:0; }
-.sc-chk-label { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text2); cursor:pointer; white-space:nowrap; flex-shrink:0; }
 .sc-count { margin-left:auto; font-size:11px; color:var(--text3); white-space:nowrap; }
 
 /* Table */
