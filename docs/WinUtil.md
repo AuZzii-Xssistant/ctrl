@@ -2,7 +2,7 @@
 
 `data/tweaks/winutil-tweaks.json` is a reshaped copy of [WinUtil](https://github.com/ChrisTitusTech/winutil)'s `config/tweaks.json` (MIT). This file tracks correctness problems found in that ported data — **flagged for a future pass, not fixed yet**, per explicit instruction. Don't edit `winutil-tweaks.json` based on this file without checking in first.
 
-**Summary:** 9 tweaks confirmed broken to some degree (6 unresolvable private-function calls, 2 dropped `service` fields, 1 dropped entirely — Combobox type), 9 more flagged lower-confidence, 1 minor data smell. That's ~14% of the 66 ported tweaks with a real gap, out of a full re-read of WinUtil's own application logic (`Invoke-WinUtilTweaks.ps1`) and every raw JSON key actually in use across the source data.
+**Summary:** 12 tweaks confirmed broken to some degree (6 unresolvable private-function calls, 2 dropped `service` fields, 4 with zero executable content at all — 1 Combobox + 3 Button type), 9 more flagged lower-confidence, 1 minor data smell. That's ~18% of the 66 ported tweaks with a real gap, out of a full re-read of WinUtil's own application logic (`Invoke-WinUtilTweaks.ps1`), every top-level `Type` value, and every raw JSON key actually in use across the source data.
 
 **Cross-checked against WinUtil's own test suite** (`pester/configs.Tests.ps1`) for extra confidence: it explicitly asserts every non-Combobox tweak must have at least one of `registry`/`service`/`InvokeScript`/`appx` — confirming `service` is a first-class, load-bearing field in their schema, not an incidental one. It even has a dedicated assertion for `WPFTweaksLocation`'s service entry specifically (`$locationServices[0].StartupType | Should -Be "Disabled"`) — the exact tweak flagged above as partially broken in CTRL's port. Combobox-type tweaks (like `WPFchangedns`) are validated under separate, more permissive rules in their suite too, matching the "needs its own UI, not a drop-in fix" conclusion below.
 
@@ -41,7 +41,7 @@ All 6 affected tweaks:
 
 Found while re-reading WinUtil's own `Invoke-WinUtilTweaks.ps1` for a correctness gut-check — it applies THREE possible pieces per tweak (`service`, `registry`, `InvokeScript`/`UndoScript`), each independent. My conversion script only ever read `registry` and `InvokeScript`/`UndoScript` — the `service` array (`Set-WinUtilService -Name X -StartupType Y`) was silently dropped for both tweaks that use it:
 
-- **`WPFTweaksServices`** ("Services - Set to Manual" — the exact tweak visible in the original screenshot) has **zero registry entries and no script** in WinUtil's source — it is *purely* a `service` list (5 services: CscService, DiagTrack, MapsBroker, StorSvc, SharedAccess, all set Disabled/Manual). In CTRL's current port this tweak has an empty `registry: []` and no invoke/undo script — **Apply does literally nothing** and still reports fake "Done" success. State shows "Unknown" (correctly, since there's nothing to check) but that masks the real problem: there's nothing to check because there's nothing here at all.
+- **`WPFTweaksServices`** ("Services - Set to Manual" — the exact tweak visible in the original screenshot) has a `service` list (5 services: CscService, DiagTrack, MapsBroker, StorSvc, SharedAccess, all set Disabled/Manual) *and* an `InvokeScript` that adjusts `SvcHostSplitThresholdInKB` based on installed RAM. CTRL's port kept the script (that part genuinely runs) but dropped the `service` list — so Apply does *something*, just not the main thing the tweak's name and description promise. Not fully inert, but silently incomplete.
 - **`WPFTweaksLocation`** ("Location Tracking - Disable") has 3 registry entries (correctly ported) *plus* a service entry disabling `lfsvc` (the Geolocation service) that got dropped. The registry part works, but the tweak doesn't fully do what it claims — the actual location service stays running.
 
 **Suggested fix (not applied):** add a `service?: {name, startupType, originalType}[]` field to `WinutilTweak`/`RegEntry`-adjacent struct, re-run the conversion to capture it, and have `build_tweak_script` emit `Set-Service -Name X -StartupType Y` per entry (apply) / `OriginalType` (revert) — plus `check_winutil_tweaks` would need a matching `Get-Service` read for detection, same free-detection principle as registry entries.
@@ -51,6 +51,20 @@ Found while re-reading WinUtil's own `Invoke-WinUtilTweaks.ps1` for a correctnes
 `WPFchangedns` ("DNS - Set to:") is a WinUtil **Combobox**-type control, not a checkbox — its actual DNS-setting logic lives in a separate WinUtil function keyed off which dropdown option is selected, not in this JSON entry at all. The entry itself has no `registry`, no `InvokeScript`, nothing executable. In CTRL's port this renders as a normal tweak row that does nothing when clicked. `WPFMultiplaneOverlay` (also `Type: Combobox`) was handled during conversion by collapsing its 3-way `Values` dict to a binary on/off using `registry`, so it does have real content — `WPFchangedns` has no equivalent fallback since it never had registry data to collapse.
 
 **Not a quick fix** — this one genuinely needs its own UI (a dropdown, not a toggle) and its own backend command wired to whichever provider is selected; out of scope for a drop-in fix like the others above.
+
+## Confirmed bug: 3 `Type: "Button"` tweaks are completely inert in CTRL
+
+Found by checking every top-level `Type` value across all 66 tweaks (`Toggle`/unset: 61, `Combobox`: 2, **`Button`: 3**) — a category I hadn't specifically inspected until this pass. In WinUtil, `Type: "Button"` tweaks dispatch through `Invoke-WPFButton` (a name-keyed lookup to a bespoke function), never through the registry/service/script path `Invoke-WinUtilTweaks` handles — confirmed by their own Pester test asserting every `Button`-type name must appear in `Get-WinUtilButtonSwitchNames`. All 3 have **zero data of any kind** in the JSON (no registry, no service, no script):
+
+| id | label | what it actually needs |
+|---|---|---|
+| `WPFOOSUbutton` | O&O ShutUp10++ - Run | downloads and runs a third-party tool (`Invoke-WPFOOSU` or similar) |
+| `WPFAddUltPerf` | Ultimate Performance Profile - Enable | `powercfg -duplicatescheme` with a specific hidden GUID |
+| `WPFRemoveUltPerf` | Ultimate Performance Profile - Disable | `powercfg -delete` on that scheme |
+
+In CTRL's port these render as normal tweak rows with working-looking Apply buttons that do nothing at all when clicked (empty script, trivially "succeeds"). Combined with `WPFchangedns` above, that's **4 tweaks with zero executable content in either direction** — not "missing revert," genuinely inert on Apply too.
+
+**Not a quick fix** — same class of problem as the DNS selector: needs real implementations (a downloaded-tool runner, two `powercfg` one-liners with the correct Ultimate Performance GUID) written specifically for CTRL, not a data-shape fix.
 
 ## Lower-confidence: 9 more Explorer/taskbar-affecting tweaks with *no* refresh step at all
 
