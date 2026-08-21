@@ -231,8 +231,13 @@ pub async fn run_built_script(
         });
     }
     let shell = crate::commands::exec::Shell::from_str(&script_type);
-    let result =
-        crate::commands::exec::run_elevated(&app, &code, &shell, "builder").await?;
+    // When CTRL itself is already elevated, skip the redundant UAC prompt — same
+    // check every other elevated path (Fixes/Scripts/Tweaks) already makes.
+    let result = if crate::commands::exec::running_as_admin() {
+        crate::commands::exec::run(&app, &code, &shell).await?
+    } else {
+        crate::commands::exec::run_elevated(&app, &code, &shell, "builder").await?
+    };
     Ok(RunResult {
         success: result.success,
         output: String::new(),

@@ -73,7 +73,9 @@ pub async fn set_env_var(
         value.replace('\'', "''"),
         scope
     );
-    if scope == "Machine" {
+    // Skip the redundant UAC prompt when CTRL itself is already elevated — same
+    // check every other elevated path (Fixes/Scripts/Tweaks/Builder) already makes.
+    if scope == "Machine" && !crate::commands::exec::running_as_admin() {
         run_elevated(&app, &inner).await
     } else {
         app.shell()
@@ -102,7 +104,9 @@ pub async fn delete_env_var(
         name.replace('\'', "''"),
         scope
     );
-    if scope == "Machine" {
+    // Skip the redundant UAC prompt when CTRL itself is already elevated — same
+    // check every other elevated path (Fixes/Scripts/Tweaks/Builder) already makes.
+    if scope == "Machine" && !crate::commands::exec::running_as_admin() {
         run_elevated(&app, &inner).await
     } else {
         app.shell()
@@ -148,7 +152,9 @@ pub async fn add_to_path(
          if ($cur -split ';' | Where-Object {{ $_ -ieq '{dir_esc}' }}) {{ throw 'Already in PATH' }}; \
          [Environment]::SetEnvironmentVariable('Path',($cur.TrimEnd(';')+';{dir_esc}'),'{scope}')"
     );
-    if scope == "Machine" {
+    // Skip the redundant UAC prompt when CTRL itself is already elevated — same
+    // check every other elevated path (Fixes/Scripts/Tweaks/Builder) already makes.
+    if scope == "Machine" && !crate::commands::exec::running_as_admin() {
         run_elevated(&app, &inner).await
     } else {
         app.shell()

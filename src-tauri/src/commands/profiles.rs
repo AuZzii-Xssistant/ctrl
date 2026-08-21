@@ -444,7 +444,13 @@ pub async fn activate_profile(
 
     // Phase 2: apply elevated (fire-and-forget -- stdout not captured).
     let apply_script = build_activate_script(&items);
-    let result = exec_elevated(&app, &apply_script, &Shell::PowerShell, "profile").await?;
+    // Skip the redundant UAC prompt when CTRL itself is already elevated — same
+    // check every other elevated path (Fixes/Scripts/Tweaks/Builder) already makes.
+    let result = if crate::commands::exec::running_as_admin() {
+        crate::commands::exec::run(&app, &apply_script, &Shell::PowerShell).await?
+    } else {
+        exec_elevated(&app, &apply_script, &Shell::PowerShell, "profile").await?
+    };
 
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
@@ -499,7 +505,11 @@ pub async fn restore_previous(
     };
 
     let script = build_restore_script(&snap);
-    let result = exec_elevated(&app, &script, &Shell::PowerShell, "profile_restore").await?;
+    let result = if crate::commands::exec::running_as_admin() {
+        crate::commands::exec::run(&app, &script, &Shell::PowerShell).await?
+    } else {
+        exec_elevated(&app, &script, &Shell::PowerShell, "profile_restore").await?
+    };
 
     let db = state.0.lock().map_err(|e| e.to_string())?;
     db.execute(
