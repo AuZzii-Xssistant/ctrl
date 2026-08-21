@@ -64,7 +64,10 @@ pub async fn set_env_var(
     target: Option<String>,
 ) -> Result<(), String> {
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
-        return Ok(());
+        // Ok(()) here would show as a normal success toast in env.js with zero
+        // indication anything was skipped — Err is the only channel this void
+        // return type has to actually tell the user it's a dry run.
+        return Err("SANDBOX: no changes made — dry-run mode active".into());
     }
     let scope = target.as_deref().unwrap_or("User");
     let inner = format!(
@@ -96,7 +99,10 @@ pub async fn delete_env_var(
     target: Option<String>,
 ) -> Result<(), String> {
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
-        return Ok(());
+        // Ok(()) here would show as a normal success toast in env.js with zero
+        // indication anything was skipped — Err is the only channel this void
+        // return type has to actually tell the user it's a dry run.
+        return Err("SANDBOX: no changes made — dry-run mode active".into());
     }
     let scope = target.as_deref().unwrap_or("User");
     let inner = format!(
@@ -138,7 +144,10 @@ pub async fn add_to_path(
     target: Option<String>,
 ) -> Result<(), String> {
     if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
-        return Ok(());
+        // Ok(()) here would show as a normal success toast in env.js with zero
+        // indication anything was skipped — Err is the only channel this void
+        // return type has to actually tell the user it's a dry run.
+        return Err("SANDBOX: no changes made — dry-run mode active".into());
     }
     let scope = target.as_deref().unwrap_or("User");
     // Without this, "C:\Tools\bin\" (trailing backslash — plausible since this
