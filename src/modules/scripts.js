@@ -56,6 +56,8 @@ export async function load(search = '') {
 <div class="sc-wrap">
   <div class="sc-header" id="sc-header">
     <span class="sc-title"><i class="ti ti-code"></i> Scripts</span>
+    <div class="sc-hdr-btns" id="sc-hdr-btns"></div>
+    <div class="sc-hdr-sep"></div>
     <div class="sc-profile-area" id="sc-profile-area"></div>
   </div>
   <div class="sc-toolbar" id="sc-toolbar"></div>
@@ -87,6 +89,17 @@ async function _reload() {
 
 // ── Header (title left, profile selector right) ───────────────────────────────
 function _renderHeader() {
+  const btns = document.getElementById('sc-hdr-btns');
+  if (btns) {
+    btns.innerHTML = `
+<button class="sc-btn" id="hdr-import" title="Import profile"><i class="ti ti-file-import"></i> Import</button>
+<button class="sc-btn" id="hdr-export" title="Export profile"><i class="ti ti-file-export"></i> Export</button>
+<button class="sc-btn" id="hdr-shortcuts" title="Shortcuts [?]"><i class="ti ti-keyboard"></i></button>`;
+    document.getElementById('hdr-import').onclick    = _importProfile;
+    document.getElementById('hdr-export').onclick    = _exportProfile;
+    document.getElementById('hdr-shortcuts').onclick = _showShortcuts;
+  }
+
   const area = document.getElementById('sc-profile-area');
   if (!area) return;
   const isMaster = S.profileId === null;
@@ -186,9 +199,9 @@ function _renderToolbar() {
   const r = S.running;
   tb.innerHTML = `
 <button class="sc-btn" id="tb-add" title="Add [Insert]"><i class="ti ti-plus"></i> Add</button>
+<button class="sc-btn" id="tb-import-script" title="Import an existing script file from disk"><i class="ti ti-file-plus"></i> Import Script</button>
 <button class="sc-btn" id="tb-edit" title="Edit [F2]" ${!hasSel?'disabled':''}><i class="ti ti-pencil"></i> Edit</button>
 <button class="sc-btn sc-btn-danger" id="tb-remove" title="Remove [Del]" ${!hasSel?'disabled':''}><i class="ti ti-trash"></i> Remove</button>
-<button class="sc-btn" id="tb-toggle" title="Toggle [Space]" ${!hasSel?'disabled':''}><i class="ti ti-player-pause"></i> Toggle</button>
 <div class="sc-sep"></div>
 <button class="sc-btn sc-btn-run" id="tb-run-sel" title="Run selected [Ctrl+Enter]" ${!hasSel||r?'disabled':''}><i class="ti ti-player-play"></i> Run Selected</button>
 <button class="sc-btn sc-btn-run" id="tb-run-all" title="Run all [F5]" ${r?'disabled':''}><i class="ti ti-player-play"></i> Run All</button>
@@ -197,15 +210,12 @@ function _renderToolbar() {
 <button class="sc-btn sc-btn-admin" id="tb-raa" title="Run all (Admin)" ${r?'disabled':''}><i class="ti ti-shield"></i> Run All Admin</button>
 <button class="sc-btn sc-btn-stop" id="tb-stop" title="Stop [Esc]" ${!r?'disabled':''}><i class="ti ti-square"></i> Stop</button>
 <div class="sc-sep"></div>
-<button class="sc-btn" id="tb-open-editor" title="Open in default editor" ${!S.sel.size?'disabled':''}><i class="ti ti-external-link"></i> Open in Editor</button>
-<button class="sc-btn" id="tb-import" title="Import"><i class="ti ti-file-import"></i> Import</button>
-<button class="sc-btn" id="tb-export" title="Export"><i class="ti ti-file-export"></i> Export</button>
-<button class="sc-btn" id="tb-shortcuts" title="Shortcuts [?]"><i class="ti ti-keyboard"></i></button>`;
+<button class="sc-btn" id="tb-open-editor" title="Open in default editor" ${!S.sel.size?'disabled':''}><i class="ti ti-external-link"></i> Open in Editor</button>`;
 
   document.getElementById('tb-add').onclick       = _addScript;
+  document.getElementById('tb-import-script').onclick = _importScriptFile;
   document.getElementById('tb-edit').onclick      = _editSelected;
   document.getElementById('tb-remove').onclick    = _removeSelected;
-  document.getElementById('tb-toggle').onclick    = _toggleSelected;
   document.getElementById('tb-run-sel').onclick   = () => _runSelected(false);
   document.getElementById('tb-run-all').onclick   = () => _runAll(false);
   document.getElementById('tb-stop').onclick      = () => { _stopQueue = true; stopCurrentRun(); };
@@ -214,9 +224,6 @@ function _renderToolbar() {
   document.getElementById('tb-open-editor').onclick = () => {
     [...S.sel].forEach(id => inv('ss_open_in_editor', { scriptId: id }).catch(err => toast(String(err), 'err')));
   };
-  document.getElementById('tb-import').onclick    = _importProfile;
-  document.getElementById('tb-export').onclick    = _exportProfile;
-  document.getElementById('tb-shortcuts').onclick = _showShortcuts;
 }
 
 // ── Filter bar ────────────────────────────────────────────────────────────────
@@ -229,12 +236,14 @@ function _renderFilterBar() {
   <option value="">All Types</option>
   ${['ps1','bat','cmd','py','sh','vbs','js','reg','ahk'].map(t => `<option value="${t}" ${S.typeFilter===t?'selected':''}>${t}</option>`).join('')}
 </select>
-<label class="sc-chk-label"><input type="checkbox" id="sc-show-dis" ${S.showDisabled?'checked':''}> Show disabled</label>
 <span class="sc-count" id="sc-count"></span>`;
 
   document.getElementById('sc-search').oninput   = e => { S.filter = e.target.value; _renderTable(); };
   document.getElementById('sc-type').onchange    = e => { S.typeFilter = e.target.value; _renderTable(); };
-  document.getElementById('sc-show-dis').onchange = e => { S.showDisabled = e.target.checked; localStorage.setItem('ss-showDisabled', e.target.checked ? '1' : '0'); _renderTable(); };
+  // "Show disabled" checkbox UI removed per request (unclear real-world use) --
+  // S.showDisabled and its filtering in _renderTable are left intact, just no
+  // longer user-toggleable; still readable/settable via localStorage's
+  // 'ss-showDisabled' key if needed.
 }
 
 // ── Table ─────────────────────────────────────────────────────────────────────
@@ -495,53 +504,63 @@ async function _profilePicker(scriptId) {
 
 // ── Script add/edit modal ─────────────────────────────────────────────────────
 function _addScript() { _openScriptModal(null); }
+
+// Pick an existing script file off disk (native dialog, not a browser <input
+// type=file>) and prefill the Add Script modal with its name/type/content so
+// a script that isn't in the DB yet can be brought in without retyping it.
+async function _importScriptFile() {
+  const picked = await inv('ss_import_script_file').catch(err => { toast(String(err), 'err'); return null; });
+  if (!picked) return; // cancelled or failed
+  _openScriptModal(null, { name: picked.name, type: picked.script_type, content: picked.content });
+}
 function _editSelected() {
   if (S.sel.size !== 1) return;
   const s = S.scripts.find(x => x.id === [...S.sel][0]);
   if (s) _openScriptModal(s);
 }
 
-function _openScriptModal(s) {
+function _openScriptModal(s, prefill) {
   const isNew = !s;
+  const v = s || prefill || {}; // prefill: fields for a new script imported from disk, not a real DB row
   openModal(isNew ? 'Add Script' : 'Edit Script', `
 <div class="form-row">
   <label class="form-label">Name *</label>
-  <input class="form-input" id="sm-name" value="${esc(s?.name||'')}" placeholder="Script name">
+  <input class="form-input" id="sm-name" value="${esc(v.name||'')}" placeholder="Script name">
 </div>
 <div class="form-row-2">
   <div>
     <label class="form-label">Type</label>
     <select class="form-select" id="sm-type">
-      ${['ps1','bat','cmd','py','sh','vbs','js','reg','ahk'].map(t => `<option value="${t}" ${(s?.type||'ps1')===t?'selected':''}>${t}</option>`).join('')}
+      ${['ps1','bat','cmd','py','sh','vbs','js','reg','ahk'].map(t => `<option value="${t}" ${(v.type||'ps1')===t?'selected':''}>${t}</option>`).join('')}
     </select>
   </div>
   <div>
     <label class="form-label">Category</label>
-    <input class="form-input" id="sm-cat" value="${esc(s?.category||'General')}" placeholder="General">
+    <input class="form-input" id="sm-cat" value="${esc(v.category||'General')}" placeholder="General">
   </div>
 </div>
 <div class="form-row" style="margin-top:10px">
   <label class="form-label">Description</label>
-  <textarea class="form-textarea" id="sm-desc" rows="2" style="min-height:54px;resize:vertical;">${esc(s?.description||'')}</textarea>
+  <textarea class="form-textarea" id="sm-desc" rows="2" style="min-height:54px;resize:vertical;">${esc(v.description||'')}</textarea>
 </div>
 <div class="form-row">
   <label class="form-label">Tags</label>
-  <input class="form-input" id="sm-tags" value="${esc(s?.tags||'')}" placeholder="comma, separated">
+  <input class="form-input" id="sm-tags" value="${esc(v.tags||'')}" placeholder="comma, separated">
 </div>
 <div class="form-row">
   <label class="form-label">Options</label>
   <div style="display:flex;gap:16px;align-items:center;">
     <label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;">
-      <input type="checkbox" id="sm-admin" ${s?.runAsAdmin?'checked':''}> Run as Administrator
+      <input type="checkbox" id="sm-admin" ${v.runAsAdmin?'checked':''}> Run as Administrator
     </label>
     <label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;">
-      <input type="checkbox" id="sm-interactive" ${s?.interactive?'checked':''}> Pause Script (wait for keypress when done)
+      <input type="checkbox" id="sm-interactive" ${v.interactive?'checked':''}> Pause Script (wait for keypress when done)
     </label>
   </div>
 </div>
 <div class="form-row">
   <label class="form-label">Script Content</label>
-  <textarea class="form-textarea" id="sm-content" rows="10" style="min-height:180px;font-size:12px;" placeholder="Paste or type script content here…">${esc(s?.content||'')}</textarea>
+  <textarea class="form-textarea" id="sm-content" rows="10" style="min-height:180px;font-size:12px;" placeholder="Paste or type script content here…">${esc(v.content||'')}</textarea>
 </div>
 <div class="form-actions">
   <button class="action-btn btn-ghost" id="sm-cancel">Cancel</button>

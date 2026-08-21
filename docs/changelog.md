@@ -1,5 +1,13 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Tray menu missed the ">_ CTRL" rename
+
+"Show CTRL"/"Quit CTRL" still had the old plain naming while every other UI surface (window title, tray tooltip, ROADMAP.md's own documented description) already said ">_ CTRL". Fixed both menu item labels.
+
+## 2026-08-22 — Scripts page: header reorganized, new Import Script, Toggle/Show-disabled UI removed
+
+User-directed redesign: Import/Export/Shortcuts moved from the toolbar up into the header, to the left of the profile selector with a divider between them (Open in Editor stays in the toolbar). Added a new "Import Script" button next to Add — opens a native file dialog (`ss_import_script_file`, new command), reads the picked file's content, detects its script type from the extension, and opens the Add Script modal prefilled with name (from filename)/type/content, ready to save. Removed the Toggle button and the "Show disabled" checkbox from the UI per request — the underlying `_toggleScripts`/`S.showDisabled` logic and the Space-key toggle shortcut are untouched, only the visible controls are gone.
+
 ## 2026-08-21 — CTRL_SANDBOX sweep: Builder, env vars, Backup, and Profiles all silently ignored sandbox mode
 
 `sandbox.bat` promises "no real system changes," but only Fixes/Scripts/Tweaks (and WinUtil-tweaks, fixed the day before) actually checked `CTRL_SANDBOX`. A full grep sweep across every command file found four more real gaps: Builder's elevated script runner (HKLM writes), all three env-var mutators (real User/System environment changes), Backup (real robocopy file copies), and Profiles' activate/restore (dormant backend — real power-plan/DNS/app-kill changes). All four now short-circuit before doing anything. Follow-on fix: the env-var mutators' `Ok(())` no-op looked like a full success to the user (green toast, list refresh) with zero indication anything was skipped — changed to an `Err` with a SANDBOX message, the only channel that void return type has to actually inform the user.

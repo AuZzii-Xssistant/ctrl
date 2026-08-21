@@ -1076,9 +1076,13 @@ button.data-row { text-align:left; width:100%; cursor:pointer; }
 .sc-wrap { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; }
 
 /* Header bar — matches .pane-header sizing/colours exactly */
-.sc-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); position:sticky; top:0; z-index:10; }
+.sc-header { display:flex; align-items:center; padding:10px 16px 12px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); position:sticky; top:0; z-index:10; }
 .sc-title { font-size:13px; font-weight:600; color:var(--text); display:flex; align-items:center; gap:7px; }
 .sc-title i { font-size:15px; color:var(--amber); }
+
+/* Import/Export/Shortcuts — pushed to the right, profile area at the far right past a divider */
+.sc-hdr-btns { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.sc-hdr-sep { width:1px; height:20px; background:var(--border); margin:0 10px; flex-shrink:0; }
 
 /* Profile area (right side of header) */
 .sc-profile-area { display:flex; align-items:center; gap:6px; }

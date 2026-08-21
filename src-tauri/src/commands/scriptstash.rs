@@ -871,6 +871,49 @@ pub async fn ss_import_pick_file(app: tauri::AppHandle) -> Result<Option<String>
     }
 }
 
+#[derive(Serialize)]
+pub struct ImportedScriptFile {
+    pub name: String,
+    pub script_type: String,
+    pub content: String,
+}
+
+/// Pick an existing script file off disk and read it back for the Add Script
+/// modal — lets a user quickly bring in a script that isn't in the DB yet
+/// without retyping it. Type is detected from the extension, name from the
+/// filename (both editable in the modal before saving, same as any other add).
+#[tauri::command]
+pub async fn ss_import_script_file(app: tauri::AppHandle) -> Result<Option<ImportedScriptFile>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let path = app
+        .dialog()
+        .file()
+        .add_filter(
+            "Scripts",
+            &["ps1", "py", "bat", "cmd", "vbs", "sh", "js", "reg", "ahk"],
+        )
+        .blocking_pick_file();
+    let Some(p) = path else { return Ok(None) };
+    let path_str = p.to_string();
+    let content = fs::read_to_string(&path_str).map_err(|e| e.to_string())?;
+    let file = std::path::Path::new(&path_str);
+    let name = file
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("script")
+        .to_string();
+    let script_type = file
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("ps1")
+        .to_lowercase();
+    Ok(Some(ImportedScriptFile {
+        name,
+        script_type,
+        content,
+    }))
+}
+
 #[tauri::command]
 pub async fn ss_export_pick_file(
     app: tauri::AppHandle,

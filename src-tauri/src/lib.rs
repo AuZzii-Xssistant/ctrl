@@ -189,6 +189,7 @@ pub fn run() {
             commands::scriptstash::ss_export_profile,
             commands::scriptstash::ss_import_profile,
             commands::scriptstash::ss_import_pick_file,
+            commands::scriptstash::ss_import_script_file,
             commands::scriptstash::ss_export_pick_file,
             commands::scriptstash::ss_open_in_editor,
             commands::profiles::get_profiles,
