@@ -63,6 +63,9 @@ pub async fn set_env_var(
     value: String,
     target: Option<String>,
 ) -> Result<(), String> {
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(());
+    }
     let scope = target.as_deref().unwrap_or("User");
     let inner = format!(
         "[Environment]::SetEnvironmentVariable('{}','{}','{}')",
@@ -90,6 +93,9 @@ pub async fn delete_env_var(
     name: String,
     target: Option<String>,
 ) -> Result<(), String> {
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(());
+    }
     let scope = target.as_deref().unwrap_or("User");
     let inner = format!(
         "[Environment]::SetEnvironmentVariable('{}', $null, '{}')",
@@ -127,6 +133,9 @@ pub async fn add_to_path(
     dir: String,
     target: Option<String>,
 ) -> Result<(), String> {
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(());
+    }
     let scope = target.as_deref().unwrap_or("User");
     // Without this, "C:\Tools\bin\" (trailing backslash — plausible since this
     // is a free-text field, no folder picker) wouldn't match an existing

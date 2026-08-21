@@ -224,6 +224,12 @@ pub async fn run_built_script(
     // self-elevation dance: this auto-picks pwsh over legacy powershell (ps_bin(),
     // same detection everywhere else) and shows up in CTRL's own embedded terminal
     // with the standard "Running as administrator" divider, not a second window.
+    if std::env::var("CTRL_SANDBOX").as_deref() == Ok("1") {
+        return Ok(RunResult {
+            success: true,
+            output: format!("SANDBOX: would run built script:\n{code}"),
+        });
+    }
     let shell = crate::commands::exec::Shell::from_str(&script_type);
     let result =
         crate::commands::exec::run_elevated(&app, &code, &shell, "builder").await?;
