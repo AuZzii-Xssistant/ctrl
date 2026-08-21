@@ -52,7 +52,7 @@ fn fetch_active_profile(app: &AppHandle) -> Option<String> {
 /// (Re)build the tray icon and its menu. Safe to call repeatedly — replaces
 /// any existing tray icon rather than stacking a second one.
 pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "tray_show", "Show CTRL", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "tray_show", "Show >_ CTRL", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
 
     let active_profile = fetch_active_profile(app)
@@ -89,7 +89,7 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         }
     }
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "tray_quit", "Quit CTRL", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "tray_quit", "Quit >_ CTRL", true, None::<&str>)?;
 
     let mut builder_items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = vec![&show, &sep1];
     if let Some(ap) = &active_profile {
