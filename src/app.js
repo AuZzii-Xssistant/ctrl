@@ -165,7 +165,28 @@ async function _spawnTab(shell) {
     if (!tab.runLock) invoke('pty_write', { tabId: id, data }).catch(() => {});
   });
 
-  const u1 = await listen(`pty-data-${id}`, e => term.write(e.payload));
+  // CTRL types the generated wrapper's "& 'C:\...\ctrl_..._wrap.ps1'" invocation
+  // straight into this real PTY (see run-pty-cmd below) so output stays live in the
+  // user's actual shell — no separate capture pane. That's deliberate. What's NOT
+  // deliberate is leaving that ugly typed path visible once the wrapper starts: the
+  // wrapper's own first line already tries `$e[1A$e[2K` to erase it, but that only
+  // clears exactly 1 row, so a long temp path that wraps the prompt onto 2+ terminal
+  // rows leaves the tail end sitting in scrollback. Fixed client-side (no backend
+  // involvement, no knowledge of prompt length needed): xterm.js already tracks its
+  // own cursor row as it renders the echoed prompt+command, so we snapshot that row
+  // right before typing (run-pty-cmd, below) and diff it against the row we're at
+  // the instant the wrapper's own output starts arriving — that delta IS exactly how
+  // many rows the typed line wrapped into, regardless of terminal width or prompt
+  // length. Clearing happens locally (term.write, not pty_write) so it can't race
+  // the real shell or get misread as keystrokes.
+  const u1 = await listen(`pty-data-${id}`, e => {
+    if (tab._clearEchoArmed) {
+      tab._clearEchoArmed = false;
+      const rows = (term.buffer.active.baseY + term.buffer.active.cursorY) - tab._clearEchoStartRow;
+      if (rows > 0) term.write(`\x1b[${rows}A\x1b[0J`);
+    }
+    term.write(e.payload);
+  });
   const u2 = await listen(`pty-exit-${id}`, () => {
     tab.started  = false;
     tab.runLock  = false;
@@ -347,6 +368,8 @@ listen('run-pty-cmd', async e => {
     tab.lastCols = c; tab.lastRows = r;
     await invoke('pty_resize', { tabId: tab.id, cols: c, rows: r }).catch(() => {});
   }
+  tab._clearEchoStartRow = tab.term.buffer.active.baseY + tab.term.buffer.active.cursorY;
+  tab._clearEchoArmed = true;
   invoke('pty_write', { tabId: tab.id, data: e.payload + '\r' }).catch(() => {});
 });
 
