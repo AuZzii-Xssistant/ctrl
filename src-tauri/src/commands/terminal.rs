@@ -60,6 +60,16 @@ pub struct ShellInfo {
     pub args: Vec<String>,
 }
 
+// CTRL types its generated "& 'C:\...\ctrl_..._wrap.ps1'" invocations straight into
+// this real PTY (see app.js's run-pty-cmd handler) so run output stays live in the
+// user's actual shell instead of a separate capture pane. That means it lands in
+// PSReadLine's history too — hitting Up recalls the temp wrapper path, not anything
+// useful. AddToHistoryHandler is the correct, supported way to exclude a matching
+// line from both the in-session and persisted history without touching what gets
+// displayed or executed.
+const HISTORY_FILTER_CMD: &str =
+    "Set-PSReadLineOption -AddToHistoryHandler { param($line) -not ($line -like '*\\ctrl_*wrap*.ps1*') }";
+
 #[tauri::command]
 pub fn list_shells() -> Vec<ShellInfo> {
     let mut shells = Vec::new();
@@ -67,13 +77,23 @@ pub fn list_shells() -> Vec<ShellInfo> {
         shells.push(ShellInfo {
             name: "PowerShell 7".into(),
             path: "pwsh".into(),
-            args: vec!["-NoLogo".into()],
+            args: vec![
+                "-NoLogo".into(),
+                "-NoExit".into(),
+                "-Command".into(),
+                HISTORY_FILTER_CMD.into(),
+            ],
         });
     }
     shells.push(ShellInfo {
         name: "Windows PowerShell".into(),
         path: "powershell".into(),
-        args: vec!["-NoLogo".into()],
+        args: vec![
+            "-NoLogo".into(),
+            "-NoExit".into(),
+            "-Command".into(),
+            HISTORY_FILTER_CMD.into(),
+        ],
     });
     shells.push(ShellInfo {
         name: "Command Prompt".into(),
