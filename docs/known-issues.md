@@ -1,5 +1,10 @@
 # Known Issues & Limitations
 
+### ~~run-output/run-done wrote to the active tab, not the tab actually running~~ ✅ Resolved (2026-08-21)
+Found immediately after the fix above, checking whether that fix introduced this exact class of bug elsewhere (user asked the doc/bug loop to specifically hunt for this pattern going forward). `run-pty-cmd` and `stopCurrentRun` already correctly resolve the run's real tab via `_runTargetTabId` with `_activeTab()` only as a fallback — but `run-output` (admin-mode elevated-console status lines) and `run-done` (cursor blur + clearing `_elevatedPid`) used `_activeTab()` unconditionally. Whenever `acquireRun()` redirects a run to a different tab than the one currently focused — already possible before today (busy-tab spawns a new one), and now much more common after the PowerShell-family fix (any non-PS active tab redirects) — those two listeners would write status output to, or blur, the wrong tab instead of the one actually running.
+
+Fixed by extracting the existing `_runTargetTabId`-first, `_activeTab()`-fallback lookup into one `_runTab()` helper and pointing all four call sites at it (previously 3 separate inline copies of the same lookup, one of which had silently drifted to the wrong fallback). **Unverified live** — no Windows session in this dev environment to confirm against a real multi-tab run.
+
 ### ~~Run likely broke if the active output tab was CMD, WSL, or Git Bash~~ ✅ Resolved (2026-08-21)
 Found while answering a user question about whether the PSReadLine history fix below extends to other shells — it doesn't, and digging into why surfaced this. `run_line`'s outer typed invocation (`exec.rs`'s `run()`/`run_elevated()`, both emit `format!("& '{}'", ...)`) is unconditionally PowerShell call-operator syntax. `&` means something different (or nothing useful) in CMD (command separator) and bash/WSL (backgrounding), so typing it into one of those tabs would fail rather than run the script/fix/tweak.
 

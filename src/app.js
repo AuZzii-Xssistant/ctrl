@@ -343,11 +343,16 @@ listen('run-start', () => {
   _openDrawer();
   document.getElementById('output-new-dot')?.style.setProperty('display', '');
 });
-listen('run-output', e => _activeTab()?.term.write(e.payload));  // admin mode status
-listen('run-done',   () => { _activeTab()?.term.blur(); _elevatedPid = 0; });
+// Must target the run's actual tab (_runTargetTabId), not whatever's active —
+// acquireRun() can redirect a run to a different tab than the focused one (busy
+// tab, or now also a non-PowerShell active tab), so _activeTab() silently drifts
+// from the tab that's really running once that happens.
+function _runTab() { return _tabs.find(t => t.id === _runTargetTabId) || _activeTab(); }
+listen('run-output', e => _runTab()?.term.write(e.payload));  // admin mode status
+listen('run-done',   () => { _runTab()?.term.blur(); _elevatedPid = 0; });
 listen('elevated-pid', e => { _elevatedPid = e.payload; });
 listen('run-pty-cmd', async e => {
-  const tab = _tabs.find(t => t.id === _runTargetTabId) || _activeTab();
+  const tab = _runTab();
   if (!tab) return;
   for (let i = 0; i < 30 && !tab.started; i++)
     await new Promise(r => setTimeout(r, 100));
@@ -371,7 +376,7 @@ listen('run-pty-cmd', async e => {
 // spawned external elevated console (admin runs).
 export async function stopCurrentRun() {
   invoke('stop_current_run').catch(() => {});
-  const tab = _tabs.find(t => t.id === _runTargetTabId) || _activeTab();
+  const tab = _runTab();
   if (tab?.started) {
     await invoke('pty_close', { tabId: tab.id }).catch(() => {});
     tab.started = false;
