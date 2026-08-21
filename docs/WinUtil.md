@@ -4,6 +4,8 @@
 
 **Summary:** 9 tweaks confirmed broken to some degree (6 unresolvable private-function calls, 2 dropped `service` fields, 1 dropped entirely — Combobox type), 9 more flagged lower-confidence, 1 minor data smell. That's ~14% of the 66 ported tweaks with a real gap, out of a full re-read of WinUtil's own application logic (`Invoke-WinUtilTweaks.ps1`) and every raw JSON key actually in use across the source data.
 
+**Cross-checked against WinUtil's own test suite** (`pester/configs.Tests.ps1`) for extra confidence: it explicitly asserts every non-Combobox tweak must have at least one of `registry`/`service`/`InvokeScript`/`appx` — confirming `service` is a first-class, load-bearing field in their schema, not an incidental one. It even has a dedicated assertion for `WPFTweaksLocation`'s service entry specifically (`$locationServices[0].StartupType | Should -Be "Disabled"`) — the exact tweak flagged above as partially broken in CTRL's port. Combobox-type tweaks (like `WPFchangedns`) are validated under separate, more permissive rules in their suite too, matching the "needs its own UI, not a drop-in fix" conclusion below.
+
 ## Confirmed bug: 6 tweaks call a WinUtil-private function that doesn't exist in CTRL
 
 **User-reported root cause**, traced 2026-08-20: ran `WPFToggleTaskbarAlignment` ("Taskbar Centered Icons"), taskbar visually centered, and manually reverting the setting again didn't fix it back to left-aligned.
