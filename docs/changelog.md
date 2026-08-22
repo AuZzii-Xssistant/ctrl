@@ -1,5 +1,11 @@
 # >_ CTRL Changelog
 
+## 2026-08-23 — Quit no longer force-kills a running script with zero warning
+
+User-reported: closing CTRL with a remembered "Quit" choice (or the tray's own Quit) killed the whole process instantly, including any script/fix/tweak/workflow mid-run, no confirmation at all. Two call sites had this: `_confirmClose()`'s quit paths in `app.js`, and the tray menu's "Quit CTRL" item in `tray.rs`, which bypassed the frontend entirely by calling `app.exit(0)` directly. Both now go through a shared `_quitMaybeConfirm()` that checks if anything's running (any tab holding `runLock`) and confirms before actually exiting — tray's quit now emits an event for the frontend to decide, same pattern the window's native X-close already used. Minimize-to-tray was never affected; it's always been non-destructive.
+
+Known gap, flagged not fixed: this only catches runs CTRL itself dispatched — something typed by hand into an open terminal tab isn't covered, since there's no way to detect "is this shell idle or busy" without real shell-integration markers, which don't exist in this codebase yet. See `docs/flags.md`.
+
 ## 2026-08-23 — Themed text-selection highlight color
 
 Found while writing a general "no browser tells" reference guide and auditing CTRL against it: `::selection` was never set anywhere, so text selection used the plain OS/browser-default blue highlight throughout the app — the one remaining spot still showing an un-themed browser default. Now uses the app's amber accent, matching everything else.

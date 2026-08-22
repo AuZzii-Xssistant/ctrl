@@ -6,7 +6,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager,
+    AppHandle, Emitter, Manager,
 };
 
 use crate::AppState;
@@ -123,7 +123,11 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             if id == "tray_show" {
                 show_main_window(app);
             } else if id == "tray_quit" {
-                app.exit(0);
+                // Don't force-exit directly -- app.exit(0) kills any running PTY/
+                // elevated process with zero warning. Same as the window's native
+                // X-close: emit and let the frontend run its own confirm-if-busy
+                // check (it has the run-lock state, Rust doesn't).
+                let _ = app.emit("tray-quit-requested", ());
             } else if let Some(rest) = id.strip_prefix("tray_launch:") {
                 if let Some((item_type, item_id)) = rest.split_once(':') {
                     if let Ok(item_id) = item_id.parse::<i64>() {

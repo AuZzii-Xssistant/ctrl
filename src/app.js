@@ -16,10 +16,22 @@ export const { writeText: writeClipboard, readText: readClipboard } = window.__T
 // Closing (X button, Alt+F4) hides to tray rather than quitting — not obvious
 // at all, so ask every time unless the user has opted to remember a choice.
 const CLOSE_PREF_KEY = 'ctrl_close_action'; // 'tray' | 'quit'
+// exit_app kills the whole process -- any running PTY/elevated run dies with
+// it, with no chance to finish. close_window (tray) is always safe: the app
+// stays alive, whatever's running keeps running in the background. Only the
+// quit path needs a running-check, and only right before it actually fires.
+async function _quitMaybeConfirm() {
+  if (_tabs.some(t => t.runLock)) {
+    const ok = await confirmDialog('A script or process is currently running. Quitting now will stop it immediately, with no chance to finish. Quit anyway?', true);
+    if (!ok) return;
+  }
+  invoke('exit_app');
+}
+
 function _confirmClose() {
   const remembered = localStorage.getItem(CLOSE_PREF_KEY);
   if (remembered === 'tray') return invoke('close_window');
-  if (remembered === 'quit') return invoke('exit_app');
+  if (remembered === 'quit') return _quitMaybeConfirm();
   openModal('Close &gt;_ CTRL', `
     <p class="modal-confirm-msg">Minimize to the tray (keep running in the background) or quit completely?</p>
     <label style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:12px;color:var(--text2);cursor:pointer">
@@ -39,13 +51,15 @@ function _confirmClose() {
   document.getElementById('close-quit-btn').onclick = () => {
     if (remember()) localStorage.setItem(CLOSE_PREF_KEY, 'quit');
     closeModal();
-    invoke('exit_app');
+    _quitMaybeConfirm();
   };
 }
 document.getElementById('btn-close').addEventListener('click', _confirmClose);
 document.getElementById('btn-min').addEventListener('click',   () => invoke('minimize_window'));
 // Native close (Alt+F4) — Rust prevents the actual close and emits this instead.
 window.__TAURI__.event.listen('close-requested', _confirmClose);
+// Tray icon's own "Quit CTRL" menu item -- same run-lock check as the window close.
+window.__TAURI__.event.listen('tray-quit-requested', _quitMaybeConfirm);
 
 // Global hotkey (Ctrl+Shift+Space, registered in Rust) summons the window from
 // anywhere — jump straight into search since that's why you hit the hotkey.
