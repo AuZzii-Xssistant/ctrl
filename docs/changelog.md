@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — App Install icon fallback: ">_" placeholder instead of blank space
+
+Apps with no cached icon (57 of 210) just left blank space where the icon would be — inconsistent-looking, especially scanning down a category with mixed rows. Now shows a ">_" placeholder in the app's amber brand color where the icon would be, same size as a real icon, no background — same treatment CTRL's own logo uses.
+
 ## 2026-08-22 — Real app icons in Builder's App Install list, fetched offline-safe
 
 User-requested, and explicit about the app staying fully offline at runtime: new maintainer tool `tools/icon-fetch.py` fetches real icons for Builder's ~210 App Install entries (winget CLI locally for each package's homepage, then a favicon fetch for that domain) and caches them as static PNGs under `src/assets/app-icons/<app id>.png` — a one-time, maintainer-only, build-time step, same as `update-winscript.bat`. The shipped app never touches the network for this; Builder just references `assets/app-icons/<id>.png` and silently falls back to no icon (today's behavior) if the file isn't cached, no JSON schema change needed. First run: 153/210 apps got a real icon; the rest had no resolvable homepage or no favicon available and keep the plain label (fine — re-running later, or `--force`, can improve coverage without any code change).

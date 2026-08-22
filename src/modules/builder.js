@@ -268,7 +268,10 @@ function _renderAppsUI(el) {
       const checked = _appsSel.has(a.id);
       return `<div class="ws-entry ws-sub app-row${checked ? ' ws-sub-active' : ''}" data-cat="${esc(cat.label)}">
           <div class="ws-entry-info">
-            <img class="app-icon" src="assets/app-icons/${esc(a.id)}.png" alt="" loading="lazy" onerror="this.style.display='none'">
+            <span class="app-icon-wrap">
+              <img class="app-icon" src="assets/app-icons/${esc(a.id)}.png" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span class="app-icon-fallback" style="display:none">&gt;_</span>
+            </span>
             <div class="ws-entry-text">
               <h1>${esc(a.label)}</h1>
               ${pkg ? `<p class="apps-pkg-id">${esc(pkg)}</p>` : ''}
