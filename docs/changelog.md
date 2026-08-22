@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-23 — Themed text-selection highlight color
+
+Found while writing a general "no browser tells" reference guide and auditing CTRL against it: `::selection` was never set anywhere, so text selection used the plain OS/browser-default blue highlight throughout the app — the one remaining spot still showing an un-themed browser default. Now uses the app's amber accent, matching everything else.
+
 ## 2026-08-22 — Clipboard moved off navigator.clipboard entirely — WebView2 was showing its own permission prompt
 
 The terminal paste fix below worked, but used `navigator.clipboard.readText()` — which makes WebView2 pop its own native `"tauri.localhost wants to... [Block] [Allow]"` permission dialog, exactly the "this is secretly a browser" tell CLAUDE.md bans, caught by the user via a live screenshot. Added `tauri-plugin-clipboard-manager` (native Rust/OS clipboard access, zero browser permission UI) and swapped every `navigator.clipboard`/`document.execCommand('copy')` call site in the app to it — not just the terminal, but the same latent risk existed in `builder.js`, `env.js`, `scripts.js`, and `snippets.js` too, all fixed the same way via shared `writeClipboard`/`readClipboard` helpers exported from `app.js`.

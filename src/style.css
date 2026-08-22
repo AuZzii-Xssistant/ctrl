@@ -26,6 +26,8 @@
 
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; user-select: none; }
 
+::selection { background: var(--amber); color: var(--bg); }
+
 /* ── LAYOUT ── */
 #app { display: flex; flex-direction: column; height: 100vh; }
 
