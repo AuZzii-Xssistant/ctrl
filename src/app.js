@@ -56,7 +56,7 @@ window.__TAURI__.event.listen('hotkey-summon', () => {
 });
 document.getElementById('btn-max').addEventListener('click',   () => invoke('toggle_maximize'));
 document.getElementById('btn-bug')?.addEventListener('click',   () => invoke('open_path', { path: 'https://github.com/AuZzii-Xssistant/ctrl/issues' }));
-document.getElementById('btn-heart')?.addEventListener('click', () => invoke('open_path', { path: 'https://ko-fi.com' }));
+document.getElementById('btn-heart')?.addEventListener('click', () => invoke('open_path', { path: 'https://ko-fi.com/scriptkiddymonkey' }));
 
 // ── Pane router ─────────────────────────────────────────────────────────────
 let _activePane = 'dash';
