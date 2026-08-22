@@ -1,5 +1,8 @@
 # Known Issues & Limitations
 
+### ~~Tools' "Run as Administrator" always UAC-prompted even when CTRL was already elevated~~ ✅ Resolved (2026-08-22)
+Same gap already found and fixed in Fixes/Scripts/Tweaks/Builder/env-vars/Profiles: `tools.rs::launch_tool`'s admin branch always called `Start-Process -Verb RunAs` unconditionally, never checking `exec::running_as_admin()` first. A plain spawn already inherits an already-elevated CTRL process's admin token, so the RunAs dance was pure redundant overhead in that case. Fixed with the same branch every other elevated path now has.
+
 ### App Install icons: bundled locally, never pushed to the repo (2026-08-22)
 Shipped, briefly reverted on re-review, then landed in its final shape the same day. Root concern: `tools/icon-fetch.py` bundles 153 real, third-party app logos (Chrome/Discord/Steam/etc — fetched via winget + a favicon lookup) as static PNGs. That's not actually a GPLv3 problem (GPLv3 governs CTRL's own code, not whether third-party images can be bundled) — the real issue is copyright/trademark on the logos themselves, independent of what license CTRL uses. Displaying a company's logo *only to identify their actual product* (a package-manager checklist) is the kind of use several real FOSS tools rely on as nominative fair use — a defense, not immunity, but the user's call to make and accept the residual risk on, same as any other FOSS project shipping recognizable third-party icons.
 

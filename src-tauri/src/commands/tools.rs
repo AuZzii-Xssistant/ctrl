@@ -127,7 +127,10 @@ pub async fn launch_tool(
         .map_err(|e| e.to_string())?
     };
 
-    if run_as_admin {
+    // Skip the redundant UAC dance when CTRL itself is already elevated -- a
+    // plain spawn already inherits the parent's admin token in that case, same
+    // check every other elevated path (Fixes/Scripts/Tweaks/Builder/etc) makes.
+    if run_as_admin && !crate::commands::exec::running_as_admin() {
         let esc_path = path.replace('\'', "''");
         app.shell()
             .command("powershell")
