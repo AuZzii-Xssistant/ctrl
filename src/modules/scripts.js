@@ -655,7 +655,11 @@ async function _runSelected(admin) {
   await _runQueue([...S.sel], admin);
 }
 async function _runAll(admin) {
-  await _runQueue(_filtered().filter(s => s.enabled).map(s => s.id), admin);
+  const ids = _filtered().filter(s => s.enabled).map(s => s.id);
+  if (!ids.length) return;
+  const msg = `Run all ${ids.length} enabled script${ids.length===1?'':'s'}${admin?' as Administrator':''}?`;
+  if (!await confirmDialog(msg, admin)) return;
+  await _runQueue(ids, admin);
 }
 
 // ── Import / Export ───────────────────────────────────────────────────────────

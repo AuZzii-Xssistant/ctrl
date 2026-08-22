@@ -1,5 +1,11 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Corrected terminal header reorder + Run All confirmation
+
+The previous terminal-drawer change (below) misread the request — it moved clear/copy/admin to a new footer under the terminal and the shell-picker buttons into the tab sidebar. What was actually wanted: keep everything in the same top header row, just reorder left-to-right — clear/copy/admin now come first (right after the title), a divider, then the new-terminal shell buttons pushed to the far right (room to grow if more shells are added later, e.g. Python). Reverted the footer/sidebar split back to the original single-row header, nothing was deleted — same IDs, same click handlers throughout, just relocated within the row.
+
+Also added a confirmation prompt to Run All (both normal and Administrator variants) — previously only individual script/fix runs and a few destructive actions confirmed; running every enabled script in a profile at once had none.
+
 ## 2026-08-22 — Terminal drawer reorganized, Scripts run buttons paired by scope
 
 User-directed layout changes:

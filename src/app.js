@@ -451,10 +451,10 @@ window.addEventListener('resize', () => {
   }
 });
 
-// clear/copy/admin/shell-toggle used to live inside this header (hence the old
-// exclusion list here) -- they now sit under the terminal and above the tab
-// panel respectively, so any click on the header itself toggles the drawer.
-document.getElementById('output-header').addEventListener('click', () => _toggleOutputDrawer());
+document.getElementById('output-header').addEventListener('click', e => {
+  if (e.target.closest('#output-clear,#output-copy,#term-shell-toggle,#term-admin-shell')) return;
+  _toggleOutputDrawer();
+});
 
 document.getElementById('output-clear').addEventListener('click', e => {
   e.stopPropagation();
