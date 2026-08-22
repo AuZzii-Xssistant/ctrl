@@ -1,8 +1,12 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Clipboard moved off navigator.clipboard entirely — WebView2 was showing its own permission prompt
+
+The terminal paste fix below worked, but used `navigator.clipboard.readText()` — which makes WebView2 pop its own native `"tauri.localhost wants to... [Block] [Allow]"` permission dialog, exactly the "this is secretly a browser" tell CLAUDE.md bans, caught by the user via a live screenshot. Added `tauri-plugin-clipboard-manager` (native Rust/OS clipboard access, zero browser permission UI) and swapped every `navigator.clipboard`/`document.execCommand('copy')` call site in the app to it — not just the terminal, but the same latent risk existed in `builder.js`, `env.js`, `scripts.js`, and `snippets.js` too, all fixed the same way via shared `writeClipboard`/`readClipboard` helpers exported from `app.js`.
+
 ## 2026-08-22 — Fixed: couldn't paste into the terminal at all, even elevated
 
-User-reported: no way to paste into the embedded terminal, including an admin-spawned one. Root cause was two gaps stacking: xterm's own default Ctrl+V handling wasn't reliable in this WebView2 embed, and the app's global "no native browser context menus" rule (`CLAUDE.md`) had no exception carved out for the terminal, so right-click-paste — the fallback every real console user reaches for — had nothing to fall back to either. Fixed both explicitly: `term.attachCustomKeyEventHandler` now intercepts Ctrl+V itself and pipes `navigator.clipboard.readText()` straight to the PTY, and a proper custom right-click menu (Paste/Copy, using the app's own context-menu component, not the browser's) is now wired up for the terminal specifically.
+User-reported: no way to paste into the embedded terminal, including an admin-spawned one. Root cause was two gaps stacking: xterm's own default Ctrl+V handling wasn't reliable in this WebView2 embed, and the app's global "no native browser context menus" rule (`CLAUDE.md`) had no exception carved out for the terminal, so right-click-paste — the fallback every real console user reaches for — had nothing to fall back to either. Fixed both explicitly: `term.attachCustomKeyEventHandler` now intercepts Ctrl+V itself and pipes clipboard text straight to the PTY, and a proper custom right-click menu (Paste/Copy, using the app's own context-menu component, not the browser's) is now wired up for the terminal specifically.
 
 ## 2026-08-22 — App Install icons: bundle locally, never push to the repo
 

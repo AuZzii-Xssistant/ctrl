@@ -1,5 +1,5 @@
 'use strict';
-import { esc, toast, showOutput, goPane, openModal, closeModal } from '../app.js';
+import { esc, toast, showOutput, goPane, openModal, closeModal, writeClipboard } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -664,7 +664,7 @@ document.getElementById('builder-clear-tab').addEventListener('click', _clearAll
 document.getElementById('builder-copy').addEventListener('click', async () => {
   const raw = document.getElementById('builder-code').textContent;
   if (!raw.trim()) { toast('Nothing to copy', 'err'); return; }
-  try { await navigator.clipboard.writeText(raw); toast('Copied', 'ok'); }
+  try { await writeClipboard(raw); toast('Copied', 'ok'); }
   catch { toast('Copy failed', 'err'); }
 });
 

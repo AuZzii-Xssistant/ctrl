@@ -1,4 +1,4 @@
-import { invoke, esc, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, groupBy, sectionHdr } from '../app.js';
+import { invoke, esc, paneHeader, toast, openModal, closeModal, confirmDialog, showContextMenu, groupBy, sectionHdr, writeClipboard } from '../app.js';
 
 let _data = [];
 
@@ -54,7 +54,7 @@ function _render(q) {
     e.stopPropagation();
     const s = _data.find(x => x.id === +btn.dataset.copyId);
     if (!s) return;
-    navigator.clipboard.writeText(s.content).then(() => toast(`Copied "${s.title}"`, 'ok')).catch(() => toast('Copy failed', 'err'));
+    writeClipboard(s.content).then(() => toast(`Copied "${s.title}"`, 'ok')).catch(() => toast('Copy failed', 'err'));
   }));
   body.querySelectorAll('[data-edit-id]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
@@ -79,7 +79,7 @@ function _render(q) {
       const s = _data.find(x => x.id === +card.dataset.id);
       if (!s) return;
       showContextMenu(e, [
-        { label: 'Copy', icon: 'ti-copy', fn: () => navigator.clipboard.writeText(s.content).then(() => toast('Copied', 'ok')) },
+        { label: 'Copy', icon: 'ti-copy', fn: () => writeClipboard(s.content).then(() => toast('Copied', 'ok')) },
         { label: 'Edit', icon: 'ti-pencil', fn: () => window._showSnippetModal(s) },
         '---',
         { label: 'Delete', icon: 'ti-trash', danger: true, fn: () => btn_del(s) },

@@ -5,6 +5,13 @@ export const invoke = window.__TAURI__.core.invoke;
 const { getCurrentWindow } = window.__TAURI__.window;
 const appWindow = getCurrentWindow();
 
+// Native clipboard plugin only — never navigator.clipboard.*. That API makes
+// WebView2 show its own "tauri.localhost wants to see text copied to the
+// clipboard" permission prompt, which is exactly the kind of browser tell
+// this app must never surface (CLAUDE.md: never expose WebView2 as what it
+// technically is).
+export const { writeText: writeClipboard, readText: readClipboard } = window.__TAURI__.clipboardManager;
+
 // ── Window controls ─────────────────────────────────────────────────────────
 // Closing (X button, Alt+F4) hides to tray rather than quitting — not obvious
 // at all, so ask every time unless the user has opted to remember a choice.
@@ -165,9 +172,9 @@ async function _spawnTab(shell) {
     if (!tab.runLock) invoke('pty_write', { tabId: id, data }).catch(() => {});
   });
 
-  const _paste = () => navigator.clipboard.readText()
+  const _paste = () => readClipboard()
     .then(text => { if (text && !tab.runLock) invoke('pty_write', { tabId: id, data: text }).catch(() => {}); })
-    .catch(() => toast('Paste failed — clipboard access blocked', 'err'));
+    .catch(() => toast('Paste failed', 'err'));
 
   // xterm's own default Ctrl+V handling isn't reliable in this WebView2 embed —
   // intercept it explicitly and pipe the clipboard straight to the PTY.
@@ -190,7 +197,7 @@ async function _spawnTab(shell) {
       { label: 'Copy', icon: 'ti-copy', fn: () => {
         const sel = term.getSelection();
         if (!sel) { toast('Select text first', 'info'); return; }
-        navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
+        writeClipboard(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
       } },
     ]);
   });
@@ -498,16 +505,7 @@ document.getElementById('output-copy').addEventListener('click', e => {
   e.stopPropagation();
   const sel = _activeTab()?.term.getSelection();
   if (!sel) { toast('Select text first', 'info'); return; }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = sel;
-    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    toast('Copied', 'ok');
-  } catch { toast('Copy failed', 'err'); }
+  writeClipboard(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
 });
 
 // ── Admin elevation state ─────────────────────────────────────────────────────

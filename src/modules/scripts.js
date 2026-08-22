@@ -1,4 +1,4 @@
-import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun, recordStep } from '../app.js';
+import { esc, toast, openModal, closeModal, confirmDialog, showContextMenu, showOutput, acquireRun, releaseRun, stopCurrentRun, recordStep, writeClipboard } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 const { listen } = window.__TAURI__.event;
@@ -456,7 +456,7 @@ function _ctxMenu(e, id) {
     { label: 'Manage Profiles', icon: 'ti-folders',       fn: () => _profilePicker(id) },
     '---',
     { label: s.enabled ? 'Disable' : 'Enable', icon: s.enabled ? 'ti-player-pause' : 'ti-player-play', fn: () => _toggleScripts([id]) },
-    { label: 'Copy Content', icon: 'ti-clipboard', fn: () => { navigator.clipboard.writeText(s.content || ''); toast('Copied', 'ok'); } },
+    { label: 'Copy Content', icon: 'ti-clipboard', fn: () => { writeClipboard(s.content || ''); toast('Copied', 'ok'); } },
     '---',
     { label: 'Run',         icon: 'ti-player-play', fn: () => _runOne(id, false) },
     { label: 'Run as Admin', icon: 'ti-shield',     fn: () => _runOne(id, true) },

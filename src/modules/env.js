@@ -1,4 +1,4 @@
-import { esc, paneHeader, toast, openModal, closeModal, confirmDialog } from '../app.js';
+import { esc, paneHeader, toast, openModal, closeModal, confirmDialog, writeClipboard } from '../app.js';
 
 const inv = window.__TAURI__.core.invoke;
 
@@ -89,7 +89,7 @@ function _render(q) {
   }));
   body.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
-    navigator.clipboard.writeText(btn.dataset.copy).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
+    writeClipboard(btn.dataset.copy).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
   }));
   body.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async e => {
     e.stopPropagation();
