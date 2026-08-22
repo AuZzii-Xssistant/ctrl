@@ -19,6 +19,7 @@ desktop.ini
 
 docs/# Problems.md
 docs/LOOP-STATE.md
+docs/flags.md
 
 # Real third-party app logos (tools/icon-fetch.py) -- fine to bundle into a
 # local build, never to commit/push. Run tools/icon-fetch.py yourself before
