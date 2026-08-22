@@ -24,3 +24,6 @@ docs/LOOP-STATE.md
 # local build, never to commit/push. Run tools/icon-fetch.py yourself before
 # building if you want icons in Builder's App Install list; see CONTRIBUTING.md.
 src/assets/app-icons/
+
+# Python bytecode cache from running tools/*.py
+__pycache__/
