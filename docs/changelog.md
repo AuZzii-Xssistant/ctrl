@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Real app icons in Builder's App Install list, fetched offline-safe
+
+User-requested, and explicit about the app staying fully offline at runtime: new maintainer tool `tools/icon-fetch.py` fetches real icons for Builder's ~210 App Install entries (winget CLI locally for each package's homepage, then a favicon fetch for that domain) and caches them as static PNGs under `src/assets/app-icons/<app id>.png` — a one-time, maintainer-only, build-time step, same as `update-winscript.bat`. The shipped app never touches the network for this; Builder just references `assets/app-icons/<id>.png` and silently falls back to no icon (today's behavior) if the file isn't cached, no JSON schema change needed. First run: 153/210 apps got a real icon; the rest had no resolvable homepage or no favicon available and keep the plain label (fine — re-running later, or `--force`, can improve coverage without any code change).
+
 ## 2026-08-22 — Corrected terminal header reorder + Run All confirmation
 
 The previous terminal-drawer change (below) misread the request — it moved clear/copy/admin to a new footer under the terminal and the shell-picker buttons into the tab sidebar. What was actually wanted: keep everything in the same top header row, just reorder left-to-right — clear/copy/admin now come first (right after the title), a divider, then the new-terminal shell buttons pushed to the far right (room to grow if more shells are added later, e.g. Python). Reverted the footer/sidebar split back to the original single-row header, nothing was deleted — same IDs, same click handlers throughout, just relocated within the row.

@@ -18,6 +18,7 @@ Contributions and issues are welcome. This is a small, actively-changing persona
 Other scripts in the repo root:
 - **`sandbox.bat`** — runs against a separate `sandbox.db` with `CTRL_SANDBOX=1` set, which makes fixes/scripts/tweaks/builder/backup/env-var-edits/profiles return a dry-run preview (or silent no-op) instead of actually executing. Use this to poke around without touching your real system.
 - **`update-winscript.bat`** — regenerates `data/builder/*.json` from a WinScript reference checkout (`tools/winscript-import.py` + `tools/winscript-converter.js`); only relevant if you're re-syncing Builder's ported action set.
+- **`tools/icon-fetch.py`** (no `.bat` wrapper yet, run directly with `python tools/icon-fetch.py`) — fetches real app icons for Builder's App Install list and caches them as static PNGs under `src/assets/app-icons/<app id>.png`. Maintainer-only, requires the `winget` CLI and network access on the machine running it; the *shipped app* never does this and stays fully offline — icons already fetched are just bundled assets like any other image. Skips apps whose icon is already cached; pass `--force` to refresh everything. Re-run after adding new apps to `data/builder/08-apps.json`.
 - **`republish.bat`** — deletes and recreates the current version's GitHub release/tag from a fresh local build, always as a pre-release. Maintainer-only.
 - **`commit.bat`** — a thin `git add -A && git commit && git push` convenience wrapper.
 
