@@ -165,6 +165,36 @@ async function _spawnTab(shell) {
     if (!tab.runLock) invoke('pty_write', { tabId: id, data }).catch(() => {});
   });
 
+  const _paste = () => navigator.clipboard.readText()
+    .then(text => { if (text && !tab.runLock) invoke('pty_write', { tabId: id, data: text }).catch(() => {}); })
+    .catch(() => toast('Paste failed — clipboard access blocked', 'err'));
+
+  // xterm's own default Ctrl+V handling isn't reliable in this WebView2 embed —
+  // intercept it explicitly and pipe the clipboard straight to the PTY.
+  term.attachCustomKeyEventHandler(e => {
+    if (e.type === 'keydown' && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+      _paste();
+      return false;
+    }
+    return true;
+  });
+
+  // The app disables native right-click menus everywhere (CLAUDE.md) with no
+  // exception for the terminal, so right-click-paste (the convention every
+  // real console supports) had nothing to fall back on. Give it a real menu.
+  div.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    showContextMenu(e, [
+      { label: 'Paste', icon: 'ti-clipboard', fn: _paste },
+      { label: 'Copy', icon: 'ti-copy', fn: () => {
+        const sel = term.getSelection();
+        if (!sel) { toast('Select text first', 'info'); return; }
+        navigator.clipboard.writeText(sel).then(() => toast('Copied', 'ok')).catch(() => toast('Copy failed', 'err'));
+      } },
+    ]);
+  });
+
   const u1 = await listen(`pty-data-${id}`, e => term.write(e.payload));
   const u2 = await listen(`pty-exit-${id}`, () => {
     tab.started  = false;

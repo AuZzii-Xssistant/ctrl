@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — Fixed: couldn't paste into the terminal at all, even elevated
+
+User-reported: no way to paste into the embedded terminal, including an admin-spawned one. Root cause was two gaps stacking: xterm's own default Ctrl+V handling wasn't reliable in this WebView2 embed, and the app's global "no native browser context menus" rule (`CLAUDE.md`) had no exception carved out for the terminal, so right-click-paste — the fallback every real console user reaches for — had nothing to fall back to either. Fixed both explicitly: `term.attachCustomKeyEventHandler` now intercepts Ctrl+V itself and pipes `navigator.clipboard.readText()` straight to the PTY, and a proper custom right-click menu (Paste/Copy, using the app's own context-menu component, not the browser's) is now wired up for the terminal specifically.
+
 ## 2026-08-22 — App Install icons: bundle locally, never push to the repo
 
 Corrected the shape of the two entries below after user re-review: bundling real third-party app logos (Chrome/Discord/Steam/etc) into a local build is fine, but they shouldn't be committed to the public GitHub repo itself. `src/assets/app-icons/` is now gitignored and untracked — the 153 cached PNGs stay on disk and still get bundled into whoever's local build produces `ctrl.exe`, but the repo's tracked tree (and GitHub's file browser) show nothing there. Anyone building from a fresh clone gets no icons until they run `tools/icon-fetch.py` themselves (documented in CONTRIBUTING.md); Builder's ">_" fallback covers the gap either way.
