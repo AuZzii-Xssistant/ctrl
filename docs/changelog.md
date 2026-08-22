@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-22 — App Install icons: bundle locally, never push to the repo
+
+Corrected the shape of the two entries below after user re-review: bundling real third-party app logos (Chrome/Discord/Steam/etc) into a local build is fine, but they shouldn't be committed to the public GitHub repo itself. `src/assets/app-icons/` is now gitignored and untracked — the 153 cached PNGs stay on disk and still get bundled into whoever's local build produces `ctrl.exe`, but the repo's tracked tree (and GitHub's file browser) show nothing there. Anyone building from a fresh clone gets no icons until they run `tools/icon-fetch.py` themselves (documented in CONTRIBUTING.md); Builder's ">_" fallback covers the gap either way.
+
 ## 2026-08-22 — App Install icon fallback: ">_" placeholder instead of blank space
 
 Apps with no cached icon (57 of 210) just left blank space where the icon would be — inconsistent-looking, especially scanning down a category with mixed rows. Now shows a ">_" placeholder in the app's amber brand color where the icon would be, same size as a real icon, no background — same treatment CTRL's own logo uses.

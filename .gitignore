@@ -19,3 +19,8 @@ desktop.ini
 
 docs/# Problems.md
 docs/LOOP-STATE.md
+
+# Real third-party app logos (tools/icon-fetch.py) -- fine to bundle into a
+# local build, never to commit/push. Run tools/icon-fetch.py yourself before
+# building if you want icons in Builder's App Install list; see CONTRIBUTING.md.
+src/assets/app-icons/

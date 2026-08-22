@@ -5,9 +5,14 @@ and caches them as local PNGs under src/assets/app-icons/<app id>.png.
 This is a build-time maintainer tool, not something the shipped app ever runs --
 CTRL stays fully offline at runtime. Icons are looked up once here (winget CLI
 locally for each package's homepage, then a favicon fetch for that homepage's
-domain) and committed as static assets, same as any other bundled image. Builder
-just references assets/app-icons/<id>.png and falls back to no icon (today's
-behavior) if the file doesn't exist -- no JSON schema change needed.
+domain) and cached as static PNGs. Builder just references
+assets/app-icons/<id>.png and falls back to a ">_" placeholder if the file
+doesn't exist -- no JSON schema change needed.
+
+src/assets/app-icons/ is gitignored on purpose -- these are real third-party
+app logos (Chrome/Discord/Steam/etc), fine to bundle into your own local
+build, but never committed/pushed to the public repo. Run this script
+yourself before building if you want icons in Builder's App Install list.
 
 Requires: winget CLI available locally (winget show --id <pkg>), network access.
 Re-run after adding new apps to 08-apps.json, or with --force to refresh all.
