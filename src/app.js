@@ -21,7 +21,7 @@ const CLOSE_PREF_KEY = 'ctrl_close_action'; // 'tray' | 'quit'
 // stays alive, whatever's running keeps running in the background. Only the
 // quit path needs a running-check, and only right before it actually fires.
 async function _quitMaybeConfirm() {
-  if (_tabs.some(t => t.runLock)) {
+  if (_tabs.some(t => t.runLock || t.shellBusy)) {
     const ok = await confirmDialog('A script or process is currently running. Quitting now will stop it immediately, with no chance to finish. Quit anyway?', true);
     if (!ok) return;
   }
@@ -179,11 +179,27 @@ async function _spawnTab(shell) {
   term.loadAddon(fit);
   term.open(div);
 
+  // shellBusy tracks manually-typed commands (runLock only covers CTRL's own
+  // dispatched runs) via OSC 133 shell-integration markers PowerShell tabs are
+  // started with (terminal.rs's SHELL_INTEGRATION_CMD) -- starts true (assume
+  // busy/unknown) until the first real prompt (marker B) proves otherwise. Only
+  // PS-family shells ever emit these; CMD/WSL/Git Bash tabs stay "busy" forever,
+  // which is the correct conservative fallback for a shell we can't instrument.
   const tab = { id, name: _shellLabel(shell.name), shell, term, fit, div,
-                started: false, runLock: false, unlisten: [], lastCols: 0, lastRows: 0 };
+                started: false, runLock: false, shellBusy: true, unlisten: [], lastCols: 0, lastRows: 0 };
+
+  term.parser.registerOscHandler(133, data => {
+    if (data[0] === 'B') tab.shellBusy = false;
+    return true;
+  });
 
   term.onData(data => {
-    if (!tab.runLock) invoke('pty_write', { tabId: id, data }).catch(() => {});
+    if (!tab.runLock) {
+      // Optimistic: mark busy the instant Enter is sent from an idle prompt --
+      // confirmed idle again only once the next real prompt (marker B) shows up.
+      if (!tab.shellBusy && /[\r\n]/.test(data)) tab.shellBusy = true;
+      invoke('pty_write', { tabId: id, data }).catch(() => {});
+    }
   });
 
   const _paste = () => readClipboard()

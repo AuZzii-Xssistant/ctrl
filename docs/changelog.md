@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-23 — Real OSC 133 shell integration: Quit now knows about manually-typed commands too
+
+Follow-on to the earlier quit-confirmation fix, which only covered runs CTRL itself dispatched. Built real per-tab shell integration using OSC 133 "FinalTerm" prompt markers — same technique VSCode/Windows Terminal use. PowerShell tabs (PS7/PS5) start with a wrapped `prompt` function emitting `A`/`B` markers around whatever the real prompt renders (Starship or default, unchanged either way, just wrapped). Frontend registers `term.parser.registerOscHandler(133, ...)` per tab (`allowProposedApi: true` was already set) and tracks a `shellBusy` flag: starts `true` until the first real idle prompt proves otherwise, flips busy again the instant Enter is sent from idle. `_quitMaybeConfirm()` now checks this alongside `runLock`. CMD/WSL/Git Bash tabs never get the injection and stay permanently "busy" by design — correct conservative fallback, not a gap.
+
 ## 2026-08-23 — Release-1 punch-list batch: 7 fixes shipped in one cycle
 
 Started working through a user-maintained `flags.md` punch list (gitignored, tick-to-approve workflow). This batch:

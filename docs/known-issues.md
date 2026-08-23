@@ -1,5 +1,8 @@
 # Known Issues & Limitations
 
+### ~~Manually-typed terminal commands still got killed silently by Quit~~ ✅ Resolved (2026-08-23) — awaiting user confirmation via flags.md
+Real OSC 133 shell-integration, per-tab. `terminal.rs`'s PowerShell tabs (PS7/PS5) start with a wrapped `prompt` function emitting `A`/`B` markers around the real prompt (Starship or default, unchanged either way); frontend registers a per-tab `term.parser.registerOscHandler(133, ...)` and tracks a `shellBusy` flag per tab, starting `true` until the first real idle prompt (`B`) proves otherwise, flipping busy again the instant Enter is sent. `_quitMaybeConfirm()` checks `runLock || shellBusy` now. CMD/WSL/Git Bash tabs never get the injection and stay permanently "busy" by design — the safe fallback for a shell CTRL can't instrument. **Unverified live** — no Windows session here to confirm the OSC markers actually round-trip correctly through a real PowerShell/Starship prompt. This entry will be deleted (not kept) once confirmed via `docs/flags.md`.
+
 ### ~~Release-1 punch-list batch: 7 fixes~~ ✅ Resolved (2026-08-23) — awaiting user confirmation via flags.md
 Delete-time workflow-usage warning (new `find_workflows_using_item`), scheduled-trigger day-skip fix (`sched_time <= now` + last-fired-today guard), `ctrl-cli --steps` real shape validation (via a now-`pub` `Step`), Builder ghost-ID cleanup on load, global search cap 5→10, orphaned `winscript-import.json` moved to `data/`, audio-endpoint failure message now gives the exact fix command. Full detail in `docs/changelog.md`. This entry will be deleted (not kept) once each corresponding `flags.md` item gets confirmed working — see `docs/flags.md`'s own conventions for why.
 

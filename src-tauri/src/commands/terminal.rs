@@ -70,6 +70,16 @@ pub struct ShellInfo {
 const HISTORY_FILTER_CMD: &str =
     "Set-PSReadLineOption -AddToHistoryHandler { param($line) -not ($line -like '*\\ctrl_*wrap*.ps1*') }";
 
+// OSC 133 "shell integration" markers (same technique VSCode's/Windows Terminal's
+// PowerShell integration uses) -- wraps whatever prompt function is already active
+// (Starship or the PS default, doesn't matter which) so the frontend can register
+// an OSC handler and know exactly when a prompt is showing (idle, safe to quit)
+// vs not (something's running). Only A (prompt start) and B (prompt end / input
+// starts) are emitted here -- that's enough for idle/busy tracking without needing
+// a PSReadLine key-handler for a "command started" marker too: app.js infers "busy"
+// the instant Enter is sent while idle, and confirms "idle" again on the next B.
+const SHELL_INTEGRATION_CMD: &str = "$Global:__CtrlOrigPrompt = $function:prompt; function global:prompt { $ec = $global:LASTEXITCODE; $out = \"`e]133;D;$ec`a`e]133;A`a\"; $out += (& $Global:__CtrlOrigPrompt); $out += \"`e]133;B`a\"; $out }";
+
 #[tauri::command]
 pub fn list_shells() -> Vec<ShellInfo> {
     let mut shells = Vec::new();
@@ -81,7 +91,7 @@ pub fn list_shells() -> Vec<ShellInfo> {
                 "-NoLogo".into(),
                 "-NoExit".into(),
                 "-Command".into(),
-                HISTORY_FILTER_CMD.into(),
+                format!("{HISTORY_FILTER_CMD}; {SHELL_INTEGRATION_CMD}"),
             ],
         });
     }
