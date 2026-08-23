@@ -138,7 +138,7 @@ fn which(name: &str) -> Option<String> {
 
 // ── PTY state — keyed by tab_id ───────────────────────────────────────────────
 
-pub(crate) struct PtySession {
+pub struct PtySession {
     pub writer: Box<dyn Write + Send>,
     pub master: Box<dyn MasterPty + Send>,
     pub child: Box<dyn Child + Send + Sync>,

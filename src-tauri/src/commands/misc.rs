@@ -70,7 +70,7 @@ pub fn global_search(state: State<AppState>, query: String) -> Result<SearchResu
             Ok(r) => r,
             Err(_) => return vec![],
         };
-        rows.filter_map(|r| r.ok()).take(5).collect()
+        rows.filter_map(|r| r.ok()).take(10).collect()
     };
     Ok(SearchResults {
         tools:        search("SELECT 'tool',id,name,category FROM tools WHERE lower(name) LIKE ?1 OR lower(tags) LIKE ?1"),

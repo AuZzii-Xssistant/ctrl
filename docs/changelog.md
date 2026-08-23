@@ -1,5 +1,18 @@
 # >_ CTRL Changelog
 
+## 2026-08-23 — Release-1 punch-list batch: 7 fixes shipped in one cycle
+
+Started working through a user-maintained `flags.md` punch list (gitignored, tick-to-approve workflow). This batch:
+- **Delete-time workflow-usage warning**: new `find_workflows_using_item` command scans every workflow's steps for a matching script/fix; Fixes' and Scripts' delete confirms now name which workflow(s) will break, before you delete instead of finding out when it next fails to run.
+- **Scheduled workflow triggers no longer silently skip a whole day**: `fire_matching` checks `sched_time <= now` (catches up after a missed poll) guarded by a real "already fired today" check against `last_run_at`'s date, replacing the old brittle exact-`HH:MM`-match. `chrono_local_hhmm_dow()` now also returns today's local date from the same `GetLocalTime` call.
+- **`ctrl-cli add workflow --steps` now validates the real shape**, not just "is this JSON" — deserializes into the actual `Step` struct the app runs against (made `Step` and the `commands` module `pub` so the CLI binary can reuse it directly, no duplicated copy to drift out of sync).
+- **Builder's saved app selection no longer references ghost IDs** — `load()` drops any saved ID that's no longer in `data/builder/08-apps.json` the moment fresh data arrives.
+- **Global search cap raised 5 → 10 results per category.**
+- **Orphaned `winscript-import.json` moved out of the repo root** into `data/`; the orphaned generator tool's own output path updated to match.
+- **Audio-endpoint switching's failure message now tells you exactly what to run** (`Install-Module AudioDeviceCmdlets -Scope CurrentUser`) instead of a generic "needs the module" warning — did not bundle the module itself, same copyright-caution class as the app-icons situation, license unconfirmed.
+
+Also researched and documented (not code, a real answer): **Windows System Image Manager**, part of the free Microsoft Windows ADK, is the authoritative tool for validating a generated `unattend.xml`'s syntax/schema (Tools → Validate) before burning a real VM/USB test on it.
+
 ## 2026-08-23 — Quit no longer force-kills a running script with zero warning
 
 User-reported: closing CTRL with a remembered "Quit" choice (or the tray's own Quit) killed the whole process instantly, including any script/fix/tweak/workflow mid-run, no confirmation at all. Two call sites had this: `_confirmClose()`'s quit paths in `app.js`, and the tray menu's "Quit CTRL" item in `tray.rs`, which bypassed the frontend entirely by calling `app.exit(0)` directly. Both now go through a shared `_quitMaybeConfirm()` that checks if anything's running (any tab holding `runLock`) and confirms before actually exiting — tray's quit now emits an event for the frontend to decide, same pattern the window's native X-close already used. Minimize-to-tray was never affected; it's always been non-destructive.

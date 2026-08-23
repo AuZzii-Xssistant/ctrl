@@ -37,8 +37,10 @@ pub struct StepResult {
     pub output: String,
 }
 
+/// pub so ctrl-cli can validate --steps shape at add-time instead of letting
+/// a malformed value silently fail only when the workflow tries to run.
 #[derive(Deserialize, Debug)]
-struct Step {
+pub struct Step {
     step_type: String, // "script" | "fix" | "notify" | "wait"
     item_id: Option<i64>,
     label: String,
@@ -47,6 +49,39 @@ struct Step {
     body: Option<String>,
     // wait field
     seconds: Option<u64>,
+}
+
+/// Names of every workflow whose steps reference this script/fix -- lets the
+/// Scripts/Fixes pane warn before delete instead of leaving a dangling step
+/// nobody finds out about until the workflow next runs and that step fails.
+#[tauri::command]
+pub fn find_workflows_using_item(
+    state: State<AppState>,
+    item_type: String,
+    item_id: i64,
+) -> Result<Vec<String>, String> {
+    let db = state.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db
+        .prepare("SELECT name, steps FROM workflows")
+        .map_err(|e| e.to_string())?;
+    let rows: Vec<(String, String)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(rows
+        .into_iter()
+        .filter(|(_, steps_json)| {
+            serde_json::from_str::<Vec<Step>>(steps_json)
+                .map(|steps| {
+                    steps
+                        .iter()
+                        .any(|s| s.step_type == item_type && s.item_id == Some(item_id))
+                })
+                .unwrap_or(false)
+        })
+        .map(|(name, _)| name)
+        .collect())
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
@@ -300,37 +335,45 @@ pub fn start_workflow_scheduler(app: tauri::AppHandle) {
         // Poll every 60s for schedule triggers
         loop {
             std::thread::sleep(std::time::Duration::from_secs(60));
-            let (now, dow) = chrono_local_hhmm_dow();
-            fire_matching(&app, "schedule", Some((&now, dow)));
+            let (now, dow, today) = chrono_local_hhmm_dow();
+            fire_matching(&app, "schedule", Some((&now, dow, &today)));
         }
     });
 }
 
-fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<(&str, u64)>) {
+fn fire_matching(app: &tauri::AppHandle, trigger_type: &str, hhmm: Option<(&str, u64, &str)>) {
     let state = app.state::<AppState>();
-    let ids: Vec<(i64, String)> = {
+    let ids: Vec<(i64, String, Option<String>)> = {
         let Ok(db) = state.0.lock() else { return };
-        let Ok(mut stmt) = db
-            .prepare("SELECT id,trigger_config FROM workflows WHERE enabled=1 AND trigger_type=?1")
-        else {
+        let Ok(mut stmt) = db.prepare(
+            "SELECT id,trigger_config,last_run_at FROM workflows WHERE enabled=1 AND trigger_type=?1",
+        ) else {
             return;
         };
         stmt.query_map(params![trigger_type], |r| {
-            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?))
         })
         .ok()
         .map(|rows| rows.filter_map(|r| r.ok()).collect())
         .unwrap_or_default()
     };
 
-    for (id, config) in ids {
+    for (id, config, last_run_at) in ids {
         let should_run = match hhmm {
             None => true, // startup — always run
-            Some((now, dow)) => {
+            Some((now, dow, today)) => {
                 // config JSON: {"time":"09:00"} or {"days":[1,3,5],"time":"07:30"}
                 let v: serde_json::Value = serde_json::from_str(&config).unwrap_or_default();
                 let sched_time = v["time"].as_str().unwrap_or("00:00");
-                sched_time == now && check_days(&v, dow)
+                // <= instead of == so a missed exact minute (sleep/wake, slow prior
+                // run) still fires on the next poll instead of silently skipping the
+                // whole day. The last-fired-today guard is what stops it firing on
+                // every single poll after the threshold passes.
+                let already_fired_today = last_run_at
+                    .as_deref()
+                    .and_then(|s| s.get(0..10))
+                    .is_some_and(|d| d == today);
+                sched_time <= now && check_days(&v, dow) && !already_fired_today
             }
         };
         if should_run {
@@ -353,11 +396,12 @@ fn check_days(config: &serde_json::Value, weekday: u64) -> bool {
     days.iter().any(|d| d.as_u64() == Some(weekday))
 }
 
-/// Local HH:MM plus day-of-week (0=Sun..6=Sat, same convention `check_days`'
-/// `days` array uses). Both read from one GetLocalTime call — `check_days`
+/// Local HH:MM, day-of-week (0=Sun..6=Sat, same convention `check_days`'
+/// `days` array uses), and local YYYY-MM-DD (for the last-fired-today guard
+/// in `fire_matching`). All three from one GetLocalTime call — `check_days`
 /// used to recompute weekday separately from UTC epoch seconds, which drifted
 /// a day off local near midnight for any timezone not UTC+0.
-fn chrono_local_hhmm_dow() -> (String, u64) {
+fn chrono_local_hhmm_dow() -> (String, u64, String) {
     #[repr(C)]
     #[allow(clippy::upper_case_acronyms)] // mirrors the real Win32 SYSTEMTIME struct name
     struct SYSTEMTIME {
@@ -385,6 +429,10 @@ fn chrono_local_hhmm_dow() -> (String, u64) {
             ms: 0,
         };
         GetLocalTime(&mut t);
-        (format!("{:02}:{:02}", t.hour, t.min), t.dow as u64)
+        (
+            format!("{:02}:{:02}", t.hour, t.min),
+            t.dow as u64,
+            format!("{:04}-{:02}-{:02}", t.year, t.month, t.day),
+        )
     }
 }

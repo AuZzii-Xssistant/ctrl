@@ -9,7 +9,7 @@ const vm = require('vm');
 const ROOT = path.join(__dirname, '../../winscript-ref');
 const SCRIPTS_JS = path.join(ROOT, 'app/src/assets/js/scripts.js');
 const EN_JSON    = path.join(ROOT, 'app/src/i18n/locales/en.json');
-const OUT        = path.join(__dirname, '../winscript-import.json');
+const OUT        = path.join(__dirname, '../data/winscript-import.json');
 
 // --- Extract the `scripts` object from scripts.js via bracket counting ---
 const src = fs.readFileSync(SCRIPTS_JS, 'utf8');

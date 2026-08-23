@@ -146,7 +146,11 @@ async function _showHistory(itemType, id, name) {
 }
 
 async function _delete(id) {
-  const ok = await confirmDialog('Remove this quick fix?', true);
+  const usedBy = await inv('find_workflows_using_item', { itemType: 'fix', itemId: id }).catch(() => []);
+  const msg = usedBy.length
+    ? `Remove this quick fix? It's used by workflow${usedBy.length===1?'':'s'} "${usedBy.join('", "')}" — that step will fail next time they run.`
+    : 'Remove this quick fix?';
+  const ok = await confirmDialog(msg, true);
   if (!ok) return;
   await inv('delete_fix', { id });
   toast('Fix removed', 'info');

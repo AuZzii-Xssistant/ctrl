@@ -69,6 +69,12 @@ export async function load() {
     const all = r.categories || [];
     _appsCat = all.find(c => c.id === 'apps') || null;
     _cats = all.filter(c => c.id !== 'apps');
+    // Saved selections reference app IDs by string -- if data/builder/08-apps.json
+    // changed since the save (IDs added/removed/renamed), drop anything that no
+    // longer exists instead of carrying a stale ghost selection forever.
+    const liveIds = new Set((_appsCat?.categories || []).flatMap(c => c.apps.map(a => a.id)));
+    for (const id of [..._appsSel]) if (!liveIds.has(id)) _appsSel.delete(id);
+    localStorage.setItem('ctrl_builder_apps', JSON.stringify([..._appsSel]));
   } catch (e) {
     _cats = [];
     console.error('builder load', e);

@@ -1,4 +1,4 @@
-mod commands;
+pub mod commands;
 mod db;
 
 use rusqlite::Connection;
@@ -132,6 +132,7 @@ pub fn run() {
             commands::window::toggle_maximize,
             commands::window::exit_app,
             commands::workflows::get_workflows,
+            commands::workflows::find_workflows_using_item,
             commands::workflows::add_workflow,
             commands::workflows::update_workflow,
             commands::workflows::delete_workflow,

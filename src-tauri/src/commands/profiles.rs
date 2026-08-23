@@ -290,7 +290,7 @@ fn build_activate_script(items: &[ProfileItem]) -> String {
                 // Best-effort: no built-in cmdlet. Works only if the AudioDeviceCmdlets
                 // module is installed. Documented limitation, not a bug.
                 s.push_str(&format!(
-                    "try {{ Import-Module AudioDeviceCmdlets -ErrorAction Stop; Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -like '*{v}*' }} | Select-Object -First 1 | ForEach-Object {{ Set-AudioDevice -ID $_.ID }} }} catch {{ Write-Warning \"audio device change failed (needs AudioDeviceCmdlets module): $_\" }}\n",
+                    "try {{ Import-Module AudioDeviceCmdlets -ErrorAction Stop; Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -like '*{v}*' }} | Select-Object -First 1 | ForEach-Object {{ Set-AudioDevice -ID $_.ID }} }} catch {{ Write-Warning \"audio device change failed -- run Install-Module AudioDeviceCmdlets -Scope CurrentUser once, then retry: $_\" }}\n",
                     v = esc_ps(&it.value)
                 ));
             }
@@ -363,7 +363,7 @@ fn build_restore_script(snap: &Snapshot) -> String {
     }
     if !snap.audio_device.is_empty() {
         s.push_str(&format!(
-            "try {{ Import-Module AudioDeviceCmdlets -ErrorAction Stop; Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -eq '{v}' }} | Select-Object -First 1 | ForEach-Object {{ Set-AudioDevice -ID $_.ID }} }} catch {{ Write-Warning \"audio restore failed: $_\" }}\n",
+            "try {{ Import-Module AudioDeviceCmdlets -ErrorAction Stop; Get-AudioDevice -List | Where-Object {{ $_.Type -eq 'Playback' -and $_.Name -eq '{v}' }} | Select-Object -First 1 | ForEach-Object {{ Set-AudioDevice -ID $_.ID }} }} catch {{ Write-Warning \"audio restore failed -- run Install-Module AudioDeviceCmdlets -Scope CurrentUser once, then retry: $_\" }}\n",
             v = esc_ps(&snap.audio_device)
         ));
     }

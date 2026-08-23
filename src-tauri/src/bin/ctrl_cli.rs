@@ -394,8 +394,10 @@ fn add_workflow(conn: &Connection, flags: HashMap<String, String>) {
     let name = require(&flags, "name");
     let desc = get(&flags, "desc", "");
     let steps = get(&flags, "steps", "[]");
-    if let Err(e) = serde_json::from_str::<serde_json::Value>(&steps) {
-        eprintln!("--steps must be valid JSON: {}", e);
+    // Real shape check, not just "is this JSON at all" -- a wrong-shape value
+    // used to insert fine here and only fail silently at *run* time instead.
+    if let Err(e) = serde_json::from_str::<Vec<ctrl_lib::commands::workflows::Step>>(&steps) {
+        eprintln!("--steps doesn't match the expected step shape: {}", e);
         std::process::exit(1);
     }
     conn.execute(

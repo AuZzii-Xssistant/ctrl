@@ -594,7 +594,13 @@ async function _toggleSelected()  { _toggleScripts([...S.sel]); }
 
 async function _removeScripts(ids) {
   if (!ids.length) return;
-  const masterNote = S.profileId === null ? `Remove ${ids.length} script(s)? This permanently deletes them.` : `Remove ${ids.length} script(s) from this profile? Scripts not in any other profile are also deleted.`;
+  let masterNote = S.profileId === null ? `Remove ${ids.length} script(s)? This permanently deletes them.` : `Remove ${ids.length} script(s) from this profile? Scripts not in any other profile are also deleted.`;
+  const usedBy = new Set();
+  for (const id of ids) {
+    const wfs = await inv('find_workflows_using_item', { itemType: 'script', itemId: id }).catch(() => []);
+    wfs.forEach(w => usedBy.add(w));
+  }
+  if (usedBy.size) masterNote += ` Used by workflow${usedBy.size===1?'':'s'} "${[...usedBy].join('", "')}" — that step will fail next time they run.`;
   if (!await confirmDialog(masterNote, true)) return;
   await inv('ss_remove_scripts', { profileId: S.profileId, ids });
   _reload();
