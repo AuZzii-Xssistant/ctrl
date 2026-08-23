@@ -11,6 +11,11 @@ const GLOBAL_HOTKEY: &str = "CommandOrControl+Shift+Space";
 
 pub fn run() {
     tauri::Builder::default()
+        // A second launch focuses the existing window instead of opening a
+        // second process -- must be the first plugin registered.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            commands::tray::show_main_window(app);
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())

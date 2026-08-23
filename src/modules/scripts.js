@@ -673,8 +673,8 @@ async function _importProfile() {
   const json = await inv('ss_import_pick_file').catch(() => null);
   if (json === null) return;
   if (!json) return toast('Could not read file', 'err');
-  const added = await inv('ss_import_profile', { profileId: S.profileId, json }).catch(() => -1);
-  if (added < 0) return toast('Import failed', 'err');
+  const added = await inv('ss_import_profile', { profileId: S.profileId, json }).catch(err => { toast(String(err), 'err'); return -1; });
+  if (added < 0) return;
   toast(`Imported ${added} script(s)`, 'ok');
   _reload();
 }

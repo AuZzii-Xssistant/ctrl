@@ -25,6 +25,11 @@ async function _quitMaybeConfirm() {
     const ok = await confirmDialog('A script or process is currently running. Quitting now will stop it immediately, with no chance to finish. Quit anyway?', true);
     if (!ok) return;
   }
+  // portable-pty doesn't kill its child on drop, and an elevated Run As Admin
+  // console isn't even a true child process (UAC boundary) -- both would
+  // otherwise survive as orphans after exit_app tears the app down.
+  for (const t of _tabs) invoke('pty_close', { tabId: t.id }).catch(() => {});
+  if (_elevatedPid) { invoke('kill_process', { pid: _elevatedPid }).catch(() => {}); _elevatedPid = 0; }
   invoke('exit_app');
 }
 
@@ -287,6 +292,10 @@ async function _closeTab(id) {
   const idx = _tabs.findIndex(t => t.id === id);
   if (idx === -1) return;
   const tab = _tabs[idx];
+  if (tab.runLock || tab.shellBusy) {
+    const ok = await confirmDialog('A script or process is currently running in this tab. Closing it now will stop it immediately, with no chance to finish. Close anyway?', true);
+    if (!ok) return;
+  }
   for (const u of tab.unlisten) u();
   await invoke('pty_close', { tabId: id }).catch(() => {});
   tab.div.remove();

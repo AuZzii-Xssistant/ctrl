@@ -35,6 +35,7 @@ pub fn init(conn: &Connection) -> Result<()> {
         "
         PRAGMA journal_mode=WAL;
         PRAGMA foreign_keys=ON;
+        PRAGMA busy_timeout=5000;
     ",
     )?;
     create_tables(conn)?;

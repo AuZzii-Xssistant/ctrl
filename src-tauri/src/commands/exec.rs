@@ -209,6 +209,11 @@ pub async fn run_elevated(
     let exit_file = tmp(label, "exit", "txt");
     let sentinel = tmp(label, "sentinel", "txt");
     let pid_file = tmp(label, "pid", "txt");
+    // Captures the elevated process's real output into History (run_log) only --
+    // via Start-Transcript, which passively records the console without changing
+    // what runs or how it renders live. Never touches the embedded PTY/xterm --
+    // that's the class of bug the showOutput() rewrite already fixed once.
+    let log_file = tmp(label, "outlog", "txt");
 
     // The actual script content (run elevated)
     let cmd_content = match shell {
@@ -224,14 +229,19 @@ pub async fn run_elevated(
         Shell::Cmd => format!("cmd /c '{}'", esc_ps_path(&cmd_file)),
     };
     let exit_esc = esc_ps_path(&exit_file);
+    let log_esc = esc_ps_path(&log_file);
 
     // Elevated wrapper: runs script directly (no pipeline) so CONOUT$ tools like
     // sfc.exe, chkdsk etc. appear live in the external window, not just stdout.
+    // Start-Transcript passively records everything into log_file for History
+    // without changing what runs or how it renders live in that window.
     let elev_content = format!(
         "[Console]::OutputEncoding=[Text.Encoding]::UTF8\n\
+         try {{ Start-Transcript -Path '{log_esc}' -Force | Out-Null }} catch {{}}\n\
          $ec=0\n\
          try {{ {run_line}; $ec=if($LASTEXITCODE -ne $null){{$LASTEXITCODE}}else{{0}} }}\n\
          catch {{ Write-Host \"ERROR: $_\" -ForegroundColor Red; $ec=1 }}\n\
+         try {{ Stop-Transcript | Out-Null }} catch {{}}\n\
          $ec | Out-File -FilePath '{exit_esc}' -Encoding UTF8 -Force\n"
     );
     fs::write(&elev_wrap, &elev_content).map_err(|e| e.to_string())?;
@@ -289,7 +299,8 @@ pub async fn run_elevated(
     // writes it, so the Stop button can taskkill the external console directly.
     let app_pid = app.clone();
     let pid_file2 = pid_file.clone();
-    let success = tauri::async_runtime::spawn_blocking(move || {
+    let log_file2 = log_file.clone();
+    let (success, output) = tauri::async_runtime::spawn_blocking(move || {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
         let mut pid_emitted = false;
         loop {
@@ -308,7 +319,11 @@ pub async fn run_elevated(
                     .and_then(|s| s.trim().parse::<i64>().ok())
                     .unwrap_or(1);
                 let _ = fs::remove_file(&sentinel);
-                return ec == 0;
+                let output = fs::read_to_string(&log_file2)
+                    .map(|raw| clean_transcript(&raw))
+                    .unwrap_or_default();
+                let _ = fs::remove_file(&log_file2);
+                return (ec == 0, output);
             }
             if RUN_CANCELLED.swap(false, Ordering::SeqCst) {
                 // The PTY wrapper script self-deletes these on a normal finish, but a
@@ -319,19 +334,51 @@ pub async fn run_elevated(
                 let _ = fs::remove_file(&elev_wrap);
                 let _ = fs::remove_file(&exit_file);
                 let _ = fs::remove_file(&pty_wrap);
-                return false;
+                let _ = fs::remove_file(&log_file2);
+                return (false, String::new());
             }
             if std::time::Instant::now() > deadline {
-                return false;
+                return (false, String::new());
             }
         }
     })
     .await
-    .unwrap_or(false);
+    .unwrap_or((false, String::new()));
 
     app.emit("run-done", success).ok();
-    Ok(RunResult {
-        success,
-        output: String::new(),
-    })
+    Ok(RunResult { success, output })
+}
+
+/// Start-Transcript wraps real output in boilerplate header/footer lines --
+/// strip those so History (run_log) shows just what the elevated process
+/// actually printed, not PowerShell's own transcript metadata.
+fn clean_transcript(raw: &str) -> String {
+    raw.lines()
+        .filter(|l| {
+            let t = l.trim();
+            !(t.starts_with("****")
+                || t.starts_with("Windows PowerShell transcript")
+                || t.starts_with("Start time:")
+                || t.starts_with("End time:")
+                || t.starts_with("Username:")
+                || t.starts_with("RunAs User:")
+                || t.starts_with("Configuration Name:")
+                || t.starts_with("Machine:")
+                || t.starts_with("Host Application:")
+                || t.starts_with("Process ID:")
+                || t.starts_with("PSVersion:")
+                || t.starts_with("PSEdition:")
+                || t.starts_with("PSCompatibleVersions:")
+                || t.starts_with("PSRemotingProtocolVersion:")
+                || t.starts_with("SerializationVersion:")
+                || t.starts_with("CLRVersion:")
+                || t.starts_with("WSManStackVersion:")
+                || t.starts_with("BuildVersion:")
+                || t.starts_with("Transcript started,")
+                || t.starts_with("Transcript stopped,"))
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
 }

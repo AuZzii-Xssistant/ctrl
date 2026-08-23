@@ -52,6 +52,7 @@ fn main() {
         eprintln!("Cannot open {}: {}", db_path.display(), e);
         std::process::exit(1);
     });
+    let _ = conn.busy_timeout(std::time::Duration::from_secs(5));
 
     if rest.len() < 2 {
         print_usage();

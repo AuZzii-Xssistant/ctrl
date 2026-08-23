@@ -745,7 +745,7 @@ pub fn ss_import_profile(
         if let Some(arr) = val.get("scripts").and_then(|v| v.as_array()) {
             arr.iter().collect()
         } else {
-            return Ok(0);
+            return Err("Not a recognized ScriptStash export — no \"scripts\" array found".into());
         };
 
     let db = state.0.lock().map_err(|e| e.to_string())?;

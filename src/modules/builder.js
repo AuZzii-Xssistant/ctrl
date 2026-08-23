@@ -8,7 +8,11 @@ let _cats = [];
 let _presets = {};   // loaded from _meta.json via get_builder_actions
 let _activeTab = null;
 let _appsCat = null; // 08-apps.json data
-let _appsSel = new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]'));
+let _appsSel = _loadAppsSel();
+function _loadAppsSel() {
+  try { return new Set(JSON.parse(localStorage.getItem('ctrl_builder_apps') || '[]')); }
+  catch { return new Set(); }
+}
 let _pkgMgr = localStorage.getItem('ctrl_builder_pkgmgr') || 'winget';
 
 let _sel = new Set();
