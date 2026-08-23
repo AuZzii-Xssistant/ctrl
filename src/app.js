@@ -27,10 +27,13 @@ async function _quitMaybeConfirm() {
   }
   // portable-pty doesn't kill its child on drop, and an elevated Run As Admin
   // console isn't even a true child process (UAC boundary) -- both would
-  // otherwise survive as orphans after exit_app tears the app down.
-  for (const t of _tabs) invoke('pty_close', { tabId: t.id }).catch(() => {});
-  if (_elevatedPid) { invoke('kill_process', { pid: _elevatedPid }).catch(() => {}); _elevatedPid = 0; }
-  invoke('exit_app');
+  // otherwise survive as orphans after exit_app tears the app down. Must
+  // await these before exit_app -- unawaited invoke() calls race the IPC
+  // bridge and exit_app could reach Rust and terminate the process before
+  // these ever get processed, silently undoing the whole point of this.
+  await Promise.all(_tabs.map(t => invoke('pty_close', { tabId: t.id }).catch(() => {})));
+  if (_elevatedPid) { await invoke('kill_process', { pid: _elevatedPid }).catch(() => {}); _elevatedPid = 0; }
+  await invoke('exit_app');
 }
 
 function _confirmClose() {

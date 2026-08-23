@@ -1,5 +1,9 @@
 # >_ CTRL Changelog
 
+## 2026-08-23 — Self-caught: the exit-cleanup fix from earlier today had a race condition
+
+Self-review of the just-shipped "orphaned processes on exit" fix caught that `_quitMaybeConfirm()`'s `pty_close`/`kill_process` calls were fired without `await` before `invoke('exit_app')` — the Tauri IPC bridge doesn't guarantee ordering across unawaited calls, so `exit_app` could reach Rust and terminate the process before the cleanup calls were even processed, silently undoing the fix. Now `await`s `Promise.all(...)` over every tab's `pty_close` and the elevated-pid `kill_process` before calling (and awaiting) `exit_app`.
+
 ## 2026-08-23 — Release-1 punch-list batch: 7 more fixes from flags.md
 
 Second batch worked through the gitignored `flags.md` punch list this same day:
