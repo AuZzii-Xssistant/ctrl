@@ -151,6 +151,7 @@ The Scripts pane (profiles, Master, drag-reorder) runs entirely on the **ScriptS
 | Command | Payload | Returns |
 |---|---|---|
 | `get_workflows` | — | `Workflow[]` |
+| `find_workflows_using_item` | `{itemType, itemId}` | `string[]` — names of every workflow whose steps reference this script/fix; used by Fixes'/Scripts' delete confirms to warn before breaking a workflow step |
 | `add_workflow` | `{data: WorkflowData}` | `i64` |
 | `update_workflow` | `{id, data: WorkflowData}` | void |
 | `delete_workflow` | `{id}` | void |
